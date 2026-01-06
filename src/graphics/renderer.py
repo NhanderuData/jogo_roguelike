@@ -2,6 +2,7 @@
 import pygame
 from . import config
 from . import recursos
+import debug
 
 class Renderer:
     def __init__(self, camera):
@@ -128,3 +129,5 @@ class Renderer:
         
         for p in mapa_obj.projeteis: p.draw(surface, cam_x, cam_y)
         for e in mapa_obj.efeitos: e.draw(surface, cam_x, cam_y)
+        
+        debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
