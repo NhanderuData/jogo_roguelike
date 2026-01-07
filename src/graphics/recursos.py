@@ -66,6 +66,7 @@ def carregar_tudo():
     
     # Árvore: 16 quadros
     SPRITES["tree"] = carregar_spritesheet("tree.png", colunas=18, escala=2.0)
+    SPRITES["red_tree"] = carregar_spritesheet("RedTree.png",colunas=1,escala=2.0)
     SPRITES["grass"] = carregar_estatico("grass.png", escala=2.0)
     
     # --- ESTÁTICOS ---

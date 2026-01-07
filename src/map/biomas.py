@@ -13,13 +13,20 @@ def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
         tile.bloqueado = True
 
 def aplicar_bioma_ruinas(mapa, gx, gy, tile, rng):
-    """ Regras para o bioma de Trolls e Paredes """
     if rng < 8:
+        arv_vermelha = actor.ObjetoDestrutivel(gx, gy, "RedTree", hp=60)
+        mapa.entidades.append(arv_vermelha)
+        tile.bloqueado = True
+        
+    # 2. Spawn de Paredes com Relevo (8% de chance: 8 a 15)
+    elif rng < 16:
         tile.tipo = "parede"
         tile.bloqueado = True
-        tile.z_level = 1 # Ruínas costumam ter relevo
-    elif rng < 12:
-        tile.tipo = "terra" # Chão de ruína é mais sujo
+        tile.z_level = 1  # Mantém o relevo das ruínas
+        
+    # 3. Chão de Terra/Sujeira (10% de chance: 16 a 25)
+    elif rng < 26:
+        tile.tipo = "terra"
 
 def spawn_inimigos_por_bioma(mapa, ox, oy, tipo_bioma):
     """ Spawna os monstros certos no lugar certo """
