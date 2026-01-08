@@ -1,9 +1,3 @@
-import pygame
-from . import config
-from . import recursos
-from . import shaders
-import debug
-
 # src/graphics/renderer.py
 import pygame
 from . import config
@@ -67,13 +61,13 @@ class Renderer:
                 if img:
                     surface.blit(img, (screen_x, screen_y))
 
-                # --- LÓGICA DE SUAVIZAÇÃO (BLENDING) ---
-                # Se este tile é AZUL (Recessivo), verificamos se os vizinhos são GRAMA (Dominante)
+                # --- LÓGICA DE SUAVIZAÇÃO (CORRIGIDA) ---
                 if tile.tipo == "blue_ground":
                     
+                    # CORREÇÃO AQUI: Usar 'not in' em vez de '!='
                     # Vizinho de CIMA
                     viz_top = mapa_obj.obter_tile(x, y - 1)
-                    if viz_top and viz_top.tipo != ["blue_ground"]:
+                    if viz_top and viz_top.tipo not in ["blue_ground", "parede"]:
                         bord = recursos.SPRITES.get("border_top")
                         if bord: surface.blit(bord, (screen_x, screen_y))
 

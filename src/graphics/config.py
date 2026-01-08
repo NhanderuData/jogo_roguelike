@@ -1,4 +1,4 @@
-# src/config.py
+# src/graphics/config.py
 import pygame
 
 # Tela
@@ -25,9 +25,10 @@ AZUL = (50, 50, 200)
 AMARELO = (255, 255, 0)
 ROXO = (160, 32, 240)
 LARANJA = (255, 140, 0)
-AZUL_AGUA = (0, 191, 255)
+
+# --- COR DA ÁGUA ATUALIZADA ---
+AZUL_AGUA = (60, 160, 240) # Azul estilo "Minecraft" / Zelda
 MARROM_CASA = (139, 69, 19)
-VERDE_GRAMA = (60, 179, 113)
 
 # Gameplay
 VELOCIDADE_ANIMACAO = 0.15
