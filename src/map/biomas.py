@@ -4,7 +4,7 @@ from entities import actor
 
 def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
     """ Regras para o bioma de Orcs e Bétulas """
-    if rng < 10: 
+    if rng < 6: 
         arv = actor.ObjetoDestrutivel(gx, gy, "Arvore", hp=50)
         mapa.entidades.append(arv)
         tile.bloqueado = True 
@@ -13,7 +13,7 @@ def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
         tile.bloqueado = True
 
 def aplicar_bioma_ruinas(mapa, gx, gy, tile, rng):
-    if rng < 8:
+    if rng < 5:
         arv_vermelha = actor.ObjetoDestrutivel(gx, gy, "RedTree", hp=60)
         mapa.entidades.append(arv_vermelha)
         tile.bloqueado = True

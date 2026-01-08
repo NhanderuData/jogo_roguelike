@@ -62,7 +62,7 @@ class Mapa:
                 
                 # 2. Aplica elevação básica (pode ser modificada pelo bioma depois)
                 if tem_elevacao and 8 < x < 22 and 8 < y < 22:
-                    tile.z_level = 1
+                    tile.z_leavel = 1
                     tile.tipo = "terra"
 
                 # 3. CHAMA A LÓGICA DO BIOMA (Usa as funções do biomas.py)
@@ -77,13 +77,19 @@ class Mapa:
 
     def update(self):
         for ent in self.entidades[:]:
-            ent.update()
+            # 1. IA Roda Primeiro (Decide para onde vai)
             ent.update_ia(self)
+
+            # 2. Atualização Física Roda Depois (Move e ajusta Hitbox)
+            # O erro estava aqui: agora passamos 'self' (o objeto mapa)
+            ent.update(self) 
+
             if ent.hp <= 0:
                 if ent != self.jogador:
                     self.jogador.ganhar_xp(ent.xp_reward)
                     self.entidades.remove(ent)
         
+        # ... (o resto do código de projéteis e efeitos continua igual) ...
         for p in self.projeteis[:]:
             p.update(self)
             if not p.active: self.projeteis.remove(p)
