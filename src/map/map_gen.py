@@ -49,8 +49,8 @@ class Mapa:
                 self.gerar_chunk(x * config.TAMANHO_CHUNK, y * config.TAMANHO_CHUNK)
 
     def gerar_chunk(self, ox, oy):
-        # 1. Escolhe o bioma para este chunk específico
-        tipo_bioma = random.choice(["floresta", "ruinas"])
+        # Agora inclui 'azul' na roleta
+        tipo_bioma = random.choice(["floresta", "ruinas", "azul"])
         tem_elevacao = random.random() < 0.4 
 
         for y in range(config.TAMANHO_CHUNK):
@@ -60,19 +60,21 @@ class Mapa:
                 
                 tile = self.obter_tile(gx, gy)
                 
-                # 2. Aplica elevação básica (pode ser modificada pelo bioma depois)
+                # Elevação padrão (será sobrescrita se for bioma azul)
                 if tem_elevacao and 8 < x < 22 and 8 < y < 22:
-                    tile.z_leavel = 1
+                    tile.z_level = 1
                     tile.tipo = "terra"
 
-                # 3. CHAMA A LÓGICA DO BIOMA (Usa as funções do biomas.py)
                 rng = random.randint(0, 100)
+                
+                # Seletor de Biomas
                 if tipo_bioma == "floresta":
                     biomas.aplicar_bioma_floresta(self, gx, gy, tile, rng)
-                else:
+                elif tipo_bioma == "ruinas":
                     biomas.aplicar_bioma_ruinas(self, gx, gy, tile, rng)
+                elif tipo_bioma == "azul":
+                    biomas.aplicar_bioma_azul(self, gx, gy, tile, rng)
 
-        # 4. SPAWN DE INIMIGOS DO BIOMA (Usa a função do biomas.py)
         biomas.spawn_inimigos_por_bioma(self, ox, oy, tipo_bioma)
 
     def update(self):
