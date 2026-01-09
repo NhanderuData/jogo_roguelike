@@ -34,7 +34,7 @@ class Renderer:
         sombra = pygame.transform.rotozoom(sombra, 20 * inclinacao, 1.0)
         return sombra
 
-    def draw(self, surface, mapa_obj):
+    def draw(self, surface, mapa_obj,cor_noite=(0, 0, 0, 0)):
         cam_x, cam_y = self.camera.camera_x, self.camera.camera_y
         
         start_col = max(0, int(cam_x // config.TAMANHO_TILE))
@@ -121,6 +121,11 @@ class Renderer:
 
         for _, img, x, y in render_list:
             surface.blit(img, (x, y))
+
+        if cor_noite[3] > 0: # Se o Alpha for maior que 0 (tem escuridão)
+            overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
+            overlay.fill(cor_noite)
+            surface.blit(overlay, (0, 0))
 
         # 3. Pós-Processamento
         surface.blit(self.vignette_surf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)

@@ -73,7 +73,7 @@ class Game:
         elif self.mapa.jogador:
             self.mapa.jogador.moving = False
 
-    def update(self):
+    def update(self,dt):
         # Atualiza a lógica do mapa (ISSO FAZ OS INIMIGOS SE MEXEREM)
         self.mapa.update()
         
@@ -94,8 +94,8 @@ class Game:
 
     def run(self):
         while self.running:
+            dt = self.clock.tick(60) / 1000.0
             self.handle_input()
-            self.update()
+            self.update(dt)
             self.draw()
-            self.clock.tick(60)
         pygame.quit()
