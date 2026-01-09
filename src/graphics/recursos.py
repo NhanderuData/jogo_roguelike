@@ -11,10 +11,6 @@ def criar_sprite_provisorio(cor):
 
 # --- GERADOR DE PRAIA (ESTILO MINECRAFT/ZELDA) ---
 def criar_borda_praia(lado):
-    """
-    Gera uma borda de areia SÓLIDA e ONDULADA (Jagged Edge).
-    Nada de pixels soltos ("sujeira").
-    """
     surf = pygame.Surface((32, 32), pygame.SRCALPHA)
     
     # Cores (Ajustadas para o seu Azul Novo)
@@ -107,6 +103,7 @@ def carregar_tudo():
     SPRITES["blue_ground"] = criar_sprite_provisorio(config.AZUL_AGUA)
     SPRITES["grass"] = carregar_estatico("grass.png", escala=2.0)
     SPRITES["estrada"] = criar_sprite_provisorio(config.MARROM_ESTRADA)
+    SPRITES["shoot"] = carregar_estatico("shoot.png", escala=1.0)
     
     # Seus outros assets...
     SPRITES["llama_run"] = carregar_spritesheet("llama.png", colunas=6, escala=2.0)

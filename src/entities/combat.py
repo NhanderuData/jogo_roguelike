@@ -2,9 +2,43 @@
 import math
 import pygame
 from graphics import config
-from graphics import recursos # <--- Importante para pegar a imagem da bola de fogo
+from graphics import recursos 
+from .combat import Projetil
+class Projetil:
+    def __init__(self, x, y, dx, dy, tipo_origem="player"):
+        self.x = x
+        self.y = y
+        self.dx = dx
+        self.dy = dy
+        self.tipo_origem = tipo_origem # "player" ou "enemy"
+        self.speed = 0.3 # Velocidade (Tiles por frame)
+        self.lifetime = 100 # Quanto tempo dura antes de sumir
+        
+        self.image = recursos.SPRITES.get("rock") 
+        if self.tipo_origem == "player":
+             pass
+        
+    def atirar(self, target_x, target_y, mapa_obj, origem="player"):
+        dx = target_x - self.x
+        dy = target_y - self.y
+        dist = (dx**2 + dy**2)**0.5
+        
+        if dist != 0:
+            dx /= dist
+            dy /= dist
+        
+        novo_tiro = Projetil(self.x, self.y, dx, dy, origem)
+        mapa_obj.projeteis.append(novo_tiro)
 
-# --- EFEITO VISUAL (O Corte da Espada) ---
+    def update(self, mapa_obj):
+        # Movimento
+        self.x += self.dx * self.speed
+        self.y += self.dy * self.speed
+        self.lifetime -= 1
+
+        # Colisão com Paredes
+        if mapa_obj.is_blocked_terrain(self.x, self.y):
+            self.lifetime = 0 # Destrói o tiro
 class EfeitoVisual:
     def __init__(self, x, y, angle):
         self.x = x
@@ -89,7 +123,7 @@ class Projetil:
         self.life = 100; self.active = True; self.origem = origem
         
         # Carrega a imagem se existir
-        self.image = recursos.SPRITES.get("fireball")
+        self.image = recursos.SPRITES.get("Shoot")
 
     def update(self, mapa_obj):
         self.x += self.dx; self.y += self.dy; self.life -= 1

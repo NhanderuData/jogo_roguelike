@@ -76,6 +76,7 @@ class Game:
     def update(self,dt):
         # Atualiza a lógica do mapa (ISSO FAZ OS INIMIGOS SE MEXEREM)
         self.mapa.update()
+        self.relogio.update(dt)
         
         # Atualiza a câmera para seguir o jogador
         if self.mapa.jogador:
@@ -83,12 +84,9 @@ class Game:
 
     def draw(self):
         self.screen.fill(config.PRETO)
+        cor_do_ceu = self.relogio.obter_cor()
         
-        # --- AQUI ESTAVA O ERRO ---
-        # Antes: self.camera.draw(...) -> A câmera não sabe mais desenhar!
-        # Agora: Chamamos o especialista (Renderer)
-        self.renderer.draw(self.screen, self.mapa)
-        
+        self.renderer.draw(self.screen, self.mapa, cor_do_ceu)
         self.ui.draw(self.screen, self.mapa.jogador)
         pygame.display.flip()
 
