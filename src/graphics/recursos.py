@@ -106,11 +106,13 @@ def carregar_tudo():
     
     SPRITES["blue_ground"] = criar_sprite_provisorio(config.AZUL_AGUA)
     SPRITES["grass"] = carregar_estatico("grass.png", escala=2.0)
+    SPRITES["estrada"] = criar_sprite_provisorio(config.MARROM_ESTRADA)
     
     # Seus outros assets...
     SPRITES["llama_run"] = carregar_spritesheet("llama.png", colunas=6, escala=2.0)
     SPRITES["tree"] = carregar_spritesheet("tree.png", colunas=18, escala=2.0)
     SPRITES["red_tree"] = carregar_spritesheet("RedTree.png", colunas=1, escala=2.0)
+    SPRITES["cipreste"] = carregar_spritesheet("Cipreste.png", colunas=1, escala=2.0)
     SPRITES["rock"] = carregar_estatico("rock.png")
     SPRITES["wall"] = carregar_estatico("wall.png", escala=1.0)
     SPRITES["house"] = carregar_estatico("house.png", escala=1.0)
@@ -119,6 +121,8 @@ def carregar_tudo():
     SPRITES["orc_run"] = [criar_sprite_provisorio(config.VERDE)] 
     SPRITES["troll_run"] = [criar_sprite_provisorio(config.VERMELHO)]
     SPRITES["boss_run"] = [criar_sprite_provisorio(config.ROXO)]
+    SPRITES["deep_water"] = criar_sprite_provisorio(config.AZUL_PROFUNDO)
+    SPRITES["sand"] = criar_sprite_provisorio(config.COR_AREIA)
     
     # Sombra
     largura_base, altura_base, margem = 32, 16, 4

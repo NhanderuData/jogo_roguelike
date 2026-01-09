@@ -37,6 +37,7 @@ class Entidade:
             "REI TROLL":  { "sombra": 3.0, "ajuste_x": 0, "ajuste_y": 0 },
             "Arvore":     { "sombra": 1.5, "ajuste_x": -2, "ajuste_y": 0 }, # Exemplo de ajuste lateral
             "RedTree":    { "sombra": 1.5, "ajuste_x": 0, "ajuste_y": 0 },
+            "Cipreste":   { "sombra": 1.5, "ajuste_x": -2, "ajuste_y": 0 },
         }
 
         dados = configs_visuais.get(nome, { "sombra": 1.0, "ajuste_x": 0, "ajuste_y": 0 })
@@ -56,6 +57,7 @@ class Entidade:
         elif nome == "REI TROLL": key = "boss_run"
         elif nome == "Arvore": key = "tree"
         elif nome == "RedTree": key = "red_tree"
+        elif nome == "Cipreste": key = "cipreste"
 
         self.frames = recursos.SPRITES.get(key)
         self.frame_index = 0.0

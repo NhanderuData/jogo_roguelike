@@ -4,9 +4,15 @@ from entities import actor
 
 def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
     if rng < 6: 
-        arv = actor.ObjetoDestrutivel(gx, gy, "Arvore", hp=50)
+        # Chance de ser Arvore ou Cipreste
+        tipo_arvore = "Arvore"
+        if random.random() < 0.5: # 50% de chance
+            tipo_arvore = "Cipreste"
+            
+        arv = actor.ObjetoDestrutivel(gx, gy, tipo_arvore, hp=50)
         mapa.entidades.append(arv)
         tile.bloqueado = True 
+        
     elif rng < 12:
         tile.tipo = "rocha"
         tile.bloqueado = True

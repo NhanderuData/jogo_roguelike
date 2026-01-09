@@ -56,6 +56,9 @@ class Renderer:
                 if tile.tipo == "rocha": img_key = "rock"
                 elif tile.tipo == "parede": img_key = "wall"
                 elif tile.tipo == "blue_ground": img_key = "blue_ground"
+                elif tile.tipo == "estrada": img_key = "estrada"
+                elif tile.tipo == "deep_water": img_key = "deep_water"
+                elif tile.tipo == "sand": img_key = "sand"
                 
                 img = recursos.SPRITES.get(img_key)
                 if img:
@@ -67,25 +70,25 @@ class Renderer:
                     # CORREÇÃO AQUI: Usar 'not in' em vez de '!='
                     # Vizinho de CIMA
                     viz_top = mapa_obj.obter_tile(x, y - 1)
-                    if viz_top and viz_top.tipo not in ["blue_ground", "parede"]:
+                    if viz_top and viz_top.tipo not in ["blue_ground",'deep_water', "parede"]:
                         bord = recursos.SPRITES.get("border_top")
                         if bord: surface.blit(bord, (screen_x, screen_y))
 
                     # Vizinho de BAIXO
                     viz_bot = mapa_obj.obter_tile(x, y + 1)
-                    if viz_bot and viz_bot.tipo not in ["blue_ground", "parede"]:
+                    if viz_bot and viz_bot.tipo not in ["blue_ground",'deep_water', "parede"]:
                         bord = recursos.SPRITES.get("border_bottom")
                         if bord: surface.blit(bord, (screen_x, screen_y))
 
                     # Vizinho da ESQUERDA
                     viz_left = mapa_obj.obter_tile(x - 1, y)
-                    if viz_left and viz_left.tipo not in ["blue_ground", "parede"]:
+                    if viz_left and viz_left.tipo not in ["blue_ground",'deep_water', "parede"]:
                         bord = recursos.SPRITES.get("border_left")
                         if bord: surface.blit(bord, (screen_x, screen_y))
 
                     # Vizinho da DIREITA
                     viz_right = mapa_obj.obter_tile(x + 1, y)
-                    if viz_right and viz_right.tipo not in ["blue_ground", "parede"]:
+                    if viz_right and viz_right.tipo not in ["blue_ground",'deep_water', "parede"]:
                         bord = recursos.SPRITES.get("border_right")
                         if bord: surface.blit(bord, (screen_x, screen_y))
 

@@ -25,6 +25,9 @@ AZUL = (50, 50, 200)
 AMARELO = (255, 255, 0)
 ROXO = (160, 32, 240)
 LARANJA = (255, 140, 0)
+MARROM_ESTRADA = (160, 82, 45)
+AZUL_PROFUNDO = (30, 80, 150)  # Azul mais escuro
+COR_AREIA = (240, 230, 140)    # Amarelo queimado
 
 # --- COR DA ÁGUA ATUALIZADA ---
 AZUL_AGUA = (60, 160, 240) # Azul estilo "Minecraft" / Zelda
