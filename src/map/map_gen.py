@@ -7,8 +7,14 @@ from .grid import Grid
 from . import biomas
 
 # Configurações do Gerador
+
 NOISE_SCALE = 40.0 
 NOISE_OCTAVES = 4 
+
+# --- NOVA CONFIGURAÇÃO ---
+# Escala maior = Biomas maiores e mais largos
+# Escala menor = Biomas mudam mais rápido
+BIOME_SCALE = 80.0
 
 class Mapa:
     def __init__(self):
@@ -37,15 +43,17 @@ class Mapa:
         return True
 
     def gerar_novo_nivel(self):
-        self.entidades = []
-        self.projeteis = []
-        self.efeitos = []
-        self.textos = []
+        # ... (Limpezas iniciais iguais) ...
         
         self.seed = random.randint(0, 10000)
         print(f"Gerando mapa com Seed: {self.seed}")
 
+        # 1. Ruído de Terreno (Define Água vs Terra)
         noise_gen = PerlinNoise(octaves=NOISE_OCTAVES, seed=self.seed)
+        
+        # 2. NOVO: Ruído de Bioma (Define Floresta vs Ruínas)
+        # Usamos seed + 1 para que o desenho do bioma não seja igual ao da água
+        biome_gen = PerlinNoise(octaves=2, seed=self.seed + 1)
 
         # --- PASSO 1: TERRENO E DECORAÇÃO ---
         for y in range(self.altura):
@@ -53,34 +61,41 @@ class Mapa:
                 tile = self.obter_tile(x, y)
                 if not tile: continue
 
+                # Valor de altura (Água/Terra)
                 valor_ruido = noise_gen([x / NOISE_SCALE, y / NOISE_SCALE])
-                # valor_estrada = ... (se estiver usando estradas)
+                
+                # NOVO: Valor de "Temperatura/Bioma"
+                valor_bioma = biome_gen([x / BIOME_SCALE, y / BIOME_SCALE])
                 
                 rng = random.randint(0, 100)
 
-                # --- CAMADA 1: ÁGUA PROFUNDA (O mais fundo) ---
+                # --- CAMADA 1, 2 e 3 (ÁGUA) ---
                 if valor_ruido < -0.25:
                     tile.tipo = "deep_water"
                     tile.bloqueado = True
-
-                # --- CAMADA 2: ÁGUA RASA (Nível do mar normal) ---
                 elif valor_ruido < -0.15: 
                     biomas.aplicar_bioma_azul(self, x, y, tile, rng)
-                
-                # --- CAMADA 3: PRAIA / AREIA (Logo antes da terra) ---
-                elif valor_ruido < -0.08: # Ajuste esse valor para praias mais largas ou finas
+                elif valor_ruido < -0.08:
                     tile.tipo = "sand"
                     tile.bloqueado = False
 
                 # --- CAMADA 4: TERRA FIRME ---
                 else:
-                    # (Opcional) Estradas aqui
+                    # --- AQUI ENTRA O SEU CÓDIGO ---
+                    # Substitui o antigo "if random.random() < 0.8:"
                     
-                    # Biomas de terra
-                    if random.random() < 0.8:
+                    if valor_bioma < 0.0:
+                        # Certeza que é Floresta densa
                         biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
-                    else:
+                    elif valor_bioma > 0.2:
+                        # Certeza que é Ruína densa
                         biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
+                    else:
+                        # Zona de Transição (Mistura)
+                        if random.random() < 0.5:
+                            biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
+                        else:
+                            biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
 
         # --- PASSO 2: SPAWN DE INIMIGOS (NOVO) ---
         # Tentamos spawnar monstros em lugares aleatórios válidos
