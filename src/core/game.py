@@ -6,13 +6,18 @@ from core import camera
 from graphics import ui
 from graphics import recursos
 from graphics.renderer import Renderer
+from core.time_system import TimeSystem
 
 class Game:
     def __init__(self):
         pygame.init()
+        self.relogio = TimeSystem()
         
-        # 1. Configura Tela
-        self.screen = pygame.display.set_mode((config.LARGURA_TELA, config.ALTURA_TELA))
+        # 1. Configura Telaa
+        self.screen = pygame.display.set_mode(
+            (config.LARGURA_TELA, config.ALTURA_TELA),  # Argumento 1: A Tupla de tamanho
+            pygame.FULLSCREEN | pygame.SCALED           # Argumento 2: As Flags
+        )
         pygame.display.set_caption("Roguelike - Rafael Version")
         self.clock = pygame.time.Clock()
         self.running = True

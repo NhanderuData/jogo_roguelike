@@ -14,7 +14,7 @@ NOISE_OCTAVES = 4
 # --- NOVA CONFIGURAÇÃO ---
 # Escala maior = Biomas maiores e mais largos
 # Escala menor = Biomas mudam mais rápido
-BIOME_SCALE = 80.0
+BIOME_SCALE = 120.0
 
 class Mapa:
     def __init__(self):
