@@ -10,26 +10,42 @@ class Renderer:
         self.camera = camera
         self.vignette_surf = shaders.gerar_vignette(config.LARGURA_TELA, config.ALTURA_TELA)
         
-        # 1. Luz do Player (Visão básica, raio 100)
+        # 1. Luz do Player (Fura a noite)
         self.luz_player = self.criar_luz_gradiente(raio=100) 
 
-        # 2. Luz do Disparo (Intensa e menor, raio 60)
-        self.luz_projetil = self.criar_luz_gradiente(raio=60)
+        # 2. Luz do Disparo (Fura a noite)
+        self.luz_projetil = self.criar_luz_gradiente(raio=80)
+        
+        # 3. GLOW do Disparo (Adiciona Cor Laranja) - NOVO!
+        self.glow_projetil = self.criar_glow_colorido(raio=80, cor=(50, 30, 0))
 
     def criar_luz_gradiente(self, raio):
-        # Cria uma superfície transparente
         luz = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
-        # Desenha círculos pretos com alpha decrescente para "furar" a noite
         passos = 30
         for i in range(passos):
             fracao = 1 - (i / passos)
-            # Usa potência quadrado para suavizar o centro
             alpha = int(255 * (fracao ** 2))
             raio_atual = int(raio * (i / passos))
             if raio_atual > 0:
+                # Desenha preto com alpha para usar no modo SUBTRACT
                 pygame.draw.circle(luz, (0, 0, 0, alpha), (raio, raio), raio_atual)
         return luz
 
+    def criar_glow_colorido(self, raio, cor):
+        # Cria uma luz colorida para somar (BLEND_ADD)
+        glow = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
+        passos = 20
+        for i in range(passos):
+            fracao = 1 - (i / passos)
+            alpha = int(100 * (fracao ** 2)) # Mais suave
+            raio_atual = int(raio * (i / passos))
+            if raio_atual > 0:
+                # Cor + Alpha
+                r, g, b = cor
+                pygame.draw.circle(glow, (r, g, b, alpha), (raio, raio), raio_atual)
+        return glow
+
+    # ... (Manter métodos obter_rect_ancorado, ancorar_na_base, gerar_sombra_projetada IGUAIS) ...
     def obter_rect_ancorado(self, imagem, grid_x, grid_y, ajuste_x=0, ajuste_y=0):
         screen_x = grid_x * config.TAMANHO_TILE - self.camera.camera_x
         screen_y = grid_y * config.TAMANHO_TILE - self.camera.camera_y
@@ -55,20 +71,17 @@ class Renderer:
             sombra = pygame.transform.scale(sombra, (largura, int(altura * 0.4)))
             sombra = pygame.transform.rotozoom(sombra, 20 * inclinacao, 1.0)
             return sombra
-        except Exception as e:
-            print(f"Erro ao gerar sombra: {e}")
-            return None
+        except: return None
 
     def draw(self, surface, mapa_obj, cor_noite=(0, 0, 0, 0)):
         cam_x, cam_y = self.camera.camera_x, self.camera.camera_y
         
-        # --- CÁLCULO DE CULLING (Só desenha o que tá na tela) ---
+        # 1. CHÃO (Manter código igual, resumido aqui)
         start_col = max(0, int(cam_x // config.TAMANHO_TILE))
         end_col = min(config.LARGURA_MAPA, start_col + (config.LARGURA_TELA // config.TAMANHO_TILE) + 2)
         start_row = max(0, int(cam_y // config.TAMANHO_TILE))
         end_row = min(config.ALTURA_MAPA, start_row + (config.ALTURA_TELA // config.TAMANHO_TILE) + 2)
 
-        # 1. CHÃO
         for y in range(start_row, end_row):
             for x in range(start_col, end_col):
                 tile = mapa_obj.obter_tile(x, y)
@@ -87,7 +100,7 @@ class Renderer:
                 img = recursos.SPRITES.get(img_key)
                 if img: surface.blit(img, (screen_x, screen_y))
                 
-                # Bordas da água
+                # Bordas
                 if tile.tipo == "blue_ground":
                     viz_top = mapa_obj.obter_tile(x, y - 1)
                     if viz_top and viz_top.tipo not in ["blue_ground",'deep_water', "parede"]:
@@ -106,20 +119,16 @@ class Renderer:
                         bord = recursos.SPRITES.get("border_right")
                         if bord: surface.blit(bord, (screen_x, screen_y))
 
-        # 2. ENTIDADES E PROJÉTEIS (LISTA DE RENDERIZAÇÃO)
+        # 2. ENTIDADES E PROJÉTEIS
         render_list = []
-        
-        # A. Entidades (Inimigos, Player, Árvores)
         for ent in mapa_obj.entidades:
             if not ent.image: continue
-            # Sombra
             if not hasattr(ent, 'sombra_cache') or ent.sombra_cache is None:
                  ent.sombra_cache = self.gerar_sombra_projetada(ent.image)
             if ent.sombra_cache:
                 rect_sombra = self.ancorar_na_base(ent.sombra_cache, ent.x, ent.y, ajuste_x=8)
                 render_list.append((rect_sombra.bottom - 5, ent.sombra_cache, rect_sombra.x, rect_sombra.y))
             
-            # Corpo
             img_final = ent.image
             if hasattr(ent, 'dano_timer') and ent.dano_timer > 0:
                 img_hit = shaders.aplicar_flash_branco(ent.image)
@@ -128,47 +137,44 @@ class Renderer:
             rect_ent = self.obter_rect_ancorado(img_final, ent.x, ent.y, ajuste_x=ent.offset_x, ajuste_y=ent.offset_y)
             render_list.append((rect_ent.bottom, img_final, rect_ent.x, rect_ent.y))
 
-        # B. Projéteis (Desenhar o sprite do tiro)
         for p in mapa_obj.projeteis:
             if p.image and p.active:
                 px = p.x * config.TAMANHO_TILE - cam_x
                 py = p.y * config.TAMANHO_TILE - cam_y
                 rect = p.image.get_rect(center=(px, py))
-                # Adiciona na lista baseado no Y para ficar na frente/atrás de coisas
                 render_list.append((rect.bottom, p.image, rect.x, rect.y))
 
-        # Ordena tudo pela posição Y e desenha
         render_list.sort(key=lambda item: item[0])
         for _, img, x, y in render_list:
             surface.blit(img, (x, y))
 
-        # --- 3. ILUMINAÇÃO NOTURNA (O PULO DO GATO) ---
+        # --- 3. ILUMINAÇÃO (AQUI ESTÁ A CORREÇÃO VISUAL) ---
         if cor_noite[3] > 0:
-            # Cria a camada escura
             overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
             overlay.fill(cor_noite)
 
-            # A. Luz do Jogador
+            # A. FURA A NOITE (Deixa transparente onde tem luz)
             if mapa_obj.jogador:
-                px = mapa_obj.jogador.x * config.TAMANHO_TILE - cam_x + (config.TAMANHO_TILE // 2)
-                py = mapa_obj.jogador.y * config.TAMANHO_TILE - cam_y + (config.TAMANHO_TILE // 2)
-                overlay.blit(self.luz_player, 
-                             (px - self.luz_player.get_width()//2, py - self.luz_player.get_height()//2), 
-                             special_flags=pygame.BLEND_RGBA_SUB)
+                px = mapa_obj.jogador.x * config.TAMANHO_TILE - cam_x + 16
+                py = mapa_obj.jogador.y * config.TAMANHO_TILE - cam_y + 16
+                overlay.blit(self.luz_player, (px - 100, py - 100), special_flags=pygame.BLEND_RGBA_SUB)
 
-            # B. Luz dos Projéteis (Fogo!) - ESSA PARTE QUE FALTAVA
             for p in mapa_obj.projeteis:
                 if not p.active: continue
-                px = p.x * config.TAMANHO_TILE - cam_x
-                py = p.y * config.TAMANHO_TILE - cam_y
-                # Centraliza a luz no tiro
-                lx = px - self.luz_projetil.get_width() // 2
-                ly = py - self.luz_projetil.get_height() // 2
-                overlay.blit(self.luz_projetil, (lx, ly), special_flags=pygame.BLEND_RGBA_SUB)
+                px = p.x * config.TAMANHO_TILE - cam_x + 16
+                py = p.y * config.TAMANHO_TILE - cam_y + 16
+                overlay.blit(self.luz_projetil, (px - 80, py - 80), special_flags=pygame.BLEND_RGBA_SUB)
 
-            # Desenha a noite "furada" na tela
             surface.blit(overlay, (0, 0))
-        # ----------------------------------------------
+
+            # B. ADICIONA GLOW (Desenha cor laranja por cima pra brilhar)
+            # Isso garante que a luz apareça mesmo se o chão for escuro
+            for p in mapa_obj.projeteis:
+                if not p.active: continue
+                px = p.x * config.TAMANHO_TILE - cam_x + 16
+                py = p.y * config.TAMANHO_TILE - cam_y + 16
+                # Desenha o brilho laranja com modo SOMA (ADD)
+                surface.blit(self.glow_projetil, (px - 80, py - 80), special_flags=pygame.BLEND_RGBA_ADD)
 
         # 4. Pós-Processamento
         surface.blit(self.vignette_surf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
@@ -177,9 +183,7 @@ class Renderer:
         for ent in mapa_obj.entidades:
             if ent.nome != "Heroi": self.desenhar_barra_flutuante(surface, ent)
         
-        # Efeitos visuais (risco da espada)
         for e in mapa_obj.efeitos: e.draw(surface, cam_x, cam_y)
-        
         debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
     
     def desenhar_barra_flutuante(self, surface, ent):
