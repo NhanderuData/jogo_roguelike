@@ -42,8 +42,6 @@ class StateManager:
         self.input_manager = input_manager
 
     def push(self, state_class, **kwargs):
-        # Passa o input_manager para o novo estado
-        new_state = state_class(self, self.manager.registry, self.input_manager)
         # Correção: self.manager não existe aqui dentro, é self.registry
         new_state = state_class(self, self.registry, self.input_manager)
         new_state.enter(**kwargs)
@@ -60,8 +58,7 @@ class StateManager:
     def change(self, state_class, **kwargs):
         while self.stack:
             self.pop()
-        # Ao invés de chamar push, vamos instanciar direto ou usar push?
-        # Vamos usar a lógica correta:
+
         new_state = state_class(self, self.registry, self.input_manager)
         new_state.enter(**kwargs)
         self.stack.append(new_state)

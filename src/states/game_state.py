@@ -39,20 +39,12 @@ class GameState(BaseState):
         if self.input.is_held(Actions.MOVE_RIGHT): dx = 1
         
         # Normaliza diagonal
-        if dx != 0 and dy != 0:
-            dx *= 0.707
-            dy *= 0.707
-
-        # Aplica movimento ao jogador
         if dx != 0 or dy != 0:
-            p = self.mapa.jogador
-            nx = p.x + dx * p.speed
-            if not self.mapa.is_blocked_terrain(nx, p.y): p.x = nx
-            ny = p.y + dy * p.speed
-            if not self.mapa.is_blocked_terrain(p.x, ny): p.y = ny
-            p.moving = True
-        elif self.mapa.jogador:
+            # Substitui todo aquele bloco de cálculo manual de nx/ny
+            self.mapa.jogador.physics.move(dx, dy, self.mapa)
+        else:
             self.mapa.jogador.moving = False
+        
 
         # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
         # Pega a posição do mouse através do InputManager
