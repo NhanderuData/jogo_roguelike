@@ -3,7 +3,7 @@ import math
 import pygame
 from graphics import config
 from graphics import recursos 
-from .combat import Projetil
+
 class Projetil:
     def __init__(self, x, y, dx, dy, tipo_origem="player"):
         self.x = x
