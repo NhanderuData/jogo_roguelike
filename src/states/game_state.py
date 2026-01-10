@@ -11,7 +11,6 @@ from core.input_manager import Actions
 
 class GameState(BaseState):
     def __init__(self, manager, registry, input_manager):
-        # Passa o input_manager para a classe pai (BaseState)
         super().__init__(manager, registry, input_manager)
         
         self.relogio = TimeSystem()
@@ -24,30 +23,28 @@ class GameState(BaseState):
         print("Entrando no GameState")
 
     def handle_input(self, event):
-        # A lógica bruta saiu daqui.
-        # O InputManager já processou o evento antes de chegar aqui.
+        # A lógica bruta saiu daqui, pois o InputManager processa antes.
         pass
 
     def update(self, dt):
         # --- 1. MOVIMENTO (CONTÍNUO - IS_HELD) ---
         dx, dy = 0, 0
         
-        # O InputManager cuida se é WASD ou Setas
+        # O InputManager verifica as teclas
         if self.input.is_held(Actions.MOVE_UP):    dy = -1
         if self.input.is_held(Actions.MOVE_DOWN):  dy = 1
         if self.input.is_held(Actions.MOVE_LEFT):  dx = -1
         if self.input.is_held(Actions.MOVE_RIGHT): dx = 1
         
-        # Normaliza diagonal
+        # Verifica se há intenção de movimento
         if dx != 0 or dy != 0:
-            # Substitui todo aquele bloco de cálculo manual de nx/ny
+            # Chamamos o physics.move, que já lida com colisão E normalização de diagonal
             self.mapa.jogador.physics.move(dx, dy, self.mapa)
         else:
+            # Se não houver input, garantimos que ele pare
             self.mapa.jogador.moving = False
-        
 
         # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
-        # Pega a posição do mouse através do InputManager
         screen_mx, screen_my = self.input.get_mouse_position()
         
         # Converte para coordenadas do mundo

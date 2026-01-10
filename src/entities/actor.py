@@ -1,30 +1,35 @@
-# src/entities/actor.py
 import math
 import random
 import pygame
 from core import config
 from graphics import recursos
 from entities import combat
-# Importe o novo componente
+# Importe os componentes
 from components.physics import PhysicsComponent
+from components.sprite import SpriteComponent
 
 class Entidade:
     def __init__(self, x, y, nome, hp, dano, xp_reward=0):
         self.nome = nome
         
-        # --- NOVO: SISTEMA DE COMPONENTES ---
-        # A Entidade agora possui um componente de física
+        # --- COMPONENTES ---
         self.physics = PhysicsComponent(self, x, y)
         
-        # Propriedades "Proxy" para manter compatibilidade com o código antigo
-        # (Isso permite que self.x funcione acessando self.physics.x)
-        # Nota: Idealmente removeremos isso no futuro, mas ajuda na transição.
+        # Define a key do sprite baseado no nome (Lógica simplificada)
+        sprite_key = "orc_run"
+        if nome == "Heroi": sprite_key = "llama_run"
+        elif nome == "Troll": sprite_key = "troll_run"
+        elif nome == "REI TROLL": sprite_key = "boss_run"
+        elif nome == "Arvore": sprite_key = "tree"
+        elif nome == "RedTree": sprite_key = "red_tree"
+        elif nome == "Cipreste": sprite_key = "cipreste"
         
+        self.sprite = SpriteComponent(self, sprite_key)
+        
+        # --- ATRIBUTOS DE RPG ---
         self.hp_max = hp
         self.hp = hp
         self.dano = dano
-        
-        # ... (Mantém XP, Nivel, Cooldowns iguais) ...
         self.xp = 0
         self.nivel = 1
         self.xp_proximo_nivel = 20
@@ -32,40 +37,11 @@ class Entidade:
         self.cooldown_tiro = 0
         self.cooldown_espada = 0
 
-        # Velocidade agora é controlada no componente, mas configuramos aqui
+        # Configura velocidade na física
         base_speed = 0.15 if nome == "Heroi" else 0.04
         self.physics.speed = base_speed
 
-        # ... (Configuração Visual mantém igual por enquanto) ...
-        configs_visuais = {
-            "Heroi":      { "sombra": 1.2, "ajuste_x": 0, "ajuste_y": 0 }, 
-            "Orc":        { "sombra": 1.0, "ajuste_x": 0, "ajuste_y": 0 },
-            "Troll":      { "sombra": 2.0, "ajuste_x": 0, "ajuste_y": 0 },
-            "REI TROLL":  { "sombra": 3.0, "ajuste_x": 0, "ajuste_y": 0 },
-            "Arvore":     { "sombra": 1.5, "ajuste_x": -2, "ajuste_y": 0 },
-            "RedTree":    { "sombra": 1.5, "ajuste_x": 0, "ajuste_y": 0 },
-            "Cipreste":   { "sombra": 1.5, "ajuste_x": -2, "ajuste_y": 0 },
-        }
-        dados = configs_visuais.get(nome, { "sombra": 1.0, "ajuste_x": 0, "ajuste_y": 0 })
-        self.scale_sombra = dados["sombra"]
-        self.offset_x = dados["ajuste_x"]
-        self.offset_y = dados["ajuste_y"]
-
-        # ... (Sprites mantêm igual) ...
-        key = "orc_run"
-        if nome == "Heroi": key = "llama_run"
-        elif nome == "Troll": key = "troll_run"
-        elif nome == "REI TROLL": key = "boss_run"
-        elif nome == "Arvore": key = "tree"
-        elif nome == "RedTree": key = "red_tree"
-        elif nome == "Cipreste": key = "cipreste"
-        
-        self.frames = recursos.SPRITES.get(key)
-        self.frame_index = 0.0
-        self.image = self.frames[0] if self.frames else None
-
-    # --- PROPRIEDADES (GETTERS/SETTERS MÁGICOS) ---
-    # Isso faz com que quando alguém peça 'entidade.x', ele pegue 'entidade.physics.x'
+    # --- PROXIES DE FÍSICA ---
     @property
     def x(self): return self.physics.x
     @x.setter
@@ -86,14 +62,33 @@ class Entidade:
     
     @property
     def speed(self): return self.physics.speed
-    @speed.setter
-    def speed(self, value): self.physics.speed = value
 
-    # ... (Métodos de Combate/Dano mantêm igual por enquanto) ...
+    # --- PROXIES VISUAIS (Para manter compatibilidade temporária) ---
+    @property
+    def image(self): return self.sprite.image
+    
+    @property
+    def offset_x(self): return self.sprite.offset_x
+    
+    @property
+    def offset_y(self): return self.sprite.offset_y
+    
+    @property
+    def sombra_cache(self): 
+        # Pequeno hack para guardar o cache da sombra no componente
+        if not hasattr(self.sprite, 'sombra_cache'): self.sprite.sombra_cache = None
+        return self.sprite.sombra_cache
+    @sombra_cache.setter
+    def sombra_cache(self, val): self.sprite.sombra_cache = val
+
+
     def tomar_dano(self, qtd, mapa_obj=None):
         self.hp -= qtd
         if mapa_obj:
             mapa_obj.criar_texto_dano(self.x, self.y, int(qtd))
+        # Efeito visual de dano
+        if hasattr(self.sprite, 'dano_timer'):
+             self.sprite.dano_timer = 5 # Flash branco por 5 frames
 
     def ganhar_xp(self, qtd):
         self.xp += qtd
@@ -103,18 +98,6 @@ class Entidade:
             self.hp_max += 10
             self.hp = self.hp_max
             self.xp_proximo_nivel = int(self.xp_proximo_nivel * 1.5)
-
-    def animar(self):
-        if self.speed == 0: return 
-        if self.moving and self.frames:
-            self.frame_index += config.VELOCIDADE_ANIMACAO
-            if self.frame_index >= len(self.frames): 
-                self.frame_index = 0
-            self.image = self.frames[int(self.frame_index)]
-        elif self.frames:
-            self.frame_index = 0
-            self.image = self.frames[0]
-        # self.moving = False # Removido, o PhysicsComponent cuida disso
 
     def atirar(self, tx, ty, mapa_obj, origem):
         if self.cooldown_tiro > 0: return
@@ -130,21 +113,18 @@ class Entidade:
         if self.cooldown_tiro > 0: self.cooldown_tiro -= 1
         if self.cooldown_espada > 0: self.cooldown_espada -= 1
         
-        # Hitbox atualizada pelo componente
-        # Animação ainda aqui
-        self.animar()
+        # Atualiza componentes
+        self.physics.update(0) # (dt não usado na física ainda)
+        self.sprite.update(0)
 
     def update_ia(self, mapa_obj):
-        if self.nome == "Heroi" or self.speed == 0: return 
+        if self.nome == "Heroi" or self.physics.speed == 0: return 
         player = mapa_obj.jogador
         dist = ((self.x - player.x)**2 + (self.y - player.y)**2)**0.5
         
         if 0.8 < dist < 10: 
             dx = (player.x - self.x) / dist
             dy = (player.y - self.y) / dist
-            
-            # --- USO DO NOVO COMPONENTE ---
-            # Em vez de calcular nx/ny manualmente, pedimos ao componente mover
             self.physics.move(dx, dy, mapa_obj)
 
         if dist < 8:
@@ -157,8 +137,7 @@ class Entidade:
 class ObjetoDestrutivel(Entidade):
     def __init__(self, x, y, nome, hp):
         super().__init__(x, y, nome, hp, dano=0, xp_reward=5)
-        self.physics.speed = 0 # Garante que não move
-        self.sombra_cache = None
+        self.physics.speed = 0 
         
     def update_ia(self, mapa_obj):
         pass

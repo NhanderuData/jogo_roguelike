@@ -53,3 +53,14 @@ VISUAL_TILES = {
     # No futuro:
     # CASA: { "escala": 3.0, "ajuste_y": 10 },
 }
+
+LAYER_CHAO = 0       # Terra, Grama
+LAYER_DECORACAO = 1  # Tapetes, poças, flores baixas
+LAYER_SOMBRA = 2     # Sombras dos personagens
+LAYER_CORPO = 3      # Personagens, Inimigos, Troncos de árvore
+LAYER_TOPO = 4       # Copa das árvores, telhados (passar por baixo)
+LAYER_AEREO = 5      # Pássaros, projéteis voando alto
+LAYER_FX = 6         # Partículas, explosões
+LAYER_UI = 7         # Barras de vida, texto
+
+DEBUG_MODE = True
