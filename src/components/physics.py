@@ -8,10 +8,12 @@ class PhysicsComponent:
         self.y = float(y)
         self.speed = 0.0
         
+        # Configuração da Hitbox
         self.largura_hb_ratio = largura_hb
         self.altura_hb_ratio = altura_hb
         self.hitbox = pygame.Rect(0, 0, 0, 0)
         self.moving = False
+        
         self.update_hitbox()
 
     def update_hitbox(self):
@@ -26,37 +28,69 @@ class PhysicsComponent:
         px_x = self.x * tamanho
         px_y = self.y * tamanho
 
-        # Centraliza hitbox na base do tile
+        # Centraliza hitbox na base do tile (pé do personagem no mundo)
         self.hitbox.centerx = int(px_x + (tamanho // 2))
         self.hitbox.bottom = int(px_y + tamanho)
 
+    def check_collision(self, target_x, target_y, mapa_obj):
+        """
+        Verifica se a hitbox colidiria com parede na posição alvo.
+        Checamos os 4 cantos da hitbox futura para garantir solidez.
+        """
+        tamanho = config.TAMANHO_TILE
+        
+        # Cria uma hitbox temporária na posição futura
+        temp_rect = self.hitbox.copy()
+        
+        # Calcula onde a hitbox estaria em pixels
+        futuro_px_x = target_x * tamanho
+        futuro_px_y = target_y * tamanho
+        
+        temp_rect.centerx = int(futuro_px_x + (tamanho // 2))
+        temp_rect.bottom = int(futuro_px_y + tamanho)
+        
+        # Pontos para checar (Base e Topo da hitbox)
+        pontos = [
+            temp_rect.bottomleft,
+            temp_rect.bottomright,
+            temp_rect.midbottom, # Importante para não passar em quinas
+            temp_rect.center
+        ]
+        
+        for px, py in pontos:
+            # Converte pixel de volta para Grid (Tile X, Tile Y)
+            tx = int(px // tamanho)
+            ty = int(py // tamanho)
+            
+            if mapa_obj.is_blocked_terrain(tx, ty):
+                return True # Colidiu
+                
+        return False
+
     def move(self, dx, dy, mapa_obj):
-        """Tenta mover a entidade e verifica colisões"""
+        """Move tentando deslizar nas paredes"""
         self.moving = False
         if dx == 0 and dy == 0:
             return
 
-        # Normaliza velocidade se estiver na diagonal
+        # Normaliza diagonal
         if dx != 0 and dy != 0:
             dx *= 0.707
             dy *= 0.707
             
-        # Calcula nova posição potencial
-        nx = self.x + dx * self.speed
-        ny = self.y + dy * self.speed
-        
-        # Colisão Eixo X
-        if not mapa_obj.is_blocked_terrain(nx, self.y):
-            self.x = nx
+        # Tentativa de movimento em X
+        new_x = self.x + dx * self.speed
+        if not self.check_collision(new_x, self.y, mapa_obj):
+            self.x = new_x
             self.moving = True
             
-        # Colisão Eixo Y
-        if not mapa_obj.is_blocked_terrain(self.x, ny):
-            self.y = ny
+        # Tentativa de movimento em Y
+        new_y = self.y + dy * self.speed
+        if not self.check_collision(self.x, new_y, mapa_obj):
+            self.y = new_y
             self.moving = True
             
         self.update_hitbox()
 
     def update(self, dt):
-        # Aqui poderíamos colocar inércia ou knockback no futuro
         pass
