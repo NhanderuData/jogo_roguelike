@@ -5,6 +5,7 @@ from graphics import recursos
 from core.state_manager import StateManager
 from states.game_state import GameState
 from core import config
+from core.input_manager import InputManager
 
 # Garante que o Python ache os módulos
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
@@ -24,24 +25,23 @@ class MainApp:
         # Carregamento Global de Assets (Feito uma única vez)
         recursos.carregar_tudo()
         
-        # Inicializa o State Manager
-        self.state_manager = StateManager()
-        # Define o estado inicial (Poderia ser MenuState, mas vamos direto pro Jogo por enquanto)
+        self.input_manager = InputManager()
+        self.state_manager = StateManager(self.input_manager)
         self.state_manager.change(GameState)
 
     def run(self):
         while self.running:
-            # Delta Time em segundos
-            dt = self.clock.tick(config.FPS) / 1000.0
             
-            # Event Loop Global
+            dt = self.clock.tick(config.FPS) / 1000.0
+            self.input_manager.update()
+            
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
-                # Passa o evento para o estado atual lidar
+                
+                self.input_manager.process_event(event)
                 self.state_manager.handle_input(event)
             
-            # Update e Draw do estado atual
             self.state_manager.update(dt)
             self.state_manager.draw(self.screen)
             

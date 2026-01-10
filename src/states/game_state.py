@@ -1,3 +1,4 @@
+# src/states/game_state.py
 import pygame
 from core.state_manager import BaseState
 from core import config
@@ -6,12 +7,13 @@ from core import camera
 from graphics import ui
 from graphics.renderer import Renderer
 from core.time_system import TimeSystem
-# Importe outros módulos necessários conforme seu game.py original
+from core.input_manager import Actions
 
 class GameState(BaseState):
-    def __init__(self, manager, registry):
-        super().__init__(manager, registry)
-        # Inicialização que antes estava no __init__ do Game()
+    def __init__(self, manager, registry, input_manager):
+        # Passa o input_manager para a classe pai (BaseState)
+        super().__init__(manager, registry, input_manager)
+        
         self.relogio = TimeSystem()
         self.mapa = map_gen.Mapa()
         self.camera = camera.Camera()
@@ -19,36 +21,29 @@ class GameState(BaseState):
         self.ui = ui.UI()
         
     def enter(self):
-        # Se quiser tocar música ou resetar algo ao entrar
         print("Entrando no GameState")
 
     def handle_input(self, event):
-        # Lógica de input que estava no handle_input do Game()
-        # NOTA: Isso será substituído pelo InputManager no futuro passo 2
-        
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            world_mx = (mx + self.camera.camera_x) / config.TAMANHO_TILE
-            world_my = (my + self.camera.camera_y) / config.TAMANHO_TILE
-            
-            if event.button == 1:
-                self.mapa.jogador.atacar_espada(world_mx, world_my, self.mapa)
-            elif event.button == 3:
-                self.mapa.jogador.atirar(world_mx, world_my, self.mapa, "player")
+        # A lógica bruta saiu daqui.
+        # O InputManager já processou o evento antes de chegar aqui.
+        pass
 
     def update(self, dt):
-        # Lógica de movimento contínuo (teclado pressionado)
-        # Idealmente moveremos isso para InputManager depois
-        keys = pygame.key.get_pressed()
+        # --- 1. MOVIMENTO (CONTÍNUO - IS_HELD) ---
         dx, dy = 0, 0
-        if keys[pygame.K_w]: dy = -1
-        if keys[pygame.K_s]: dy = 1
-        if keys[pygame.K_a]: dx = -1
-        if keys[pygame.K_d]: dx = 1
         
+        # O InputManager cuida se é WASD ou Setas
+        if self.input.is_held(Actions.MOVE_UP):    dy = -1
+        if self.input.is_held(Actions.MOVE_DOWN):  dy = 1
+        if self.input.is_held(Actions.MOVE_LEFT):  dx = -1
+        if self.input.is_held(Actions.MOVE_RIGHT): dx = 1
+        
+        # Normaliza diagonal
         if dx != 0 and dy != 0:
-            dx *= 0.707; dy *= 0.707
+            dx *= 0.707
+            dy *= 0.707
 
+        # Aplica movimento ao jogador
         if dx != 0 or dy != 0:
             p = self.mapa.jogador
             nx = p.x + dx * p.speed
@@ -59,7 +54,22 @@ class GameState(BaseState):
         elif self.mapa.jogador:
             self.mapa.jogador.moving = False
 
-        # Updates dos sistemas
+        # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
+        # Pega a posição do mouse através do InputManager
+        screen_mx, screen_my = self.input.get_mouse_position()
+        
+        # Converte para coordenadas do mundo
+        world_mx = (screen_mx + self.camera.camera_x) / config.TAMANHO_TILE
+        world_my = (screen_my + self.camera.camera_y) / config.TAMANHO_TILE
+        
+        # Verifica ataques
+        if self.input.is_pressed(Actions.ATTACK_PRIMARY):
+            self.mapa.jogador.atacar_espada(world_mx, world_my, self.mapa)
+            
+        if self.input.is_pressed(Actions.ATTACK_SECONDARY):
+            self.mapa.jogador.atirar(world_mx, world_my, self.mapa, "player")
+
+        # --- 3. ATUALIZAÇÃO DOS SISTEMAS ---
         self.mapa.update()
         self.relogio.update(dt)
         if self.mapa.jogador:

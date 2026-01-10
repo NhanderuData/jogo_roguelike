@@ -5,11 +5,10 @@ class BaseState:
     Classe Abstrata que define o contrato para qualquer estado do jogo
     (Menu, Jogo, Inventário, Pause, etc.)
     """
-    def __init__(self, manager, registry):
+    def __init__(self, manager, registry, input_manager):
         self.manager = manager
-        # registry é um dicionário compartilhado para passar dados entre estados
-        # (ex: passar o objeto 'jogador' do GameState para o InventoryState)
         self.registry = registry 
+        self.input = input_manager
 
     def enter(self, **kwargs):
         """Chamado quando o estado entra no topo da pilha"""
@@ -37,13 +36,16 @@ class StateManager:
     Gerencia a pilha de estados.
     Permite 'Pause' (push) sobrepondo o 'Jogo', ou troca total (change).
     """
-    def __init__(self):
+    def __init__(self, input_manager):
         self.stack = []
         self.registry = {} # Dados persistentes entre estados (ex: Highscore, Configs)
+        self.input_manager = input_manager
 
     def push(self, state_class, **kwargs):
-        """Adiciona um estado no topo (ex: Pause sobre o Jogo)"""
-        new_state = state_class(self, self.registry)
+        # Passa o input_manager para o novo estado
+        new_state = state_class(self, self.manager.registry, self.input_manager)
+        # Correção: self.manager não existe aqui dentro, é self.registry
+        new_state = state_class(self, self.registry, self.input_manager)
         new_state.enter(**kwargs)
         self.stack.append(new_state)
 
@@ -56,10 +58,13 @@ class StateManager:
             # Por enquanto, simples é melhor.
 
     def change(self, state_class, **kwargs):
-        """Troca o estado atual pelo novo (ex: Menu -> Jogo)"""
         while self.stack:
             self.pop()
-        self.push(state_class, **kwargs)
+        # Ao invés de chamar push, vamos instanciar direto ou usar push?
+        # Vamos usar a lógica correta:
+        new_state = state_class(self, self.registry, self.input_manager)
+        new_state.enter(**kwargs)
+        self.stack.append(new_state)
 
     def handle_input(self, event):
         if self.stack:
