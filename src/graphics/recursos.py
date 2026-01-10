@@ -103,7 +103,7 @@ def carregar_tudo():
     SPRITES["blue_ground"] = criar_sprite_provisorio(config.AZUL_AGUA)
     SPRITES["grass"] = carregar_estatico("grass.png", escala=2.0)
     SPRITES["estrada"] = criar_sprite_provisorio(config.MARROM_ESTRADA)
-    SPRITES["shoot"] = carregar_estatico("shoot.png", escala=1.0)
+    SPRITES["fireball"] = carregar_estatico("shoot.png", escala=2.0)
     
     # Seus outros assets...
     SPRITES["llama_run"] = carregar_spritesheet("llama.png", colunas=6, escala=2.0)
@@ -113,7 +113,6 @@ def carregar_tudo():
     SPRITES["rock"] = carregar_estatico("rock.png")
     SPRITES["wall"] = carregar_estatico("wall.png", escala=1.0)
     SPRITES["house"] = carregar_estatico("house.png", escala=1.0)
-    SPRITES["fireball"] = carregar_estatico("fireball.png", escala=1.0)
     
     SPRITES["orc_run"] = [criar_sprite_provisorio(config.VERDE)] 
     SPRITES["troll_run"] = [criar_sprite_provisorio(config.VERMELHO)]
