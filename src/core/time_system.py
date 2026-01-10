@@ -1,6 +1,6 @@
 # src/core/time_system.py
 import pygame
-from graphics import config
+from core import config
 
 class TimeSystem:
     def __init__(self):

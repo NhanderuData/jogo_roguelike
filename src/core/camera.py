@@ -1,5 +1,5 @@
 # src/camera.py
-from graphics import config
+from core import config
 
 class Camera:
     def __init__(self):

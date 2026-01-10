@@ -2,7 +2,7 @@
 import math
 import random
 import pygame
-from graphics import config
+from core import config
 from graphics import recursos
 from entities import combat
 

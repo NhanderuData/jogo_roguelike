@@ -1,6 +1,6 @@
 import pygame
 import random
-from . import config
+from core import config
 
 SPRITES = {}
 

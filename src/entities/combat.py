@@ -1,7 +1,7 @@
 # src/entities/combat.py
 import math
 import pygame
-from graphics import config
+from core import config
 from graphics import recursos 
 
 # --- EFEITO VISUAL (Risco da Espada) ---

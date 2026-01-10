@@ -1,6 +1,6 @@
 import random
 from perlin_noise import PerlinNoise 
-from graphics import config
+from core import config
 from entities import actor
 from graphics import efeitos
 from .grid import Grid

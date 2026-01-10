@@ -1,6 +1,6 @@
 # src/efeitos.py
 import pygame
-from . import config
+from core import config
 
 class TextoFlutuante:
     def __init__(self, x, y, texto, cor):

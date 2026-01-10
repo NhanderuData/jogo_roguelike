@@ -1,6 +1,6 @@
 # src/ui.py
 import pygame
-from graphics import config
+from core import config
 
 class UI:
     def __init__(self):

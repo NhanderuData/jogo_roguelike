@@ -1,6 +1,6 @@
 # src/graphics/renderer.py
 import pygame
-from . import config
+from core import config
 from . import recursos
 from . import shaders
 import debug
