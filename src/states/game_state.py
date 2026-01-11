@@ -1,5 +1,6 @@
 # src/states/game_state.py
 import pygame
+from states.game_over_state import GameOverState
 from core.state_manager import BaseState
 from core import config
 from map import map_gen
@@ -57,6 +58,10 @@ class GameState(BaseState):
             
         if self.input.is_pressed(Actions.ATTACK_SECONDARY):
             self.mapa.jogador.atirar(world_mx, world_my, self.mapa, "player")
+
+        if self.mapa.jogador.hp <= 0:
+            print("Jogador morreu! Indo para Game Over.")
+            self.manager.change(GameOverState)
 
         # --- 3. ATUALIZAÇÃO DOS SISTEMAS ---
         self.mapa.update()

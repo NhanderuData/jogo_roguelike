@@ -10,6 +10,7 @@ class Actions:
     ATTACK_SECONDARY = "attack_secondary" # Magia
     PAUSE = "pause"
     QUIT = "quit"
+    RESTART = "restart"
 
 class InputManager:
     def __init__(self):
@@ -20,7 +21,9 @@ class InputManager:
             Actions.MOVE_LEFT:  [pygame.K_a, pygame.K_LEFT],
             Actions.MOVE_RIGHT: [pygame.K_d, pygame.K_RIGHT],
             Actions.PAUSE:      [pygame.K_ESCAPE, pygame.K_p],
-            Actions.QUIT:       [pygame.K_ESCAPE] # Exemplo
+            Actions.QUIT:       [pygame.K_ESCAPE],
+            Actions.RESTART:    [pygame.K_r],
+            Actions.QUIT:       [pygame.K_ESCAPE]
         }
         
         # Mapa de Mouse: Ação -> Índice do Botão (0=Esq, 1=Meio, 2=Dir)
