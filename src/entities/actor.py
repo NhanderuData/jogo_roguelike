@@ -83,6 +83,8 @@ class Entidade:
     def dano(self): return self.combat.damage
     @property
     def xp_reward(self): return self.combat.xp_reward
+    @property
+    def xp_proximo_nivel(self): return self.combat.next_level_xp
 
     # --- MÉTODOS DE AÇÃO ---
     def tomar_dano(self, qtd, mapa_obj=None):

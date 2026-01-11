@@ -8,7 +8,7 @@ class TextoFlutuante:
         self.y = y
         self.texto = str(texto)
         self.cor = cor
-        self.vida = 60  # Dura 1 segundo
+        self.life = 60  # Dura 1 segundo
         self.offset_y = 0.0 # Começa no chão e sobe
         
         # Cria a fonte (Pequena e negrito)
@@ -17,7 +17,7 @@ class TextoFlutuante:
         self.shadow = self.font.render(self.texto, True, config.PRETO) # Sombra
 
     def update(self):
-        self.vida -= 1
+        self.life -= 1
         self.offset_y -= 0.02 # Sobe devagarzinho
 
     def draw(self, surface, camera_x, camera_y):

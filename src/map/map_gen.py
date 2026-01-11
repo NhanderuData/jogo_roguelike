@@ -150,24 +150,27 @@ class Mapa:
         self.entidades.append(self.jogador)
 
     def update(self):
-        # Update normal (IA, Física, Morte)
-        for ent in self.entidades[:]:
-            ent.update_ia(self)
-            ent.update(self)
-            if ent.hp <= 0:
-                if ent != self.jogador:
-                    self.jogador.ganhar_xp(ent.xp_reward)
-                    self.entidades.remove(ent)
+        if self.jogador:
+            self.jogador.update(self)
+            
+    
+        for ent in self.entidades:
+            if ent != self.jogador:
+                ent.update(self) 
+
+        # Atualiza Projéteis
+        for p in self.projeteis:
+            p.update(self) 
         
-        for p in self.projeteis[:]:
-            p.update(self)
-            if not p.active: self.projeteis.remove(p)
-        for e in self.efeitos[:]:
+        self.projeteis = [p for p in self.projeteis if p.active]
+        
+        for e in self.efeitos:
             e.update()
-            if e.life <= 0: self.efeitos.remove(e)
-        for t in self.textos[:]:
+        self.efeitos = [e for e in self.efeitos if e.life > 0]
+        
+        for t in self.textos:
             t.update()
-            if t.vida <= 0: self.textos.remove(t)
+        self.textos = [t for t in self.textos if t.life > 0]
 
     def criar_texto_dano(self, x, y, valor):
         cor = (255, 50, 50)
