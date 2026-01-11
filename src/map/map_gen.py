@@ -7,13 +7,8 @@ from .grid import Grid
 from . import biomas
 
 # Configurações do Gerador
-
 NOISE_SCALE = 40.0 
 NOISE_OCTAVES = 4 
-
-# --- NOVA CONFIGURAÇÃO ---
-# Escala maior = Biomas maiores e mais largos
-# Escala menor = Biomas mudam mais rápido
 BIOME_SCALE = 120.0
 
 class Mapa:
@@ -38,38 +33,40 @@ class Mapa:
     def is_blocked_terrain(self, x, y):
         tile = self.obter_tile(x, y)
         if tile:
-            # Bloqueia se for parede, água ou se já tiver árvore (bloqueado=True)
-            return tile.bloqueado or tile.tipo == "parede" or tile.tipo == "azul" or tile.tipo == "blue_ground"
+            # Bloqueia se for parede, água profunda ou se o tile estiver marcado como bloqueado (árvores)
+            return tile.bloqueado or tile.tipo == "parede" or tile.tipo == "deep_water"
         return True
 
     def gerar_novo_nivel(self):
-        # ... (Limpezas iniciais iguais) ...
+        # 1. Reset das Listas
+        self.entidades = []
+        self.projeteis = []
+        self.efeitos = []
+        self.textos = []
         
         self.seed = random.randint(0, 10000)
-        print(f"Gerando mapa com Seed: {self.seed}")
+        print(f"Gerando Mapa Aberto (Seed: {self.seed})")
 
-        # 1. Ruído de Terreno (Define Água vs Terra)
+        # 2. Preparar Geradores de Ruído
         noise_gen = PerlinNoise(octaves=NOISE_OCTAVES, seed=self.seed)
-        
-        # 2. NOVO: Ruído de Bioma (Define Floresta vs Ruínas)
-        # Usamos seed + 1 para que o desenho do bioma não seja igual ao da água
         biome_gen = PerlinNoise(octaves=2, seed=self.seed + 1)
 
-        # --- PASSO 1: TERRENO E DECORAÇÃO ---
+        # 3. Gerar o Terreno (Loop por todo o mapa)
         for y in range(self.altura):
             for x in range(self.largura):
                 tile = self.obter_tile(x, y)
                 if not tile: continue
 
-                # Valor de altura (Água/Terra)
+                # Reseta o tile para o padrão antes de aplicar bioma
+                tile.bloqueado = False
+                tile.tipo = "terra"
+
+                # Calcula valores de ruído para esta coordenada
                 valor_ruido = noise_gen([x / NOISE_SCALE, y / NOISE_SCALE])
-                
-                # NOVO: Valor de "Temperatura/Bioma"
                 valor_bioma = biome_gen([x / BIOME_SCALE, y / BIOME_SCALE])
-                
                 rng = random.randint(0, 100)
 
-                # --- CAMADA 1, 2 e 3 (ÁGUA) ---
+                # --- LÓGICA DE TERRENO (Água vs Terra) ---
                 if valor_ruido < -0.25:
                     tile.tipo = "deep_water"
                     tile.bloqueado = True
@@ -77,65 +74,37 @@ class Mapa:
                     biomas.aplicar_bioma_azul(self, x, y, tile, rng)
                 elif valor_ruido < -0.08:
                     tile.tipo = "sand"
-                    tile.bloqueado = False
+                    tile.bloqueado = False # Areia é caminhável
 
-                # --- CAMADA 4: TERRA FIRME ---
+                # --- LÓGICA DE BIOMAS (Floresta vs Ruínas) ---
                 else:
-                    # --- AQUI ENTRA O SEU CÓDIGO ---
-                    # Substitui o antigo "if random.random() < 0.8:"
-                    
                     if valor_bioma < 0.0:
-                        # Certeza que é Floresta densa
+                        # Floresta
                         biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
                     elif valor_bioma > 0.2:
-                        # Certeza que é Ruína densa
+                        # Ruínas
                         biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
                     else:
-                        # Zona de Transição (Mistura)
+                        # Zona de Transição (Mistura os dois)
                         if random.random() < 0.5:
                             biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
                         else:
                             biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
 
-        # --- PASSO 2: SPAWN DE INIMIGOS (NOVO) ---
-        # Tentamos spawnar monstros em lugares aleatórios válidos
-        quantidade_monstros = 40  # Quantos bichos você quer no mapa?
-        
-        count = 0
-        tentativas = 0
-        while count < quantidade_monstros and tentativas < 1000:
-            tentativas += 1
-            mx = random.randint(5, self.largura - 5)
-            my = random.randint(5, self.altura - 5)
-            
-            # Só spawna se o chão estiver livre (sem água, parede ou árvore)
-            if not self.is_blocked_terrain(mx, my):
-                
-                # Sorteio do tipo de inimigo (Nível de dificuldade)
-                rng_mob = random.random()
-                if rng_mob < 0.6:   # 60% chance de Orc
-                    nome, hp, dano, xp = "Orc", 30, 5, 15
-                elif rng_mob < 0.9: # 30% chance de Troll
-                    nome, hp, dano, xp = "Troll", 80, 15, 50
-                else:               # 10% chance de Rei Troll
-                    nome, hp, dano, xp = "REI TROLL", 150, 20, 100
-                
-                inimigo = actor.Entidade(mx, my, nome, hp, dano, xp_reward=xp)
-                self.entidades.append(inimigo)
-                count += 1
-
-        # --- PASSO 3: SPAWN DO JOGADOR ---
+        # 4. Spawn do Jogador (Busca lugar seguro)
         sx, sy = 15, 15
-        encontrou_lugar = False
+        encontrou = False
+        # Tenta 100 vezes achar um lugar que não seja água ou parede
         for _ in range(100):
-            tx = random.randint(10, self.largura - 10)
-            ty = random.randint(10, self.altura - 10)
+            tx = random.randint(5, self.largura - 5)
+            ty = random.randint(5, self.altura - 5)
             if not self.is_blocked_terrain(tx, ty):
                 sx, sy = tx, ty
-                encontrou_lugar = True
+                encontrou = True
                 break
         
-        if not encontrou_lugar:
+        # Se não achou, força o chão na posição padrão
+        if not encontrou:
             tile = self.obter_tile(sx, sy)
             if tile: 
                 tile.tipo = "terra"
@@ -146,31 +115,68 @@ class Mapa:
         else:
             self.jogador.x, self.jogador.y = float(sx), float(sy)
             self.jogador.hp = self.jogador.hp_max
+            # Reseta estado de movimento para evitar bugs visuais
+            self.jogador.physics.moving = False
         
         self.entidades.append(self.jogador)
 
+        # 5. Spawn de Inimigos (Espalhados pelo mapa)
+        quantidade_monstros = 40
+        count = 0
+        tentativas = 0
+        while count < quantidade_monstros and tentativas < 2000:
+            tentativas += 1
+            mx = random.randint(5, self.largura - 5)
+            my = random.randint(5, self.altura - 5)
+            
+            # Não spawna muito perto do jogador
+            dist = ((mx - sx)**2 + (my - sy)**2)**0.5
+            if dist < 10: continue
+
+            if not self.is_blocked_terrain(mx, my):
+                rng_mob = random.random()
+                if rng_mob < 0.6:   # Orc (Comum)
+                    nome, hp, dano, xp = "Orc", 30, 5, 15
+                elif rng_mob < 0.9: # Troll (Forte)
+                    nome, hp, dano, xp = "Troll", 80, 15, 50
+                else:               # Rei Troll (Raro)
+                    nome, hp, dano, xp = "REI TROLL", 150, 20, 100
+                
+                inimigo = actor.Entidade(mx, my, nome, hp, dano, xp_reward=xp)
+                self.entidades.append(inimigo)
+                count += 1
+
     def update(self):
+        # Atualiza Jogador
         if self.jogador:
             self.jogador.update(self)
             
-    
+        # Atualiza Entidades (Inimigos)
         for ent in self.entidades:
             if ent != self.jogador:
-                ent.update(self) 
+                ent.update(self)
 
+        # Verifica mortes
+        for ent in self.entidades[:]:
+            if ent.hp <= 0:
+                if ent != self.jogador:
+                    self.jogador.ganhar_xp(ent.xp_reward)
+                    self.entidades.remove(ent)
+        
         # Atualiza Projéteis
-        for p in self.projeteis:
-            p.update(self) 
-        
-        self.projeteis = [p for p in self.projeteis if p.active]
-        
-        for e in self.efeitos:
+        for p in self.projeteis[:]:
+            p.update(self)
+            if not p.active: self.projeteis.remove(p)
+            
+        # Atualiza Efeitos
+        for e in self.efeitos[:]:
             e.update()
-        self.efeitos = [e for e in self.efeitos if e.life > 0]
-        
-        for t in self.textos:
+            if e.life <= 0: self.efeitos.remove(e)
+            
+        # Atualiza Textos
+        for t in self.textos[:]:
             t.update()
-        self.textos = [t for t in self.textos if t.life > 0]
+            if t.life <= 0: self.textos.remove(t)
 
     def criar_texto_dano(self, x, y, valor):
         cor = (255, 50, 50)
