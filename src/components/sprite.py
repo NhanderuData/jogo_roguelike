@@ -7,9 +7,20 @@ class SpriteComponent:
         self.entity = entity
         self.layer = layer
         
-        # Carregamento de Sprite
-        self.frames = recursos.SPRITES.get(sprite_key, [])
+        # --- CORREÇÃO AQUI ---
+        # Pega o recurso bruto do dicionário
+        raw_data = recursos.SPRITES.get(sprite_key, [])
+        
+        # Verifica: Se for uma Lista, usa direto. Se for Imagem única, coloca numa lista.
+        if isinstance(raw_data, list):
+            self.frames = raw_data
+        else:
+            # Transforma imagem única em uma lista de 1 quadro
+            self.frames = [raw_data]
+        
+        # Agora é seguro acessar o índice [0]
         self.image = self.frames[0] if self.frames else None
+        # ---------------------
         
         # Animação
         self.frame_index = 0.0
@@ -19,10 +30,7 @@ class SpriteComponent:
         self.offset_x = 0
         self.offset_y = 0
         self.scale_sombra = 1.0
-        
-        # --- CORREÇÃO AQUI ---
         self.sombra_cache = None 
-        # ---------------------
 
         self.configurar_offsets(sprite_key)
 

@@ -3,8 +3,7 @@ import random
 import pygame
 from core import config
 from graphics import recursos
-from entities import combat
-# Importe os componentes
+from systems import combat_system
 from components.physics import PhysicsComponent
 from components.sprite import SpriteComponent
 
@@ -101,12 +100,12 @@ class Entidade:
 
     def atirar(self, tx, ty, mapa_obj, origem):
         if self.cooldown_tiro > 0: return
-        combat.criar_projetil(self.x, self.y, tx, ty, origem, mapa_obj)
+        combat_system.criar_projetil(self.x, self.y, tx, ty, origem, mapa_obj)
         self.cooldown_tiro = 40 
 
     def atacar_espada(self, tx, ty, mapa_obj):
         if self.cooldown_espada > 0: return
-        combat.executar_golpe_espada(self, tx, ty, mapa_obj)
+        combat_system.executar_golpe_espada(self, tx, ty, mapa_obj)
         self.cooldown_espada = 30 
 
     def update(self, mapa_obj):
