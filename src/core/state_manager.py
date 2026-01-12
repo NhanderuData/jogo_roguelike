@@ -27,8 +27,8 @@ class BaseState:
         pass
 
     def draw(self, surface):
-        """Renderização na tela"""
-        pass
+        for state in self.stack:
+            state.draw(surface)
 
 
 class StateManager:

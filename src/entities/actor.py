@@ -9,6 +9,7 @@ from components.physics import PhysicsComponent
 from components.sprite import SpriteComponent
 from components.ai import AIComponent # <--- NOVO IMPORT
 from components.combat import CombatComponent
+from components.inventory import InventoryComponent
 
 class Entidade:
     def __init__(self, x, y, nome, hp, dano, xp_reward=0):
@@ -18,6 +19,11 @@ class Entidade:
         self.physics = PhysicsComponent(self, x, y)
         base_speed = 0.15 if nome == "Heroi" else 0.04
         self.physics.speed = base_speed
+
+        if nome == "Heroi":
+            self.inventory = InventoryComponent()
+        else:
+            self.inventory = None
 
         # --- 2. VISUAL ---
         sprite_key = "orc_run"

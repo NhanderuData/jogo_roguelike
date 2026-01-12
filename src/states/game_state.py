@@ -9,6 +9,8 @@ from graphics import ui
 from graphics.renderer import Renderer
 from core.time_system import TimeSystem
 from core.input_manager import Actions
+from states.pause_state import PauseState
+from states.inventory_state import InventoryState
 
 class GameState(BaseState):
     def __init__(self, manager, registry, input_manager):
@@ -44,6 +46,10 @@ class GameState(BaseState):
         else:
             # Se não houver input, garantimos que ele pare
             self.mapa.jogador.moving = False
+        
+        if self.input.is_pressed(Actions.PAUSE):
+            self.manager.push(PauseState)
+            return
 
         # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
         screen_mx, screen_my = self.input.get_mouse_position()
