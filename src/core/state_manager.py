@@ -36,13 +36,14 @@ class StateManager:
     Gerencia a pilha de estados.
     Permite 'Pause' (push) sobrepondo o 'Jogo', ou troca total (change).
     """
-    def __init__(self, input_manager):
+    # --- CORREÇÃO AQUI: Adicione 'registry' nos argumentos ---
+    def __init__(self, registry, input_manager):
         self.stack = []
-        self.registry = {} # Dados persistentes entre estados (ex: Highscore, Configs)
+        self.registry = registry # Agora usa o dicionário que veio do MainApp
         self.input_manager = input_manager
+    # ---------------------------------------------------------
 
     def push(self, state_class, **kwargs):
-        # Correção: self.manager não existe aqui dentro, é self.registry
         new_state = state_class(self, self.registry, self.input_manager)
         new_state.enter(**kwargs)
         self.stack.append(new_state)
@@ -52,8 +53,6 @@ class StateManager:
         if self.stack:
             top_state = self.stack.pop()
             top_state.exit()
-            # Opcional: Chamar enter() ou resume() no estado que ficou no topo?
-            # Por enquanto, simples é melhor.
 
     def change(self, state_class, **kwargs):
         while self.stack:
@@ -72,7 +71,5 @@ class StateManager:
             self.stack[-1].update(dt)
 
     def draw(self, surface):
-        # Em alguns casos, queremos desenhar o estado de baixo (ex: Pause transparente)
-        # Mas para simplificar agora, desenhamos apenas o topo.
         if self.stack:
             self.stack[-1].draw(surface)

@@ -11,11 +11,14 @@ class Actions:
     PAUSE = "pause"
     QUIT = "quit"
     RESTART = "restart"
+    RESTART = "restart"
+    START = "start"
 
 class InputManager:
     def __init__(self):
         # Mapa de Teclas: Ação -> Lista de Teclas que a ativam
         self.key_bindings = {
+            Actions.START: [pygame.K_RETURN, pygame.K_KP_ENTER],
             Actions.MOVE_UP:    [pygame.K_w, pygame.K_UP],
             Actions.MOVE_DOWN:  [pygame.K_s, pygame.K_DOWN],
             Actions.MOVE_LEFT:  [pygame.K_a, pygame.K_LEFT],

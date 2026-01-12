@@ -6,6 +6,7 @@ from core.state_manager import StateManager
 from states.game_state import GameState
 from core import config
 from core.input_manager import InputManager
+from states.menu_state import MenuState
 
 # Garante que o Python ache os módulos
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
@@ -26,8 +27,9 @@ class MainApp:
         recursos.carregar_tudo()
         
         self.input_manager = InputManager()
-        self.state_manager = StateManager(self.input_manager)
-        self.state_manager.change(GameState)
+        self.registry = {}
+        self.state_manager = StateManager(self.registry,self.input_manager)
+        self.state_manager.change(MenuState)
 
     def run(self):
         while self.running:
