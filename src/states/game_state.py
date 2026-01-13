@@ -50,6 +50,11 @@ class GameState(BaseState):
         if self.input.is_pressed(Actions.PAUSE):
             self.manager.push(PauseState)
             return
+        
+        if self.input.is_pressed(Actions.INVENTORY):
+            # Passamos o jogador como argumento para o estado saber o que mostrar
+            self.manager.push(InventoryState, player=self.mapa.jogador)
+            return
 
         # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
         screen_mx, screen_my = self.input.get_mouse_position()

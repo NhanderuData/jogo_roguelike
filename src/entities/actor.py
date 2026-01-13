@@ -22,6 +22,8 @@ class Entidade:
 
         if nome == "Heroi":
             self.inventory = InventoryComponent()
+            self.inventory.add_item("Poção de Cura", 3)
+            self.inventory.add_item("Espada Velha", 1)
         else:
             self.inventory = None
 
