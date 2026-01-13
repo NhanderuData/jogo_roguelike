@@ -110,12 +110,14 @@ class Mapa:
                 tile.tipo = "terra"
                 tile.bloqueado = False
 
+        # --- REFATORADO: Criação do Jogador (Sem status hardcoded) ---
         if not self.jogador:
-            self.jogador = actor.Entidade(sx, sy, "Heroi", 100, 10, xp_reward=0)
+            # Passamos apenas o nome "Heroi". A classe Entidade puxa HP/Dano do game_data.py
+            self.jogador = actor.Entidade(sx, sy, "Heroi")
         else:
             self.jogador.x, self.jogador.y = float(sx), float(sy)
+            # Reseta HP baseado no máximo atual (que veio do componente de combate)
             self.jogador.hp = self.jogador.hp_max
-            # Reseta estado de movimento para evitar bugs visuais
             self.jogador.physics.moving = False
         
         self.entidades.append(self.jogador)
@@ -135,14 +137,20 @@ class Mapa:
 
             if not self.is_blocked_terrain(mx, my):
                 rng_mob = random.random()
-                if rng_mob < 0.6:   # Orc (Comum)
-                    nome, hp, dano, xp = "Orc", 30, 5, 15
-                elif rng_mob < 0.9: # Troll (Forte)
-                    nome, hp, dano, xp = "Troll", 80, 15, 50
-                else:               # Rei Troll (Raro)
-                    nome, hp, dano, xp = "REI TROLL", 150, 20, 100
                 
-                inimigo = actor.Entidade(mx, my, nome, hp, dano, xp_reward=xp)
+                # --- REFATORADO: Seleção de Nome Apenas ---
+                nome = "Orc" # Padrão
+                
+                if rng_mob < 0.6:   
+                    nome = "Orc"
+                elif rng_mob < 0.9: 
+                    nome = "Troll"
+                else:               
+                    nome = "REI TROLL"
+                
+                # Cria a entidade passando apenas o nome!
+                # Os atributos (HP, Dano, XP) são configurados automaticamente dentro de actor.py
+                inimigo = actor.Entidade(mx, my, nome)
                 self.entidades.append(inimigo)
                 count += 1
 

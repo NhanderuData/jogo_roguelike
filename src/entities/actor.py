@@ -7,46 +7,56 @@ from components import combat_system
 # Importe todos os componentes
 from components.physics import PhysicsComponent
 from components.sprite import SpriteComponent
-from components.ai import AIComponent # <--- NOVO IMPORT
+from components.ai import AIComponent
 from components.combat import CombatComponent
 from components.inventory import InventoryComponent
+# --- NOVO IMPORT ESSENCIAL ---
+from core.game_data import DATA_INIMIGOS 
 
 class Entidade:
-    def __init__(self, x, y, nome, hp, dano, xp_reward=0):
+    # A MÁGICA ESTÁ AQUI: Removemos hp, dano e xp do __init__
+    def __init__(self, x, y, nome):
         self.nome = nome
+        
+        # Busca os dados no dicionário. Se não achar, usa o Orc como padrão
+        dados = DATA_INIMIGOS.get(nome, DATA_INIMIGOS["Orc"])
         
         # --- 1. FÍSICA ---
         self.physics = PhysicsComponent(self, x, y)
-        base_speed = 0.15 if nome == "Heroi" else 0.04
-        self.physics.speed = base_speed
+        self.physics.speed = dados.get("speed", 0.04)
 
         if nome == "Heroi":
             self.inventory = InventoryComponent()
+            # Itens iniciais para teste
             self.inventory.add_item("Poção de Cura", 3)
             self.inventory.add_item("Espada Velha", 1)
         else:
             self.inventory = None
 
         # --- 2. VISUAL ---
-        sprite_key = "orc_run"
-        if nome == "Heroi": sprite_key = "llama_run"
-        elif nome == "Troll": sprite_key = "troll_run"
-        elif nome == "REI TROLL": sprite_key = "boss_run"
-        elif nome == "Arvore": sprite_key = "tree"
-        elif nome == "RedTree": sprite_key = "red_tree"
-        elif nome == "Cipreste": sprite_key = "cipreste"
+        sprite_key = dados.get("sprite", "orc_run")
         
+        # Define a layer (chão, corpo ou topo) automaticamente
         layer = config.LAYER_CORPO
-        if "ree" in sprite_key or "cipreste" in sprite_key:
+        if dados.get("layer_topo"):
             layer = config.LAYER_TOPO
             
         self.sprite = SpriteComponent(self, sprite_key, layer=layer)
         
         # --- 3. COMBATE ---
-        self.combat = CombatComponent(self, hp, dano, xp_reward)
+        # Pega HP e Dano do arquivo de dados
+        self.combat = CombatComponent(
+            self, 
+            hp_max=dados.get("hp", 10), 
+            damage=dados.get("dano", 1), 
+            xp_reward=dados.get("xp", 0)
+        )
         
-        # --- 4. INTELIGÊNCIA ARTIFICIAL (NOVO!) ---
+        # --- 4. INTELIGÊNCIA ARTIFICIAL ---
         self.ai = AIComponent(self)
+        # Desativa a IA se o dado disser que não tem (ex: Árvores)
+        if not dados.get("ai", True):
+            self.ai.active = False
 
 
     # --- PROXIES (Mantemos para compatibilidade) ---
@@ -119,11 +129,3 @@ class Entidade:
         
         # A IA decide se move ou ataca
         self.ai.update(mapa_obj)
-
-    # REMOVIDO: def update_ia(self, mapa_obj): ... (Lógica foi para AIComponent)
-
-class ObjetoDestrutivel(Entidade):
-    def __init__(self, x, y, nome, hp):
-        super().__init__(x, y, nome, hp, dano=0, xp_reward=5)
-        self.physics.speed = 0 
-        self.ai.active = False # Objetos não pensam

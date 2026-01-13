@@ -9,7 +9,8 @@ def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
         if random.random() < 0.5: # 50% de chance
             tipo_arvore = "Cipreste"
             
-        arv = actor.ObjetoDestrutivel(gx, gy, tipo_arvore, hp=50)
+        # CORREÇÃO: Agora usamos actor.Entidade diretamente, sem passar HP
+        arv = actor.Entidade(gx, gy, tipo_arvore)
         mapa.entidades.append(arv)
         tile.bloqueado = True 
         
@@ -19,19 +20,18 @@ def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
 
 def aplicar_bioma_ruinas(mapa, gx, gy, tile, rng):
     if rng < 5:
-        arv_vermelha = actor.ObjetoDestrutivel(gx, gy, "RedTree", hp=60)
+        # CORREÇÃO: Usa Entidade e o nome "RedTree" (que deve estar no game_data.py)
+        arv_vermelha = actor.Entidade(gx, gy, "RedTree")
         mapa.entidades.append(arv_vermelha)
         tile.bloqueado = True
     elif rng < 16:
         tile.tipo = "parede"
         tile.bloqueado = True
-        # z_level removido
     elif rng < 26:
         tile.tipo = "terra"
 
 def aplicar_bioma_azul(mapa, gx, gy, tile, rng):
     tile.tipo = "blue_ground"
-    # z_level removido
     if rng < 5:
         tile.bloqueado = True # Cristais/pedras azuis
 
@@ -42,11 +42,14 @@ def spawn_inimigos_por_bioma(mapa, ox, oy, tipo_bioma):
         my = oy + random.randint(5, 25)
         
         if not mapa.is_blocked_terrain(mx, my):
+            # Define apenas o NOME do inimigo
             if tipo_bioma == "ruinas":
-                nome, hp, dano, xp = "Troll", 80, 15, 50
+                nome = "Troll"
             elif tipo_bioma == "azul":
-                nome, hp, dano, xp = "REI TROLL", 150, 20, 100
+                nome = "REI TROLL"
             else:
-                nome, hp, dano, xp = "Orc", 30, 5, 15
+                nome = "Orc"
                 
-            mapa.entidades.append(actor.Entidade(mx, my, nome, hp, dano, xp_reward=xp))
+            # CORREÇÃO: Instancia Entidade apenas com posição e nome
+            # A classe Entidade vai buscar o HP/Dano no game_data.py
+            mapa.entidades.append(actor.Entidade(mx, my, nome))
