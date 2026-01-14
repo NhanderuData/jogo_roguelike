@@ -5,6 +5,9 @@ from entities import actor
 from graphics import efeitos
 from .grid import Grid
 from . import biomas
+# Novos imports necessários
+from entities.loot import LootDrop
+from core.game_data import DATA_INIMIGOS
 
 # Configurações do Gerador
 NOISE_SCALE = 40.0 
@@ -19,6 +22,7 @@ class Mapa:
         self.grid = self.grid_sistema.tiles
         
         self.entidades = []
+        self.items_no_chao = [] # Lista para os drops
         self.projeteis = []
         self.efeitos = []
         self.textos = []
@@ -40,6 +44,7 @@ class Mapa:
     def gerar_novo_nivel(self):
         # 1. Reset das Listas
         self.entidades = []
+        self.items_no_chao = []
         self.projeteis = []
         self.efeitos = []
         self.textos = []
@@ -57,7 +62,7 @@ class Mapa:
                 tile = self.obter_tile(x, y)
                 if not tile: continue
 
-                # Reseta o tile para o padrão antes de aplicar bioma
+                # Reseta o tile
                 tile.bloqueado = False
                 tile.tipo = "terra"
 
@@ -66,7 +71,7 @@ class Mapa:
                 valor_bioma = biome_gen([x / BIOME_SCALE, y / BIOME_SCALE])
                 rng = random.randint(0, 100)
 
-                # --- LÓGICA DE TERRENO (Água vs Terra) ---
+                # --- LÓGICA DE TERRENO ---
                 if valor_ruido < -0.25:
                     tile.tipo = "deep_water"
                     tile.bloqueado = True
@@ -74,27 +79,22 @@ class Mapa:
                     biomas.aplicar_bioma_azul(self, x, y, tile, rng)
                 elif valor_ruido < -0.08:
                     tile.tipo = "sand"
-                    tile.bloqueado = False # Areia é caminhável
-
-                # --- LÓGICA DE BIOMAS (Floresta vs Ruínas) ---
+                    tile.bloqueado = False 
                 else:
-                    if valor_bioma < 0.0:
-                        # Floresta
+                    # --- LÓGICA DE BIOMAS ---
+                    if valor_bioma < 0.0: # Floresta
                         biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
-                    elif valor_bioma > 0.2:
-                        # Ruínas
+                    elif valor_bioma > 0.2: # Ruínas
                         biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
-                    else:
-                        # Zona de Transição (Mistura os dois)
+                    else: # Transição
                         if random.random() < 0.5:
                             biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
                         else:
                             biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
 
-        # 4. Spawn do Jogador (Busca lugar seguro)
+        # 4. Spawn do Jogador
         sx, sy = 15, 15
         encontrou = False
-        # Tenta 100 vezes achar um lugar que não seja água ou parede
         for _ in range(100):
             tx = random.randint(5, self.largura - 5)
             ty = random.randint(5, self.altura - 5)
@@ -103,26 +103,23 @@ class Mapa:
                 encontrou = True
                 break
         
-        # Se não achou, força o chão na posição padrão
         if not encontrou:
             tile = self.obter_tile(sx, sy)
             if tile: 
                 tile.tipo = "terra"
                 tile.bloqueado = False
 
-        # --- REFATORADO: Criação do Jogador (Sem status hardcoded) ---
         if not self.jogador:
-            # Passamos apenas o nome "Heroi". A classe Entidade puxa HP/Dano do game_data.py
-            self.jogador = actor.Entidade(sx, sy, "Heroi")
+            # Jogador agora é "Survivor" conforme o contexto zumbi
+            self.jogador = actor.Entidade(sx, sy, "Survivor")
         else:
             self.jogador.x, self.jogador.y = float(sx), float(sy)
-            # Reseta HP baseado no máximo atual (que veio do componente de combate)
             self.jogador.hp = self.jogador.hp_max
             self.jogador.physics.moving = False
         
         self.entidades.append(self.jogador)
 
-        # 5. Spawn de Inimigos (Espalhados pelo mapa)
+        # 5. Spawn de Inimigos (Walker, Runner, Tank)
         quantidade_monstros = 40
         count = 0
         tentativas = 0
@@ -131,25 +128,29 @@ class Mapa:
             mx = random.randint(5, self.largura - 5)
             my = random.randint(5, self.altura - 5)
             
-            # Não spawna muito perto do jogador
             dist = ((mx - sx)**2 + (my - sy)**2)**0.5
             if dist < 10: continue
 
             if not self.is_blocked_terrain(mx, my):
-                rng_mob = random.random()
+                # Recalcula o bioma neste ponto para saber qual zumbi spawnar
+                v_ruido = noise_gen([mx / NOISE_SCALE, my / NOISE_SCALE])
+                v_bioma = biome_gen([mx / BIOME_SCALE, my / BIOME_SCALE])
                 
-                # --- REFATORADO: Seleção de Nome Apenas ---
-                nome = "Orc" # Padrão
+                # Determina o tipo de bioma local
+                tipo_bioma = "padrao"
+                if v_ruido < -0.15 and v_ruido >= -0.25:
+                    tipo_bioma = "azul"
+                elif v_bioma > 0.2:
+                    tipo_bioma = "ruinas"
                 
-                if rng_mob < 0.6:   
-                    nome = "Orc"
-                elif rng_mob < 0.9: 
-                    nome = "Troll"
-                else:               
-                    nome = "REI TROLL"
+                # --- Seleção do Inimigo (Sua lógica corrigida) ---
+                if tipo_bioma == "ruinas":
+                    nome = "Runner"
+                elif tipo_bioma == "azul": 
+                    nome = "Tank"
+                else:
+                    nome = "Walker"
                 
-                # Cria a entidade passando apenas o nome!
-                # Os atributos (HP, Dano, XP) são configurados automaticamente dentro de actor.py
                 inimigo = actor.Entidade(mx, my, nome)
                 self.entidades.append(inimigo)
                 count += 1
@@ -159,29 +160,39 @@ class Mapa:
         if self.jogador:
             self.jogador.update(self)
             
-        # Atualiza Entidades (Inimigos)
+        # Atualiza Inimigos
         for ent in self.entidades:
             if ent != self.jogador:
                 ent.update(self)
 
-        # Verifica mortes
+        # --- LÓGICA DE MORTE E LOOT (Unificada) ---
         for ent in self.entidades[:]:
             if ent.hp <= 0:
                 if ent != self.jogador:
-                    # --- CORREÇÃO ROBUSTA ---
-                    # Usa round() para garantir que pegamos o tile mais próximo (10.0 ou 9.9 viram 10)
-                    # e não int() que cortaria 9.9 para 9.
-                    tx = int(round(ent.x))
-                    ty = int(round(ent.y))
-                    
+                    # 1. Desbloqueia tile (árvores/estruturas)
+                    tx, ty = int(round(ent.x)), int(round(ent.y))
                     tile_atual = self.obter_tile(tx, ty)
-                    if tile_atual:
+                    if tile_atual: 
                         tile_atual.bloqueado = False
-                        print(f"DEBUG: Árvore morta em {tx},{ty}. Tile desbloqueado!") # Log para conferir
-                    # ------------------------
+                        # print(f"Objeto destruído em {tx},{ty}") 
                     
+                    # 2. SISTEMA DE LOOT
+                    # Pega dados do dicionário para ver se dropa algo
+                    dados = DATA_INIMIGOS.get(ent.nome)
+                    if dados and "loot" in dados:
+                        chance = dados.get("chance_loot", 0.0)
+                        if random.random() < chance:
+                            item_escolhido = random.choice(dados["loot"])
+                            
+                            # Cria o Drop na posição da entidade morta
+                            drop = LootDrop(ent.x, ent.y, item_escolhido)
+                            self.items_no_chao.append(drop)
+                            print(f"Loot Dropado: {item_escolhido}")
+
+                    # 3. XP e Remoção
                     self.jogador.ganhar_xp(ent.xp_reward)
-                    self.entidades.remove(ent)
+                    if ent in self.entidades:
+                        self.entidades.remove(ent)
                     
         
         # Atualiza Projéteis
@@ -194,12 +205,16 @@ class Mapa:
             e.update()
             if e.life <= 0: self.efeitos.remove(e)
             
-        # Atualiza Textos
+        # Atualiza Textos Flutuantes
         for t in self.textos[:]:
             t.update()
             if t.life <= 0: self.textos.remove(t)
 
-    def criar_texto_dano(self, x, y, valor):
-        cor = (255, 50, 50)
-        txt = efeitos.TextoFlutuante(x, y, str(int(valor)), cor)
+        # Atualiza Animação dos Itens no Chão
+        for loot in self.items_no_chao:
+            loot.update(0.1)
+
+    # Função corrigida para aceitar Texto (str) e Cores personalizadas
+    def criar_texto_dano(self, x, y, valor, cor=(255, 50, 50)):
+        txt = efeitos.TextoFlutuante(x, y, str(valor), cor)
         self.textos.append(txt)

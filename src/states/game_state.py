@@ -80,6 +80,18 @@ class GameState(BaseState):
         if self.mapa.jogador:
             self.camera.update(self.mapa.jogador.x, self.mapa.jogador.y)
 
+        player_rect = pygame.Rect(self.mapa.jogador.x * config.TAMANHO_TILE, 
+                                  self.mapa.jogador.y * config.TAMANHO_TILE, 
+                                  32, 32)
+        
+        for loot in self.mapa.items_no_chao[:]:
+            if player_rect.colliderect(loot.rect):
+                # Tenta adicionar ao inventário
+                sucesso = self.mapa.jogador.inventory.add_item(loot.item_name)
+                if sucesso:
+                    self.mapa.criar_texto_dano(loot.x, loot.y - 1, f"+{loot.item_name}") # Reusa texto flutuante
+                    self.mapa.items_no_chao.remove(loot)
+
     def draw(self, surface):
         surface.fill(config.PRETO)
         cor_do_ceu = self.relogio.obter_cor()

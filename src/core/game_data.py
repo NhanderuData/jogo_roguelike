@@ -1,25 +1,64 @@
-# Dicionário que define todos os status das entidades
-# Se precisar balancear o jogo, é só mexer aqui!
+# src/core/game_data.py
 
+# --- TABELA DE ITENS (NOVA) ---
+# Define o que cada item faz, sua cor e valor
+DATA_ITEMS = {
+    "Medkit": {
+        "tipo": "cura", 
+        "valor": 50, 
+        "cor": (255, 255, 255), # Branco
+        "sprite": "shoot" # Placeholder
+    },
+    "Enlatado": {
+        "tipo": "cura", 
+        "valor": 15, 
+        "cor": (200, 100, 50), # Marrom/Laranja
+        "sprite": "rock"
+    },
+    "Munição 9mm": {
+        "tipo": "municao", 
+        "valor": 10, 
+        "cor": (255, 255, 0), # Amarelo
+        "sprite": "shoot"
+    },
+    "Bandagem": {
+        "tipo": "cura", 
+        "valor": 25, 
+        "cor": (200, 200, 200), # Cinza Claro
+        "sprite": "paper" # Placeholder (usará quadrado se não existir)
+    }
+}
+
+# --- TABELA DE INIMIGOS (ZUMBIFICADA) ---
 DATA_INIMIGOS = {
-    "Heroi": {
-        "hp": 100, "dano": 10, "xp": 0, "speed": 0.15,
+    "Survivor": { # O Jogador
+        "hp": 100, "dano": 5, "xp": 0, "speed": 0.12,
         "sprite": "llama_run", "ai": False, "layer_topo": False
     },
-    "Orc": {
-        "hp": 30, "dano": 5, "xp": 15, "speed": 0.04,
-        "sprite": "orc_run", "ai": True, "layer_topo": False
+    "Walker": { # Zumbi Comum (Lento)
+        "hp": 40, "dano": 10, "xp": 10, "speed": 0.03,
+        "sprite": "orc_run", "ai": True, "layer_topo": False,
+        "loot": ["Enlatado", "Bandagem"], 
+        "chance_loot": 0.3 # 30% de chance de dropar
     },
-    "Troll": {
-        "hp": 80, "dano": 15, "xp": 50, "speed": 0.03,
-        "sprite": "troll_run", "ai": True, "layer_topo": False
+    "Runner": { # Zumbi Rápido
+        "hp": 25, "dano": 8, "xp": 20, "speed": 0.09,
+        "sprite": "troll_run", "ai": True, "layer_topo": False,
+        "loot": ["Munição 9mm"], 
+        "chance_loot": 0.4
     },
-    "REI TROLL": {
-        "hp": 150, "dano": 20, "xp": 100, "speed": 0.05,
-        "sprite": "boss_run", "ai": True, "layer_topo": False
+    "Tank": { # Zumbi Forte (Chefe)
+        "hp": 150, "dano": 25, "xp": 100, "speed": 0.04,
+        "sprite": "boss_run", "ai": True, "layer_topo": False,
+        "loot": ["Medkit", "Munição 9mm"], 
+        "chance_loot": 0.8
     },
-    # Objetos Estáticos (Árvores, Pedras)
-    "Arvore": {
+    # Objetos Estáticos
+    "Carro Quebrado": { # Antiga Rocha
+        "hp": 200, "dano": 0, "xp": 0, "speed": 0,
+        "sprite": "rock", "ai": False, "layer_topo": False
+    },
+    "Arvore": { # Mantido para compatibilidade com mapa antigo se precisar
         "hp": 50, "dano": 0, "xp": 5, "speed": 0,
         "sprite": "tree", "ai": False, "layer_topo": True
     },

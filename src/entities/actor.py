@@ -10,31 +10,40 @@ from components.sprite import SpriteComponent
 from components.ai import AIComponent
 from components.combat import CombatComponent
 from components.inventory import InventoryComponent
-# --- NOVO IMPORT ESSENCIAL ---
+# --- IMPORTAÇÃO DE DADOS ---
 from core.game_data import DATA_INIMIGOS 
 
 class Entidade:
-    # A MÁGICA ESTÁ AQUI: Removemos hp, dano e xp do __init__
     def __init__(self, x, y, nome):
         self.nome = nome
         
-        # Busca os dados no dicionário. Se não achar, usa o Orc como padrão
-        dados = DATA_INIMIGOS.get(nome, DATA_INIMIGOS["Orc"])
+        # --- CORREÇÃO DO ERRO ---
+        # Antes usava "Orc". Agora usamos "Walker" como padrão de segurança.
+        # Se o nome não existir, ele vira um "Walker".
+        if nome not in DATA_INIMIGOS:
+            print(f"AVISO: Entidade '{nome}' não encontrada. Usando 'Walker' como fallback.")
+            nome_dados = "Walker"
+        else:
+            nome_dados = nome
+            
+        dados = DATA_INIMIGOS[nome_dados]
+        # ------------------------
         
         # --- 1. FÍSICA ---
         self.physics = PhysicsComponent(self, x, y)
         self.physics.speed = dados.get("speed", 0.04)
 
-        if nome == "Heroi":
+        # Se for o jogador (Survivor), damos o inventário
+        if nome == "Survivor":
             self.inventory = InventoryComponent()
-            # Itens iniciais para teste
-            self.inventory.add_item("Poção de Cura", 3)
-            self.inventory.add_item("Espada Velha", 1)
+            # Itens iniciais para teste (Opcional)
+            self.inventory.add_item("Bandagem", 2)
+            self.inventory.add_item("Enlatado", 1)
         else:
             self.inventory = None
 
         # --- 2. VISUAL ---
-        sprite_key = dados.get("sprite", "orc_run")
+        sprite_key = dados.get("sprite", "orc_run") # fallback visual seguro
         
         # Define a layer (chão, corpo ou topo) automaticamente
         layer = config.LAYER_CORPO
@@ -44,7 +53,6 @@ class Entidade:
         self.sprite = SpriteComponent(self, sprite_key, layer=layer)
         
         # --- 3. COMBATE ---
-        # Pega HP e Dano do arquivo de dados
         self.combat = CombatComponent(
             self, 
             hp_max=dados.get("hp", 10), 

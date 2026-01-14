@@ -136,6 +136,9 @@ class Renderer:
         for ent in mapa_obj.entidades:
             if ent.nome != "Heroi": self.desenhar_barra_flutuante(surface, ent)
         
+        for loot in mapa_obj.items_no_chao:
+            loot.draw(surface, cam_x, cam_y)
+
         for txt in mapa_obj.textos:
             txt.draw(surface, cam_x, cam_y)
             
