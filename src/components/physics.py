@@ -8,7 +8,6 @@ class PhysicsComponent:
         self.y = float(y)
         self.speed = 0.0
         
-        # Configuração da Hitbox
         self.largura_hb_ratio = largura_hb
         self.altura_hb_ratio = altura_hb
         self.hitbox = pygame.Rect(0, 0, 0, 0)
@@ -21,72 +20,61 @@ class PhysicsComponent:
         largura = int(tamanho * self.largura_hb_ratio)
         altura = int(tamanho * self.altura_hb_ratio)
 
-        # Atualiza tamanho se mudou
         if self.hitbox.width != largura or self.hitbox.height != altura:
             self.hitbox.size = (largura, altura)
         
         px_x = self.x * tamanho
         px_y = self.y * tamanho
 
-        # Centraliza hitbox na base do tile (pé do personagem no mundo)
         self.hitbox.centerx = int(px_x + (tamanho // 2))
         self.hitbox.bottom = int(px_y + tamanho)
 
-    def check_collision(self, target_x, target_y, mapa_obj):
-        """
-        Verifica se a hitbox colidiria com parede na posição alvo.
-        Checamos os 4 cantos da hitbox futura para garantir solidez.
-        """
+    # --- CORREÇÃO AQUI: Adicionado parametro ignore_ent ---
+    def check_collision(self, target_x, target_y, mapa_obj, ignore_ent=None):
         tamanho = config.TAMANHO_TILE
-        
-        # Cria uma hitbox temporária na posição futura
-        temp_rect = self.hitbox.copy()
-        
-        # Calcula onde a hitbox estaria em pixels
+        futuro_rect = self.hitbox.copy()
         futuro_px_x = target_x * tamanho
         futuro_px_y = target_y * tamanho
+        futuro_rect.centerx = int(futuro_px_x + (tamanho // 2))
+        futuro_rect.bottom = int(futuro_px_y + tamanho)
         
-        temp_rect.centerx = int(futuro_px_x + (tamanho // 2))
-        temp_rect.bottom = int(futuro_px_y + tamanho)
-        
-        # Pontos para checar (Base e Topo da hitbox)
-        pontos = [
-            temp_rect.bottomleft,
-            temp_rect.bottomright,
-            temp_rect.midbottom, # Importante para não passar em quinas
-            temp_rect.center
-        ]
-        
+        # A. Tiles
+        pontos = [futuro_rect.bottomleft, futuro_rect.bottomright, futuro_rect.midbottom, futuro_rect.center]
         for px, py in pontos:
-            # Converte pixel de volta para Grid (Tile X, Tile Y)
             tx = int(px // tamanho)
             ty = int(py // tamanho)
-            
             if mapa_obj.is_blocked_terrain(tx, ty):
-                return True # Colidiu
-                
+                return True 
+
+        # B. Entidades
+        for ent in mapa_obj.entidades:
+            if ent is self.entity: continue
+            if ent.hp <= 0: continue
+            
+            # SE FOR O DONO, IGNORA!
+            if ignore_ent and ent is ignore_ent: continue 
+            
+            if futuro_rect.colliderect(ent.hitbox):
+                return True 
+
         return False
 
-    def move(self, dx, dy, mapa_obj):
-        """Move tentando deslizar nas paredes"""
+    # --- CORREÇÃO AQUI: Repassa o ignore_ent ---
+    def move(self, dx, dy, mapa_obj, ignore_ent=None):
         self.moving = False
-        if dx == 0 and dy == 0:
-            return
+        if dx == 0 and dy == 0: return
 
-        # Normaliza diagonal
         if dx != 0 and dy != 0:
             dx *= 0.707
             dy *= 0.707
             
-        # Tentativa de movimento em X
         new_x = self.x + dx * self.speed
-        if not self.check_collision(new_x, self.y, mapa_obj):
+        if not self.check_collision(new_x, self.y, mapa_obj, ignore_ent):
             self.x = new_x
             self.moving = True
             
-        # Tentativa de movimento em Y
         new_y = self.y + dy * self.speed
-        if not self.check_collision(self.x, new_y, mapa_obj):
+        if not self.check_collision(self.x, new_y, mapa_obj, ignore_ent):
             self.y = new_y
             self.moving = True
             

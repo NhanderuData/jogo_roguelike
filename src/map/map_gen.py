@@ -8,7 +8,7 @@ from . import biomas
 
 # Configurações do Gerador
 NOISE_SCALE = 40.0 
-NOISE_OCTAVES = 4 
+NOISE_OCTAVES = 2 
 BIOME_SCALE = 120.0
 
 class Mapa:
@@ -168,8 +168,21 @@ class Mapa:
         for ent in self.entidades[:]:
             if ent.hp <= 0:
                 if ent != self.jogador:
+                    # --- CORREÇÃO ROBUSTA ---
+                    # Usa round() para garantir que pegamos o tile mais próximo (10.0 ou 9.9 viram 10)
+                    # e não int() que cortaria 9.9 para 9.
+                    tx = int(round(ent.x))
+                    ty = int(round(ent.y))
+                    
+                    tile_atual = self.obter_tile(tx, ty)
+                    if tile_atual:
+                        tile_atual.bloqueado = False
+                        print(f"DEBUG: Árvore morta em {tx},{ty}. Tile desbloqueado!") # Log para conferir
+                    # ------------------------
+                    
                     self.jogador.ganhar_xp(ent.xp_reward)
                     self.entidades.remove(ent)
+                    
         
         # Atualiza Projéteis
         for p in self.projeteis[:]:

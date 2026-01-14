@@ -2,27 +2,27 @@
 import pygame
 
 def desenhar_hitboxes(surface, camera, mapa_obj, config):
-    # Desenha as hitboxes das Entidades
+    # 1. Desenha Tiles Bloqueados (Onde o jogador não pode pisar)
+    # Isso vai mostrar quadrados vermelhos semi-transparentes em paredes e árvores
+    for y in range(mapa_obj.altura):
+        for x in range(mapa_obj.largura):
+            tile = mapa_obj.obter_tile(x, y)
+            if tile and tile.bloqueado:
+                screen_x = x * config.TAMANHO_TILE - camera.camera_x
+                screen_y = y * config.TAMANHO_TILE - camera.camera_y
+                
+                # Só desenha se estiver na tela
+                if -32 < screen_x < config.LARGURA_TELA and -32 < screen_y < config.ALTURA_TELA:
+                    s = pygame.Surface((32, 32), pygame.SRCALPHA)
+                    s.fill((255, 0, 0, 100)) # Vermelho transparente
+                    surface.blit(s, (screen_x, screen_y))
+                    pygame.draw.rect(surface, (255, 0, 0), (screen_x, screen_y, 32, 32), 1)
+
+    # 2. Desenha as hitboxes das Entidades (Verde/Azul)
     for ent in mapa_obj.entidades:
-        # Copia o retângulo original (que está em coordenadas do MUNDO)
         rect = ent.hitbox.copy()
-        
-        # Subtrai a câmera para converter para coordenadas da TELA
         rect.x -= camera.camera_x
         rect.y -= camera.camera_y
         
-        # Desenha: Verde para Jogador, Vermelho para Inimigos
-        cor = (0, 255, 0) if ent.nome == "Heroi" else (255, 0, 0)
+        cor = (0, 255, 0) if ent.nome == "Heroi" else (0, 0, 255)
         pygame.draw.rect(surface, cor, rect, 1)
-
-    # (Opcional) Desenha o ponto central (pés) para conferência
-    p = mapa_obj.jogador
-    if p:
-        screen_x = p.x * config.TAMANHO_TILE - camera.camera_x
-        screen_y = p.y * config.TAMANHO_TILE - camera.camera_y
-        
-        # Ponto exato onde o jogo acha que o X/Y está (centro do tile)
-        cx = screen_x + (config.TAMANHO_TILE // 2)
-        cy = screen_y + (config.TAMANHO_TILE // 2)
-        
-        pygame.draw.circle(surface, (255, 255, 0), (int(cx), int(cy)), 2)

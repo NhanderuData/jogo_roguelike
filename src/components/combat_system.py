@@ -36,72 +36,60 @@ class Hitbox:
 
 # --- NOVO PROJÉTIL (Entidade ECS) ---
 class Projetil:
-    def __init__(self, x, y, angle, origem):
+    # 1. Recebe 'dono' no __init__
+    def __init__(self, x, y, angle, origem, dono):
         self.name = "Projetil"
-        self.origem = origem # "player" ou "enemy"
+        self.origem = origem 
+        self.dono = dono # Guarda quem atirou
         self.active = True
         self.life = 100
         
-        # 1. Componente de Física (Gerencia Movimento e Colisão com Parede)
-        # Usamos uma hitbox pequena (0.4 tile)
+        # Física e Sprite iguais ao anterior...
         self.physics = PhysicsComponent(self, x, y, largura_hb=0.4, altura_hb=0.4)
         self.physics.speed = 0.3
-        
-        # Vetor de movimento
         self.dx = math.cos(angle)
         self.dy = math.sin(angle)
-        
-        # 2. Componente Visual (Gerencia Imagem e Renderização)
-        # Layer Aéreo para desenhar por cima de chão e buracos
         self.sprite = SpriteComponent(self, "shoot", layer=config.LAYER_AEREO)
 
-    # --- PROXIES (Para compatibilidade com o Renderer atual) ---
+    # ... Properties x, y, image iguais ...
     @property
     def x(self): return self.physics.x
     @x.setter
     def x(self, val): self.physics.x = val
-    
     @property
     def y(self): return self.physics.y
     @y.setter
     def y(self, val): self.physics.y = val
-    
     @property
     def image(self): return self.sprite.image
 
     def update(self, mapa_obj):
-        # 1. Movimento via Física
         old_x, old_y = self.x, self.y
         
-        # O physics.move já cuida de não entrar em paredes!
-        self.physics.move(self.dx, self.dy, mapa_obj)
+        # 2. Passa self.dono para o move
+        self.physics.move(self.dx, self.dy, mapa_obj, ignore_ent=self.dono)
         
-        # Se tentou mover mas a posição não mudou, bateu na parede
         if abs(self.x - old_x) < 0.001 and abs(self.y - old_y) < 0.001:
             self.active = False
             return
 
-        # 2. Atualiza Visual
         self.sprite.update(0)
         self.life -= 1
         if self.life <= 0: self.active = False
 
-        # 3. Lógica de Dano (Hitbox contra Entidades)
-        # Mantemos a verificação manual aqui pois projéteis têm regras específicas
+        # Lógica de Dano igual, mas podemos usar o dono para evitar friendly fire extra
         proj_rect = Hitbox(self.x * 32, self.y * 32, 12, 12)
         
-        targets = [mapa_obj.jogador] if self.origem == "enemy" else [e for e in mapa_obj.entidades if e != mapa_obj.jogador]
+        # Define alvos (agora garantimos que não pega o dono)
+        targets = [e for e in mapa_obj.entidades if e != self.dono]
         
         for ent in targets:
             ent_rect = Hitbox(ent.x * 32, ent.y * 32, 32, 32)
-            
             if proj_rect.colliderect(ent_rect):
+                # (Lógica de dano permanece igual)
                 dano = 5 if self.origem == "enemy" else 15
-                
-                # Chama o método da entidade (que usa o CombatComponent internamente)
                 ent.tomar_dano(dano, mapa_obj)
                 
-                # Lógica de XP
                 if ent.hp <= 0 and ent != mapa_obj.jogador:
                     mapa_obj.jogador.ganhar_xp(ent.xp_reward)
                     if ent in mapa_obj.entidades: mapa_obj.entidades.remove(ent)
@@ -109,15 +97,13 @@ class Projetil:
                 self.active = False
                 return
 
-    def draw(self, surface, cx, cy):
-        pass # O Renderer desenha automaticamente agora
+    def draw(self, surface, cx, cy): pass
 
-# --- FUNÇÕES FACTORY (Geradores) ---
-
-def criar_projetil(x, y, tx, ty, origem, mapa_obj):
+# --- Factory Atualizada ---
+def criar_projetil(x, y, tx, ty, origem, mapa_obj, dono): # Recebe dono
     angle = math.atan2(ty - y, tx - x)
-    # Cria a nova classe Projetil refatorada
-    p = Projetil(x, y, angle, origem)
+    # Passa dono para a classe
+    p = Projetil(x, y, angle, origem, dono)
     mapa_obj.projeteis.append(p)
 
 def executar_golpe_espada(atacante, tx, ty, mapa_obj):

@@ -113,7 +113,7 @@ class Entidade:
 
     def atirar(self, tx, ty, mapa_obj, origem):
         if self.combat.cooldown_shoot > 0: return
-        combat_system.criar_projetil(self.x, self.y, tx, ty, origem, mapa_obj)
+        combat_system.criar_projetil(self.x, self.y, tx, ty, origem, mapa_obj, dono=self)
         self.combat.cooldown_shoot = 10
 
     def atacar_espada(self, tx, ty, mapa_obj):
