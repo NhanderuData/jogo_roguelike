@@ -85,7 +85,7 @@ class GameState(BaseState):
                                   32, 32)
         
         for loot in self.mapa.items_no_chao[:]:
-            if player_rect.colliderect(loot.rect):
+            if loot.pode_pegar() and player_rect.colliderect(loot.rect):
                 # Tenta adicionar ao inventário
                 sucesso = self.mapa.jogador.inventory.add_item(loot.item_name)
                 if sucesso:

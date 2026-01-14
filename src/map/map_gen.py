@@ -116,6 +116,7 @@ class Mapa:
             self.jogador.x, self.jogador.y = float(sx), float(sy)
             self.jogador.hp = self.jogador.hp_max
             self.jogador.physics.moving = False
+            self.jogador.physics.update_hitbox()
         
         self.entidades.append(self.jogador)
 
