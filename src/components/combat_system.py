@@ -86,13 +86,15 @@ class Projetil:
         for ent in targets:
             ent_rect = Hitbox(ent.x * 32, ent.y * 32, 32, 32)
             if proj_rect.colliderect(ent_rect):
-                # (Lógica de dano permanece igual)
                 dano = 5 if self.origem == "enemy" else 15
                 ent.tomar_dano(dano, mapa_obj)
                 
+                # --- ALTERAÇÃO AQUI ---
+                # Apenas verificamos se morreu, mas NÃO removemos aqui.
+                # O map_gen.py vai tratar do XP e do Loot depois.
                 if ent.hp <= 0 and ent != mapa_obj.jogador:
-                    mapa_obj.jogador.ganhar_xp(ent.xp_reward)
-                    if ent in mapa_obj.entidades: mapa_obj.entidades.remove(ent)
+                     pass # mapa_obj.entidades.remove(ent)  <--- COMENTE OU APAGUE ESTA LINHA
+                # ----------------------
                 
                 self.active = False
                 return
@@ -130,6 +132,7 @@ def executar_golpe_espada(atacante, tx, ty, mapa_obj):
             
             acertou = True
             if alvo.hp <= 0:
-                atacante.ganhar_xp(alvo.xp_reward)
-                if alvo in mapa_obj.entidades: mapa_obj.entidades.remove(alvo)
+                pass
+                #atacante.ganhar_xp(alvo.xp_reward)
+                #if alvo in mapa_obj.entidades: mapa_obj.entidades.remove(alvo)
     return acertou

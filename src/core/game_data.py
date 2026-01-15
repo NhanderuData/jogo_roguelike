@@ -39,19 +39,19 @@ DATA_INIMIGOS = {
         "hp": 40, "dano": 10, "xp": 10, "speed": 0.03,
         "sprite": "orc_run", "ai": True, "layer_topo": False,
         "loot": ["Enlatado", "Bandagem"], 
-        "chance_loot": 0.3 # 30% de chance de dropar
+        "chance_loot": 1.0 # 30% de chance de dropar
     },
     "Runner": { # Zumbi Rápido
         "hp": 25, "dano": 8, "xp": 20, "speed": 0.09,
         "sprite": "troll_run", "ai": True, "layer_topo": False,
         "loot": ["Munição 9mm"], 
-        "chance_loot": 0.4
+        "chance_loot": 1.0
     },
     "Tank": { # Zumbi Forte (Chefe)
         "hp": 150, "dano": 25, "xp": 100, "speed": 0.04,
         "sprite": "boss_run", "ai": True, "layer_topo": False,
         "loot": ["Medkit", "Munição 9mm"], 
-        "chance_loot": 0.8
+        "chance_loot": 1.0
     },
     # Objetos Estáticos
     "Carro Quebrado": { # Antiga Rocha
