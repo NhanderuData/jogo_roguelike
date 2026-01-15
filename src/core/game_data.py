@@ -10,7 +10,7 @@ DATA_ITEMS = {
         "sprite": "shoot" # Placeholder
     },
     "Enlatado": {
-        "tipo": "cura", 
+        "tipo": "comida", 
         "valor": 15, 
         "cor": (200, 100, 50), # Marrom/Laranja
         "sprite": "rock"

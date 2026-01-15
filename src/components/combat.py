@@ -35,6 +35,10 @@ class CombatComponent:
         self.hp += amount
         if self.hp > self.hp_max: self.hp = self.hp_max
 
+    def comer(self, amount):
+        self.fome += amount
+        if self.fome > self.max_fome: self.fome = self.max_fome
+
     def gain_xp(self, amount):
         self.xp += amount
         while self.xp >= self.next_level_xp:
@@ -52,3 +56,16 @@ class CombatComponent:
     def update(self, dt):
         if self.cooldown_shoot > 0: self.cooldown_shoot -= 1
         if self.cooldown_sword > 0: self.cooldown_sword -= 1
+
+        if self.sente_fome and not self.dead:
+            # Perde fome constantemente (ajuste o 0.01 para ser mais rápido ou lento)
+            self.fome -= 0.02 
+            
+            if self.fome <= 0:
+                self.fome = 0
+                self.timer_dano_fome += 1
+                # A cada 60 frames (aprox 1 seg), toma 1 de dano por inanição
+                if self.timer_dano_fome > 60:
+                    self.timer_dano_fome = 0
+                    self.take_damage(1)
+                    print("Dano por fome!")
