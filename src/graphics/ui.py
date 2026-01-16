@@ -6,40 +6,73 @@ class UI:
     def __init__(self):
         self.font = pygame.font.SysFont("arial", 16, bold=True)
         self.font_big = pygame.font.SysFont("arial", 24, bold=True)
+        self.font_huge = pygame.font.SysFont("arial", 32, bold=True)
 
     def desenhar_barra(self, surface, x, y, atual, maximo, cor_fundo, cor_cheia, largura=200, altura=20, texto_label=""):
         if maximo <= 0: maximo = 1
         pct = max(0, min(1, atual / maximo))
         
+        # 1. Fundo
         pygame.draw.rect(surface, cor_fundo, (x, y, largura, altura))
+        # 2. Parte Cheia
         largura_atual = int(largura * pct)
         if largura_atual > 0:
             pygame.draw.rect(surface, cor_cheia, (x, y, largura_atual, altura))
+        # 3. Borda
         pygame.draw.rect(surface, config.BRANCO, (x, y, largura, altura), 2)
-
+        # 4. Texto
         if texto_label:
-            # Sombra do texto para leitura melhor
-            txt_surf = self.font.render(f"{texto_label}", True, config.BRANCO)
-            surface.blit(txt_surf, (x + 5, y + 2))
+            txt_surf = self.font.render(f"{texto_label} {int(atual)}/{int(maximo)}", True, config.BRANCO)
+            txt_rect = txt_surf.get_rect(center=(x + largura/2, y + altura/2))
+            surface.blit(txt_surf, txt_rect)
 
     def draw(self, surface, jogador):
         if not jogador: return
 
-        # 1. VIDA (Vermelho)
-        self.desenhar_barra(surface, 20, 20, jogador.hp, jogador.hp_max, 
-                            (50, 0, 0), (200, 0, 0), texto_label=f"HP {int(jogador.hp)}")
+        # 1. Barra de Vida (HP) - Vermelha (Y=20)
+        self.desenhar_barra(
+            surface, 20, 20, 
+            jogador.hp, jogador.hp_max, 
+            (50, 0, 0), (200, 0, 0), 
+            texto_label="HP"
+        )
 
-        # 2. FOME (Laranja/Amarelo Queimado) - NOVO
-        # Fica abaixo da vida
-        self.desenhar_barra(surface, 20, 45, jogador.combat.fome, jogador.combat.max_fome, 
-                            (50, 30, 0), (200, 120, 0), largura=150, altura=15, 
-                            texto_label=f"FOME {int(jogador.combat.fome)}%")
+        # 2. Barra de XP - Amarela (Y=50)
+        self.desenhar_barra(
+            surface, 20, 50, 
+            jogador.xp, jogador.xp_proximo_nivel, 
+            (50, 50, 0), (255, 215, 0), 
+            largura=150, altura=10
+        )
+        
+        # 3. Nível
+        txt_lvl = self.font_big.render(f"Lvl {jogador.nivel}", True, config.BRANCO)
+        surface.blit(txt_lvl, (240, 20))
 
-        # 3. MUNIÇÃO (Amarelo) - Útil para shooter de zumbi
-        if jogador.inventory:
-            txt_ammo = self.font_big.render(f"Munição: {jogador.inventory.municao}", True, config.AMARELO)
-            surface.blit(txt_ammo, (20, config.ALTURA_TELA - 50))
+        # --- 4. BARRA DE FOME (NOVO) ---
+        # Laranja, posicionada em Y=70 (abaixo do XP)
+        if hasattr(jogador, 'combat') and hasattr(jogador.combat, 'fome'):
+             self.desenhar_barra(
+                surface, 20, 70,
+                jogador.combat.fome, jogador.combat.max_fome,
+                (100, 50, 0), (255, 140, 0), # Cores Laranja/Marrom
+                largura=150, altura=15,
+                texto_label="FOME"
+            )
 
-        # Nível (canto superior direito da UI)
-        txt_lvl = self.font_big.render(f"Dia 1 - Lvl {jogador.nivel}", True, config.BRANCO)
-        surface.blit(txt_lvl, (20, 70))
+        # 5. Munição (Canto Inferior)
+        if hasattr(jogador, 'inventory') and jogador.inventory:
+            qtd_balas = jogador.inventory.municao
+            
+            cor_ammo = config.BRANCO
+            if qtd_balas == 0: cor_ammo = (200, 50, 50)
+            elif qtd_balas < 10: cor_ammo = (255, 255, 0)
+            
+            surf_ammo = self.font_huge.render(f"{qtd_balas}", True, cor_ammo)
+            rect_ammo = surf_ammo.get_rect(bottomright=(config.LARGURA_TELA - 20, config.ALTURA_TELA - 20))
+            
+            surf_label = self.font.render("AMMO", True, config.CINZA_CLARO)
+            rect_label = surf_label.get_rect(bottomright=(config.LARGURA_TELA - 20, rect_ammo.top - 5))
+            
+            surface.blit(surf_label, rect_label)
+            surface.blit(surf_ammo, rect_ammo)
