@@ -21,9 +21,16 @@ DATA_ITEMS = {
         "cor": (255, 255, 0), # Amarelo
         "sprite": "shoot"
     },
+    "Garrafa d'Agua": {
+        "tipo": "bebida",
+        "valor": 40,
+        "cor": (0, 100, 255),
+        "sprite": "shoot" # Placeholder
+    },
     "Bandagem": {
-        "tipo": "cura", 
-        "valor": 25, 
+        "tipo": "cura_status", 
+        "valor": 10, 
+        "efeito": "estancar",
         "cor": (200, 200, 200), # Cinza Claro
         "sprite": "paper" # Placeholder (usará quadrado se não existir)
     }

@@ -10,6 +10,8 @@ from components.sprite import SpriteComponent
 from components.ai import AIComponent
 from components.combat import CombatComponent
 from components.inventory import InventoryComponent
+from components.status import StatusComponent
+
 # --- IMPORTAÇÃO DE DADOS ---
 from core.game_data import DATA_INIMIGOS 
 
@@ -35,12 +37,17 @@ class Entidade:
 
         # Se for o jogador (Survivor), damos o inventário
         if nome == "Survivor":
+            # Inventário já existia aqui
             self.inventory = InventoryComponent()
-            # Itens iniciais para teste (Opcional)
             self.inventory.add_item("Bandagem", 2)
             self.inventory.add_item("Enlatado", 1)
+            self.inventory.add_item("Garrafa d'Agua", 1) # <--- Item novo
+            
+            # Novo Sistema de Sobrevivência
+            self.status = StatusComponent(self) 
         else:
             self.inventory = None
+            self.status = None
 
         # --- 2. VISUAL ---
         sprite_key = dados.get("sprite", "orc_run") # fallback visual seguro
@@ -134,6 +141,8 @@ class Entidade:
         self.physics.update(0)
         self.sprite.update(0)
         self.combat.update(0)
+        if self.status:      # <--- LINHA NOVA
+            self.status.update(0)
         
         # A IA decide se move ou ataca
         self.ai.update(mapa_obj)

@@ -25,35 +25,38 @@ class InventoryComponent:
             data = DATA_ITEMS.get(nome)
             
             if not data: return False
-            
             usou = False
             
-            # --- TIPO: CURA ---
-            if data["tipo"] == "cura":
-                if entity.combat.hp < entity.combat.hp_max:
-                    entity.combat.heal(data["valor"])
-                    print(f"Usou {nome}. Curou HP.")
-                    usou = True
-                else:
-                    print("Vida cheia!")
+            # Verifica se a entidade tem o componente de status para itens de sobrevivência
+            tem_status = hasattr(entity, 'status') and entity.status is not None
 
-            # --- TIPO: COMIDA (Novo) ---
-            elif data["tipo"] == "comida":
-                # Come se tiver fome OU se tiver vida para recuperar (cura extra)
-                precisa_fome = entity.combat.fome < entity.combat.max_fome
-                precisa_vida = entity.combat.hp < entity.combat.hp_max
-                
-                if precisa_fome or precisa_vida:
-                    entity.combat.comer(data["valor"])
-                    
-                    # Se a comida também cura (ex: Enlatado +5hp)
-                    if "cura_extra" in data:
-                        entity.combat.heal(data["cura_extra"])
-                        
-                    print(f"Comeu {nome}. Fome restaurada.")
+            # --- TIPO: COMIDA ---
+            if data["tipo"] == "comida" and tem_status:
+                if entity.status.fome < entity.status.max_fome:
+                    entity.status.comer(data["valor"])
+                    print(f"Comeu {nome}.")
                     usou = True
-                else:
-                    print("Sem fome e vida cheia!")
+
+            # --- TIPO: BEBIDA (Novo) ---
+            elif data["tipo"] == "bebida" and tem_status:
+                if entity.status.sede < entity.status.max_sede:
+                    entity.status.beber(data["valor"])
+                    print(f"Bebeu {nome}.")
+                    usou = True
+
+            # --- TIPO: CURA / CURA_STATUS ---
+            elif data["tipo"] == "cura" or data["tipo"] == "cura_status":
+                precisa_hp = entity.combat.hp < entity.combat.hp_max
+                precisa_estancar = tem_status and entity.status.sangramento > 0
+                
+                if precisa_hp or precisa_estancar:
+                    if precisa_hp: 
+                        entity.combat.heal(data["valor"])
+                    
+                    if precisa_estancar and data.get("efeito") == "estancar":
+                        entity.status.curar_sangramento()
+                        
+                    usou = True
             
             if usou:
                 self.items.pop(index)

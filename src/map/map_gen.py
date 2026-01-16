@@ -12,7 +12,7 @@ from core.game_data import DATA_INIMIGOS
 
 # Configurações do Gerador
 NOISE_SCALE = 40.0 
-NOISE_OCTAVES = 2 
+NOISE_OCTAVES = 1
 BIOME_SCALE = 120.0
 
 class Mapa:

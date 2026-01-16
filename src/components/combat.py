@@ -41,12 +41,6 @@ class CombatComponent:
         self.hp += amount
         if self.hp > self.hp_max: self.hp = self.hp_max
 
-    # --- MÉTODO PARA COMER ---
-    def comer(self, amount):
-        self.fome += amount
-        if self.fome > self.max_fome: self.fome = self.max_fome
-        print(f"Comeu! Fome: {self.fome}/{self.max_fome}")
-
     def gain_xp(self, amount):
         self.xp += amount
         while self.xp >= self.next_level_xp:
@@ -62,18 +56,13 @@ class CombatComponent:
         print(f"{self.entity.nome} subiu para o nível {self.level}!")
 
     def update(self, dt):
-        # Cooldowns das armas
         if self.cooldown_shoot > 0: self.cooldown_shoot -= 1
         if self.cooldown_sword > 0: self.cooldown_sword -= 1
 
-        # --- SISTEMA DE FOME ---
-        # Só o jogador (ou quem tem fome definida) sente fome
-        # 300 frames a 60 FPS dá aprox 5 segundos por ponto de fome
         self.fome_timer += 1
         if self.fome_timer > 300:
             self.fome_timer = 0
             if self.fome > 0:
                 self.fome -= 1
             else:
-                # Se fome for 0, toma 1 de dano a cada ciclo
                 self.take_damage(1)

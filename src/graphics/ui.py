@@ -1,4 +1,3 @@
-# src/graphics/ui.py
 import pygame
 from core import config
 
@@ -49,16 +48,32 @@ class UI:
         txt_lvl = self.font_big.render(f"Lvl {jogador.nivel}", True, config.BRANCO)
         surface.blit(txt_lvl, (240, 20))
 
-        # --- 4. BARRA DE FOME (NOVO) ---
-        # Laranja, posicionada em Y=70 (abaixo do XP)
-        if hasattr(jogador, 'combat') and hasattr(jogador.combat, 'fome'):
-             self.desenhar_barra(
+        # --- 4. SISTEMA DE SOBREVIVÊNCIA (NOVO) ---
+        # Verifica se o jogador possui o componente de Status (apenas o Survivor tem)
+        if hasattr(jogador, 'status') and jogador.status:
+            
+            # FOME (Laranja) - Y=70
+            self.desenhar_barra(
                 surface, 20, 70,
-                jogador.combat.fome, jogador.combat.max_fome,
-                (100, 50, 0), (255, 140, 0), # Cores Laranja/Marrom
+                jogador.status.fome, jogador.status.max_fome,
+                (100, 50, 0), (255, 140, 0), 
                 largura=150, altura=15,
                 texto_label="FOME"
             )
+
+            # SEDE (Azul) - Y=90 (Logo abaixo da fome)
+            self.desenhar_barra(
+                surface, 20, 90,
+                jogador.status.sede, jogador.status.max_sede,
+                (0, 0, 100), (50, 100, 255), 
+                largura=150, altura=15,
+                texto_label="SEDE"
+            )
+
+            # AVISO DE SANGRAMENTO - Y=120
+            if jogador.status.sangramento > 0:
+                txt_bleed = self.font_big.render("SANGRANDO!", True, (255, 0, 0))
+                surface.blit(txt_bleed, (20, 120))
 
         # 5. Munição (Canto Inferior)
         if hasattr(jogador, 'inventory') and jogador.inventory:
