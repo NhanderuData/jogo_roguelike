@@ -1,3 +1,4 @@
+# src/graphics/renderer.py
 import pygame
 from core import config
 from graphics import recursos
@@ -16,30 +17,56 @@ class Renderer:
         self.luz_projetil = self.criar_luz_gradiente(raio=50, cor=(255, 100, 50))
 
     def criar_luz_gradiente(self, raio, cor=(255, 255, 255)):
-        # Cria uma superfície que suporta transparência
         luz = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
         passos = 20
         r, g, b = cor
         for i in range(passos):
             fracao = 1 - (i / passos)
-            # Alpha diminui conforme afasta do centro
             alpha = int(100 * (fracao ** 2)) 
             raio_atual = int(raio * (i / passos))
             if raio_atual > 0:
                 pygame.draw.circle(luz, (r, g, b, alpha), (raio, raio), raio_atual)
         return luz
 
-    def gerar_sombra_projetada(self, sprite, escala=1.0, inclinacao=-1.2):
-        if not sprite: return None
+    # --- CORREÇÃO AQUI: Substituímos Rotação por SKEW (Cisalhamento) ---
+    def gerar_sombra_realista(self, sprite_img, escala_tamanho=1.0):
+        if not sprite_img: return None
+        
+        # 1. Cria a silhueta preta (Mask)
         try:
-            mask = pygame.mask.from_surface(sprite)
-            sombra = mask.to_surface(setcolor=(0, 0, 0, 80), unsetcolor=(0, 0, 0, 0))
-            largura, altura = sombra.get_size()
-            sombra = pygame.transform.scale(sombra, (int(largura * escala), int(altura * 0.4 * escala)))
-            sombra = pygame.transform.rotozoom(sombra, 20 * inclinacao, 1.0)
-            return sombra
-        except Exception:
+            mask = pygame.mask.from_surface(sprite_img)
+            sombra_surf = mask.to_surface(setcolor=(0, 0, 0, 80), unsetcolor=(0, 0, 0, 0))
+        except:
             return None
+
+        # 2. Achata a sombra verticalmente (Escala Y)
+        # 0.5 significa que a sombra terá metade da altura do objeto original
+        w, h = sombra_surf.get_size()
+        novo_h = int(h * 0.5 * escala_tamanho) 
+        sombra_surf = pygame.transform.scale(sombra_surf, (w, novo_h))
+
+        # 3. Aplica o Efeito SKEW (Inclina linha por linha)
+        # Fator de inclinação (quanto maior, mais "deitada" a sombra para o lado)
+        skew_factor = 0.6 
+        offset_total = int(novo_h * skew_factor)
+        largura_final = w + abs(offset_total)
+        
+        surface_final = pygame.Surface((largura_final, novo_h), pygame.SRCALPHA)
+        
+        # Loop "Pixel Perfect": Desloca cada linha de pixels para a direita
+        # A linha de baixo (base) desloca 0. A linha de cima desloca o máximo.
+        # Isso garante que a BASE continue no mesmo lugar!
+        for i in range(novo_h):
+            # Invertemos o i para que a base (y alto) tenha shift 0
+            shift = int((novo_h - i) * skew_factor)
+            
+            # Pega uma linha da imagem achatada
+            linha = sombra_surf.subsurface((0, i, w, 1))
+            
+            # Cola na nova superfície com o deslocamento
+            surface_final.blit(linha, (shift, i))
+            
+        return surface_final
 
     def draw(self, surface, mapa_obj, cor_noite=(0, 0, 0, 0)):
         cam_x, cam_y = self.camera.camera_x, self.camera.camera_y
@@ -85,21 +112,32 @@ class Renderer:
             
             img_w = sprite.image.get_width()
             img_h = sprite.image.get_height()
+            
+            # Posição onde o SPRITE será desenhado
             draw_x = screen_x + (config.TAMANHO_TILE // 2) - (img_w // 2) + sprite.offset_x
             draw_y = screen_y + config.TAMANHO_TILE - img_h + sprite.offset_y
 
-            # Sombra
-            if not sprite.sombra_cache:
-                sprite.sombra_cache = self.gerar_sombra_projetada(sprite.image, sprite.scale_sombra)
-            
-            if sprite.sombra_cache:
-                s_w = sprite.sombra_cache.get_width()
-                s_h = sprite.sombra_cache.get_height()
+            # --- Sombra (CORRIGIDO) ---
+            # Só desenha sombra se não for Layer de chão e tiver escala configurada
+            if sprite.scale_sombra > 0:
+                if not sprite.sombra_cache:
+                    # Gera a sombra com Skew
+                    sprite.sombra_cache = self.gerar_sombra_realista(sprite.image, sprite.scale_sombra)
                 
-                sombra_x = draw_x + (img_w // 2) - (s_w // 2)
-                pixel_base_y = (physics.y * config.TAMANHO_TILE) + config.TAMANHO_TILE - cam_y
-                sombra_y = pixel_base_y - (s_h // 2) - 2 
-                render_queue.append((config.LAYER_SOMBRA, screen_y, sprite.sombra_cache, sombra_x, sombra_y))
+                if sprite.sombra_cache:
+                    sombra = sprite.sombra_cache
+                    s_h = sombra.get_height()
+                    
+                    # ALINHAMENTO:
+                    # Como usamos Skew na base (shift=0 na base), o X da sombra é igual ao X do sprite.
+                    # O Y da sombra deve alinhar o "pé" da sombra com o "pé" do sprite.
+                    
+                    sombra_x = draw_x 
+                    # "Pé" do sprite = draw_y + img_h
+                    # Queremos que "Pé" da sombra (sombra_y + s_h) seja igual a pé do sprite
+                    sombra_y = (draw_y + img_h) - s_h - 2 # -2 pixels para subir um pouquinho e não vazar
+                    
+                    render_queue.append((config.LAYER_SOMBRA, screen_y, sombra, sombra_x, sombra_y))
 
             # Corpo
             img_final = sprite.image
@@ -127,7 +165,6 @@ class Renderer:
             self.aplicar_escuridao(surface, mapa_obj, cam_x, cam_y, cor_noite)
 
         # --- 3. LUZES ADITIVAS / GLOW (Additive) ---
-        # Essas luzes brilham mesmo de dia!
         self.aplicar_glows(surface, mapa_obj, cam_x, cam_y)
 
         # Pós-Processamento e UI
@@ -144,7 +181,6 @@ class Renderer:
             
         for e in mapa_obj.efeitos: e.draw(surface, cam_x, cam_y)
         
-        # --- 4. DEBUG CONTROLADO PELO CONFIG ---
         if config.DEBUG_MODE:
              debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
 
@@ -160,15 +196,12 @@ class Renderer:
                 if bord: queue.append((config.LAYER_CHAO, sy, bord, sx, sy))
 
     def aplicar_escuridao(self, surface, mapa_obj, cam_x, cam_y, cor_noite):
-        """Aplica a camada de noite e recorta a visão do jogador (Luz que 'fura' o escuro)"""
         overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
         overlay.fill(cor_noite)
 
-        # Luz Player (Recorta a escuridão)
         if mapa_obj.jogador:
             px = mapa_obj.jogador.physics.x * config.TAMANHO_TILE - cam_x + (config.TAMANHO_TILE // 2)
             py = mapa_obj.jogador.physics.y * config.TAMANHO_TILE - cam_y + (config.TAMANHO_TILE // 2)
-            # BLEND_RGBA_SUB remove a cor preta do overlay (criando transparência)
             overlay.blit(self.luz_player, 
                             (px - self.luz_player.get_width()//2, py - self.luz_player.get_height()//2), 
                             special_flags=pygame.BLEND_RGBA_SUB)
@@ -176,8 +209,6 @@ class Renderer:
         surface.blit(overlay, (0, 0))
 
     def aplicar_glows(self, surface, mapa_obj, cam_x, cam_y):
-        """Aplica luzes coloridas que brilham por cima de tudo (Neon/Magia)"""
-        # Projéteis
         for p in mapa_obj.projeteis:
             if not p.active: continue
             px = p.x * config.TAMANHO_TILE - cam_x
@@ -186,7 +217,6 @@ class Renderer:
             lx = px - self.luz_projetil.get_width() // 2
             ly = py - self.luz_projetil.get_height() // 2
             
-            # BLEND_ADD soma a cor da luz com a tela (brilha no escuro e no claro)
             surface.blit(self.luz_projetil, (lx, ly), special_flags=pygame.BLEND_ADD)
 
     def desenhar_barra_flutuante(self, surface, ent):
