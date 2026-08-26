@@ -1,0 +1,1 @@
+"""Rendering and visual resources."""

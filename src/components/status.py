@@ -17,6 +17,14 @@ class StatusComponent:
         # Sangramento agora é um contador. Enquanto > 0, toma dano.
         self.sangramento = 0 
         self.timer_sangramento = 0
+        self.energy_remaining = 0.0
+
+    @property
+    def speed_multiplier(self):
+        return 1.35 if self.energy_remaining > 0 else 1.0
+
+    def energize(self, duration):
+        self.energy_remaining = max(self.energy_remaining, duration)
 
     def add_sangramento(self, qtd):
         """ Adiciona 'tempo' de sangramento ou intensidade """
@@ -36,19 +44,19 @@ class StatusComponent:
         if self.sede > self.max_sede: self.sede = self.max_sede
 
     def update(self, dt):
-        # --- LÓGICA DE FOME (A cada ~5 segundos) ---
-        self.timer_fome += 1
-        if self.timer_fome > 300: # 60 FPS * 5s
-            self.timer_fome = 0
+        self.energy_remaining = max(0.0, self.energy_remaining - dt)
+        self.timer_fome += dt
+        if self.timer_fome >= 5.0:
+            self.timer_fome -= 5.0
             if self.fome > 0:
                 self.fome -= 1
             else:
                 self.entity.tomar_dano(1) # Dano de fome
 
         # --- LÓGICA DE SEDE (Desce mais rápido que fome, ex: 3s) ---
-        self.timer_sede += 1
-        if self.timer_sede > 180:
-            self.timer_sede = 0
+        self.timer_sede += dt
+        if self.timer_sede >= 3.0:
+            self.timer_sede -= 3.0
             if self.sede > 0:
                 self.sede -= 1
             else:
@@ -56,10 +64,9 @@ class StatusComponent:
 
         # --- LÓGICA DE SANGRAMENTO (Dano intermitente) ---
         if self.sangramento > 0:
-            self.timer_sangramento += 1
-            # A cada 2 segundos toma dano se estiver sangrando
-            if self.timer_sangramento > 120: 
-                self.timer_sangramento = 0
+            self.timer_sangramento += dt
+            if self.timer_sangramento >= 2.0:
+                self.timer_sangramento -= 2.0
                 print("Dano de sangramento!")
                 self.entity.tomar_dano(2)
                 self.sangramento -= 1 # O sangramento diminui sozinho lentamente ou fica fixo?

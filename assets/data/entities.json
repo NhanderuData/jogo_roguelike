@@ -1,0 +1,116 @@
+{
+  "Survivor": {
+    "hp": 100,
+    "damage": 5,
+    "xp": 0,
+    "speed": 0.12,
+    "sprite": "llama_run",
+    "ai": false,
+    "top_layer": false
+  },
+  "Walker": {
+    "hp": 40,
+    "damage": 10,
+    "xp": 10,
+    "speed": 0.03,
+    "sprite": "orc_run",
+    "ai": true,
+    "top_layer": false,
+    "loot": ["Enlatado", "Bandagem", "Munição 9mm", "Energético"],
+    "loot_chance": 1.0
+  },
+  "Runner": {
+    "hp": 25,
+    "damage": 8,
+    "xp": 20,
+    "speed": 0.09,
+    "sprite": "troll_run",
+    "ai": true,
+    "top_layer": false,
+    "loot": ["Munição 9mm", "SMG de Sucata", "Energético"],
+    "loot_chance": 1.0
+  },
+  "Tank": {
+    "hp": 150,
+    "damage": 25,
+    "xp": 100,
+    "speed": 0.04,
+    "sprite": "boss_run",
+    "ai": true,
+    "top_layer": false,
+    "loot": ["Medkit", "Cartuchos calibre 12", "Colete Tático"],
+    "loot_chance": 1.0
+  },
+  "Carro Quebrado": {
+    "hp": 200,
+    "damage": 0,
+    "xp": 0,
+    "speed": 0,
+    "sprite": "rock",
+    "ai": false,
+    "top_layer": false
+  },
+  "Arvore": {
+    "hp": 50,
+    "damage": 0,
+    "xp": 5,
+    "speed": 0,
+    "sprite": "tree",
+    "ai": false,
+    "top_layer": true
+  },
+  "RedTree": {
+    "hp": 60,
+    "damage": 0,
+    "xp": 5,
+    "speed": 0,
+    "sprite": "red_tree",
+    "ai": false,
+    "top_layer": true
+  },
+  "Cipreste": {
+    "hp": 40,
+    "damage": 0,
+    "xp": 5,
+    "speed": 0,
+    "sprite": "cipreste",
+    "ai": false,
+    "top_layer": true
+  },
+  "Carvalho": {
+    "hp": 90,
+    "damage": 0,
+    "xp": 6,
+    "speed": 0,
+    "sprite": "tree_oak",
+    "ai": false,
+    "top_layer": true
+  },
+  "Salgueiro": {
+    "hp": 70,
+    "damage": 0,
+    "xp": 6,
+    "speed": 0,
+    "sprite": "tree_willow",
+    "ai": false,
+    "top_layer": true
+  },
+  "Arvore Seca": {
+    "hp": 45,
+    "damage": 0,
+    "xp": 4,
+    "speed": 0,
+    "sprite": "tree_dead",
+    "ai": false,
+    "top_layer": true
+  },
+  "Pinheiro": {
+    "hp": 75,
+    "damage": 0,
+    "xp": 5,
+    "speed": 0,
+    "sprite": "tree_fir",
+    "ai": false,
+    "top_layer": true
+  }
+}

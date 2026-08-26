@@ -7,6 +7,8 @@ class CombatComponent:
         self.hp = hp_max
         self.damage = damage
         self.dead = False
+        self.armor = 0
+        self.max_armor = 100
         
         # --- FOME (NOVO) ---
         self.fome = 100
@@ -25,6 +27,11 @@ class CombatComponent:
 
     def take_damage(self, amount, map_obj=None):
         if self.dead: return
+        absorbed = min(self.armor, amount)
+        self.armor -= absorbed
+        amount -= absorbed
+        if amount <= 0:
+            return
         self.hp -= amount
         
         if hasattr(self.entity, 'sprite') and self.entity.sprite:
@@ -41,6 +48,9 @@ class CombatComponent:
         self.hp += amount
         if self.hp > self.hp_max: self.hp = self.hp_max
 
+    def add_armor(self, amount):
+        self.armor = min(self.max_armor, self.armor + amount)
+
     def gain_xp(self, amount):
         self.xp += amount
         while self.xp >= self.next_level_xp:
@@ -56,13 +66,5 @@ class CombatComponent:
         print(f"{self.entity.nome} subiu para o nível {self.level}!")
 
     def update(self, dt):
-        if self.cooldown_shoot > 0: self.cooldown_shoot -= 1
-        if self.cooldown_sword > 0: self.cooldown_sword -= 1
-
-        self.fome_timer += 1
-        if self.fome_timer > 300:
-            self.fome_timer = 0
-            if self.fome > 0:
-                self.fome -= 1
-            else:
-                self.take_damage(1)
+        self.cooldown_shoot = max(0.0, self.cooldown_shoot - dt)
+        self.cooldown_sword = max(0.0, self.cooldown_sword - dt)

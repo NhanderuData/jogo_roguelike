@@ -1,12 +1,14 @@
 import pygame
 from core import config
 from core.input_manager import Actions
+from core.state_manager import BaseState
+from graphics import recursos
 
-class InventoryState:
-    def __init__(self, manager, registry, input_manager):
-        self.manager = manager
-        self.registry = registry
-        self.input = input_manager
+class InventoryState(BaseState):
+    transparent = True
+
+    def __init__(self, manager, context):
+        super().__init__(manager, context)
         
         self.player = None
         
@@ -26,9 +28,6 @@ class InventoryState:
 
     def exit(self): 
         pass
-
-    def handle_input(self, event):
-        self.input.process_event(event)
 
     def update(self, dt):
         # 1. Fechar Inventário
@@ -66,7 +65,7 @@ class InventoryState:
     def draw(self, surface):
         surface.blit(self.overlay, (0, 0))
         
-        title = self.font.render("INVENTÁRIO (Setas: Mover | Enter: Usar)", True, config.AMARELO)
+        title = self.font.render("INVENTÁRIO", True, config.AMARELO)
         surface.blit(title, (50, 50))
         
         if self.player and self.player.inventory:
@@ -92,8 +91,12 @@ class InventoryState:
                         font_to_use = self.font
                     
                     txt = font_to_use.render(texto_str, True, cor)
-                    surface.blit(txt, (50, y))
-                    y += 40
+                    definition = self.context.content.items.get(nome)
+                    icon = recursos.SPRITES.get(definition.sprite) if definition else None
+                    if icon:
+                        surface.blit(pygame.transform.scale(icon, (36, 36)), (50, y - 6))
+                    surface.blit(txt, (96, y))
+                    y += 44
                     
         # Desenha Stats do Jogador para referência
         if self.player:

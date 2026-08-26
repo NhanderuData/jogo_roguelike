@@ -8,13 +8,16 @@ def aplicar_flash_branco(surface):
     return flash_surf
 
 def gerar_vignette(largura, altura):
-    """ Cria aquela borda escura que foca no centro da tela """
+    """Create a subtle edge vignette while keeping the center fully clear."""
     vignette = pygame.Surface((largura, altura), pygame.SRCALPHA)
-    # Desenha um degradê radial simulado
-    for r in range(int(largura * 1.2), 0, -15):
-        alpha = int(180 * (1 - r / largura)) # Escurece conforme se afasta do centro
-        if alpha < 0: alpha = 0
-        pygame.draw.circle(vignette, (0, 0, 0, alpha), (largura//2, altura//2), r)
+    steps = 12
+    band = 12
+    for step in range(steps):
+        margin = step * band
+        alpha = max(1, int(18 * (1 - step / steps)))
+        rect = pygame.Rect(margin, margin, largura - margin * 2, altura - margin * 2)
+        if rect.width > 0 and rect.height > 0:
+            pygame.draw.rect(vignette, (0, 0, 0, alpha), rect, band)
     return vignette
 
 def shader_ambientacao(bioma):

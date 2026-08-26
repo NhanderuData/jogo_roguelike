@@ -1,0 +1,68 @@
+{
+  "Medkit": {
+    "type": "cura",
+    "value": 50,
+    "color": [255, 255, 255],
+    "sprite": "item_medkit"
+  },
+  "Enlatado": {
+    "type": "comida",
+    "value": 20,
+    "color": [200, 100, 50],
+    "sprite": "rock"
+  },
+  "Munição 9mm": {
+    "type": "municao",
+    "value": 10,
+    "ammo_type": "9mm",
+    "color": [255, 220, 80],
+    "sprite": "item_ammo_box"
+  },
+  "Cartuchos calibre 12": {
+    "type": "municao",
+    "value": 5,
+    "ammo_type": "shell",
+    "color": [220, 70, 50],
+    "sprite": "item_ammo_box"
+  },
+  "Garrafa d'Agua": {
+    "type": "bebida",
+    "value": 40,
+    "color": [0, 100, 255],
+    "sprite": "shoot"
+  },
+  "Bandagem": {
+    "type": "cura_status",
+    "value": 10,
+    "effect": "estancar",
+    "color": [200, 200, 200],
+    "sprite": "item_medkit"
+  },
+  "Energético": {
+    "type": "energia",
+    "value": 25,
+    "duration": 8.0,
+    "color": [40, 130, 255],
+    "sprite": "item_energy_drink"
+  },
+  "Colete Tático": {
+    "type": "armadura",
+    "value": 35,
+    "color": [120, 130, 95],
+    "sprite": "item_armor"
+  },
+  "Escopeta Tática": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun",
+    "color": [190, 130, 75],
+    "sprite": "weapon_shotgun"
+  },
+  "SMG de Sucata": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg",
+    "color": [160, 160, 150],
+    "sprite": "weapon_smg"
+  }
+}

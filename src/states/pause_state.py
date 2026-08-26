@@ -1,11 +1,13 @@
 import pygame
 from core import config
 from core.input_manager import Actions
+from core.state_manager import BaseState, Scene
 
-class PauseState:
-    def __init__(self, manager, registry, input_manager):
-        self.manager = manager
-        self.input_manager = input_manager
+class PauseState(BaseState):
+    transparent = True
+
+    def __init__(self, manager, context):
+        super().__init__(manager, context)
         
         # Cria um overlay semi-transparente
         self.overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
@@ -21,19 +23,15 @@ class PauseState:
     def exit(self):
         pass
 
-    def handle_input(self, event):
-        self.input_manager.process_event(event)
-
     def update(self, dt):
         # Se apertar PAUSE novamente, sai do estado (pop) e volta ao jogo
-        if self.input_manager.is_pressed(Actions.PAUSE):
+        if self.input.is_pressed(Actions.PAUSE):
             self.manager.pop()
+            return
             
         # Opção de Sair do Jogo pelo menu de pause
-        if self.input_manager.is_pressed(Actions.QUIT):
-            # Volta para o Menu Principal
-            from states.menu_state import MenuState
-            self.manager.change(MenuState)
+        if self.input.is_pressed(Actions.QUIT):
+            self.manager.change(Scene.MENU)
 
     def draw(self, surface):
         # O StateManager já desenhou o jogo por baixo (graças à mudança na Parte 1)

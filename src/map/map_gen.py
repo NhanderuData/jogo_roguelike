@@ -4,11 +4,12 @@ from perlin_noise import PerlinNoise
 from core import config
 from entities import actor
 from graphics import efeitos
+from graphics.particles import ParticleSystem
 from .grid import Grid
 from . import biomas
 # Novos imports necessários
 from entities.loot import LootDrop
-from core.game_data import DATA_INIMIGOS
+from core.context import GameContext
 
 # Configurações do Gerador
 NOISE_SCALE = 40.0 
@@ -16,7 +17,9 @@ NOISE_OCTAVES = 1
 BIOME_SCALE = 120.0
 
 class Mapa:
-    def __init__(self):
+    def __init__(self, context: GameContext):
+        self.context = context
+        self.content = context.content
         self.largura = config.LARGURA_MAPA
         self.altura = config.ALTURA_MAPA
         self.grid_sistema = Grid(self.largura, self.altura)
@@ -27,6 +30,7 @@ class Mapa:
         self.projeteis = []
         self.efeitos = []
         self.textos = []
+        self.particulas = ParticleSystem()
         self.jogador = None
         
         self.seed = random.randint(0, 10000)
@@ -177,14 +181,15 @@ class Mapa:
                 rng = random.randint(0, 100)
 
                 # --- LÓGICA DE TERRENO ---
-                if valor_ruido < -0.25:
+                if valor_ruido < -0.28:
                     tile.tipo = "deep_water"
                     tile.bloqueado = True
-                elif valor_ruido < -0.15: 
+                elif valor_ruido < -0.19:
                     biomas.aplicar_bioma_azul(self, x, y, tile, rng)
                 elif valor_ruido < -0.08:
                     tile.tipo = "sand"
-                    tile.bloqueado = False 
+                elif valor_ruido < -0.02:
+                    tile.tipo = "coast"
                 else:
                     # --- LÓGICA DE BIOMAS ---
                     if valor_bioma < 0.0: # Floresta
@@ -219,7 +224,7 @@ class Mapa:
                 tile.bloqueado = False
 
         if not self.jogador:
-            self.jogador = actor.Entidade(sx, sy, "Survivor")
+            self.jogador = actor.Entidade(sx, sy, "Survivor", self.context)
         else:
             self.jogador.x, self.jogador.y = float(sx), float(sy)
             self.jogador.hp = self.jogador.hp_max
@@ -257,19 +262,19 @@ class Mapa:
                 else:
                     nome = "Walker"
                 
-                inimigo = actor.Entidade(mx, my, nome)
+                inimigo = actor.Entidade(mx, my, nome, self.context)
                 self.entidades.append(inimigo)
                 count += 1
 
-    def update(self):
+    def update(self, dt):
         # Atualiza Jogador
         if self.jogador:
-            self.jogador.update(self)
+            self.jogador.update(dt, self)
             
         # Atualiza Inimigos
         for ent in self.entidades:
             if ent != self.jogador:
-                ent.update(self)
+                ent.update(dt, self)
 
         # --- LÓGICA DE MORTE E LOOT ---
         for ent in self.entidades[:]:
@@ -281,17 +286,17 @@ class Mapa:
                         tile_atual.bloqueado = False
                     
                     # DROP
-                    dados = DATA_INIMIGOS.get(ent.nome)
-                    if dados and "loot" in dados:
-                        chance = dados.get("chance_loot", 0.0)
-                        if random.random() < chance:
-                            item_escolhido = random.choice(dados["loot"])
-                            drop = LootDrop(ent.x, ent.y, item_escolhido)
+                    dados = self.content.entities.get(ent.nome)
+                    if dados and dados.loot:
+                        if random.random() < dados.loot_chance:
+                            item_escolhido = random.choice(dados.loot)
+                            drop = LootDrop(ent.x, ent.y, item_escolhido, self.content)
                             self.items_no_chao.append(drop)
                             print(f"Loot Dropado: {item_escolhido}")
 
                     # XP e Remoção
                     self.jogador.ganhar_xp(ent.xp_reward)
+                    self.particulas.emit(ent.x, ent.y, "hit", 14)
                     if ent in self.entidades:
                         self.entidades.remove(ent)
         
@@ -312,7 +317,9 @@ class Mapa:
 
         # Atualiza Itens
         for loot in self.items_no_chao:
-            loot.update(0.1)
+            loot.update(dt)
+
+        self.particulas.update(dt, self)
 
     def criar_texto_dano(self, x, y, valor, cor=(255, 50, 50)):
         txt = efeitos.TextoFlutuante(x, y, str(valor), cor)

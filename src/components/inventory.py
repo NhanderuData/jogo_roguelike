@@ -1,17 +1,39 @@
 # src/components/inventory.py
-from core.game_data import DATA_ITEMS
+from core.content import ContentCatalog
 
 class InventoryComponent:
-    def __init__(self, capacity=10):
+    def __init__(self, content: ContentCatalog, capacity=10):
+        self.content = content
         self.capacity = capacity
         self.items = [] 
-        self.municao = 0 
+        self.ammo = {"9mm": 0, "shell": 0}
+
+    @property
+    def municao(self):
+        return sum(self.ammo.values())
+
+    def ammo_count(self, ammo_type):
+        return self.ammo.get(ammo_type or "", 0)
+
+    def consume_ammo(self, ammo_type, quantity):
+        available = self.ammo_count(ammo_type)
+        consumed = min(available, max(0, quantity))
+        self.ammo[ammo_type] = available - consumed
+        return consumed
 
     def add_item(self, item_name, quantity=1):
-        data = DATA_ITEMS.get(item_name, {})
-        if data.get("tipo") == "municao":
-            self.municao += data.get("valor", 10) * quantity
+        data = self.content.items.get(item_name)
+        if not data:
+            return False
+        if data.kind == "municao":
+            ammo_type = data.ammo_type or "9mm"
+            self.ammo[ammo_type] = self.ammo.get(ammo_type, 0) + data.value * quantity
             return True
+
+        for item in self.items:
+            if item["name"] == item_name:
+                item["qtd"] += quantity
+                return True
 
         if len(self.items) < self.capacity:
             self.items.append({"name": item_name, "qtd": quantity})
@@ -22,7 +44,7 @@ class InventoryComponent:
         if 0 <= index < len(self.items):
             item_struct = self.items[index]
             nome = item_struct["name"]
-            data = DATA_ITEMS.get(nome)
+            data = self.content.items.get(nome)
             
             if not data: return False
             usou = False
@@ -31,34 +53,48 @@ class InventoryComponent:
             tem_status = hasattr(entity, 'status') and entity.status is not None
 
             # --- TIPO: COMIDA ---
-            if data["tipo"] == "comida" and tem_status:
+            if data.kind == "comida" and tem_status:
                 if entity.status.fome < entity.status.max_fome:
-                    entity.status.comer(data["valor"])
+                    entity.status.comer(data.value)
                     print(f"Comeu {nome}.")
                     usou = True
 
             # --- TIPO: BEBIDA (Novo) ---
-            elif data["tipo"] == "bebida" and tem_status:
+            elif data.kind == "bebida" and tem_status:
                 if entity.status.sede < entity.status.max_sede:
-                    entity.status.beber(data["valor"])
+                    entity.status.beber(data.value)
                     print(f"Bebeu {nome}.")
                     usou = True
 
             # --- TIPO: CURA / CURA_STATUS ---
-            elif data["tipo"] == "cura" or data["tipo"] == "cura_status":
+            elif data.kind in ("cura", "cura_status"):
                 precisa_hp = entity.combat.hp < entity.combat.hp_max
                 precisa_estancar = tem_status and entity.status.sangramento > 0
                 
                 if precisa_hp or precisa_estancar:
                     if precisa_hp: 
-                        entity.combat.heal(data["valor"])
+                        entity.combat.heal(data.value)
                     
-                    if precisa_estancar and data.get("efeito") == "estancar":
+                    if precisa_estancar and data.effect == "estancar":
                         entity.status.curar_sangramento()
                         
                     usou = True
+
+            elif data.kind == "energia" and tem_status:
+                entity.status.energize(data.duration)
+                entity.status.beber(data.value)
+                usou = True
+
+            elif data.kind == "armadura":
+                entity.combat.add_armor(data.value)
+                usou = True
+
+            elif data.kind == "arma" and entity.weapons:
+                usou = entity.weapons.unlock(data.weapon_id)
             
             if usou:
-                self.items.pop(index)
+                item_struct["qtd"] -= 1
+                if item_struct["qtd"] <= 0:
+                    self.items.pop(index)
                 return True
         return False

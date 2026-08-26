@@ -37,16 +37,17 @@ class Hitbox:
 # --- NOVO PROJÉTIL (Entidade ECS) ---
 class Projetil:
     # 1. Recebe 'dono' no __init__
-    def __init__(self, x, y, angle, origem, dono):
+    def __init__(self, x, y, angle, origem, dono, damage=None, speed=0.3):
         self.name = "Projetil"
         self.origem = origem 
         self.dono = dono # Guarda quem atirou
+        self.damage = damage
         self.active = True
         self.life = 100
         
         # Física e Sprite iguais ao anterior...
         self.physics = PhysicsComponent(self, x, y, largura_hb=0.4, altura_hb=0.4)
-        self.physics.speed = 0.3
+        self.physics.speed = speed
         self.dx = math.cos(angle)
         self.dy = math.sin(angle)
         self.sprite = SpriteComponent(self, "shoot", layer=config.LAYER_AEREO)
@@ -86,8 +87,9 @@ class Projetil:
         for ent in targets:
             ent_rect = Hitbox(ent.x * 32, ent.y * 32, 32, 32)
             if proj_rect.colliderect(ent_rect):
-                dano = 5 if self.origem == "enemy" else 15
+                dano = self.damage if self.damage is not None else (5 if self.origem == "enemy" else 15)
                 ent.tomar_dano(dano, mapa_obj)
+                mapa_obj.particulas.emit(ent.x, ent.y, "hit", 8)
                 
                 # --- ALTERAÇÃO AQUI ---
                 # Apenas verificamos se morreu, mas NÃO removemos aqui.
@@ -102,18 +104,19 @@ class Projetil:
     def draw(self, surface, cx, cy): pass
 
 # --- Factory Atualizada ---
-def criar_projetil(x, y, tx, ty, origem, mapa_obj, dono): # Recebe dono
-    angle = math.atan2(ty - y, tx - x)
-    # Passa dono para a classe
-    p = Projetil(x, y, angle, origem, dono)
+def criar_projetil(
+    x, y, tx, ty, origem, mapa_obj, dono, damage=None, speed=0.3, angle_offset=0.0
+):
+    angle = math.atan2(ty - y, tx - x) + angle_offset
+    p = Projetil(x, y, angle, origem, dono, damage=damage, speed=speed)
     mapa_obj.projeteis.append(p)
 
-def executar_golpe_espada(atacante, tx, ty, mapa_obj):
+def executar_golpe_espada(atacante, tx, ty, mapa_obj, damage=None, alcance=1.0):
     angle = math.atan2(ty - atacante.y, tx - atacante.x)
     efeito = EfeitoVisual(atacante.x, atacante.y, angle)
     mapa_obj.efeitos.append(efeito)
     
-    distancia_golpe = 1.0
+    distancia_golpe = alcance
     hit_x = atacante.x + math.cos(angle) * distancia_golpe
     hit_y = atacante.y + math.sin(angle) * distancia_golpe
     area_golpe = Hitbox(hit_x * 32 - 24, hit_y * 32 - 24, 48, 48)
@@ -125,7 +128,8 @@ def executar_golpe_espada(atacante, tx, ty, mapa_obj):
         alvo_rect = Hitbox(alvo.x * 32, alvo.y * 32, 32, 32)
         if area_golpe.colliderect(alvo_rect):
             # Usa o Dano vindo do CombatComponent do atacante
-            alvo.tomar_dano(atacante.dano * 2, mapa_obj)
+            alvo.tomar_dano(damage if damage is not None else atacante.dano * 2, mapa_obj)
+            mapa_obj.particulas.emit(alvo.x, alvo.y, "hit", 10)
             
             # Knockback: Empurra usando o sistema de física do alvo
             alvo.physics.move(math.cos(angle) * 0.5, math.sin(angle) * 0.5, mapa_obj)

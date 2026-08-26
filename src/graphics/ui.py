@@ -1,5 +1,6 @@
 import pygame
 from core import config
+from graphics import recursos
 
 class UI:
     def __init__(self):
@@ -73,21 +74,71 @@ class UI:
             # AVISO DE SANGRAMENTO - Y=120
             if jogador.status.sangramento > 0:
                 txt_bleed = self.font_big.render("SANGRANDO!", True, (255, 0, 0))
-                surface.blit(txt_bleed, (20, 120))
+                surface.blit(txt_bleed, (20, 140))
 
-        # 5. Munição (Canto Inferior)
-        if hasattr(jogador, 'inventory') and jogador.inventory:
-            qtd_balas = jogador.inventory.municao
-            
-            cor_ammo = config.BRANCO
-            if qtd_balas == 0: cor_ammo = (200, 50, 50)
-            elif qtd_balas < 10: cor_ammo = (255, 255, 0)
-            
-            surf_ammo = self.font_huge.render(f"{qtd_balas}", True, cor_ammo)
-            rect_ammo = surf_ammo.get_rect(bottomright=(config.LARGURA_TELA - 20, config.ALTURA_TELA - 20))
-            
-            surf_label = self.font.render("AMMO", True, config.CINZA_CLARO)
-            rect_label = surf_label.get_rect(bottomright=(config.LARGURA_TELA - 20, rect_ammo.top - 5))
-            
-            surface.blit(surf_label, rect_label)
-            surface.blit(surf_ammo, rect_ammo)
+            if jogador.status.energy_remaining > 0:
+                self.desenhar_barra(
+                    surface, 20, 112,
+                    jogador.status.energy_remaining, 8.0,
+                    (15, 45, 70), (60, 190, 255),
+                    largura=150, altura=10,
+                )
+
+        if jogador.combat.armor > 0:
+            self.desenhar_barra(
+                surface, 180, 70,
+                jogador.combat.armor, jogador.combat.max_armor,
+                (35, 40, 30), (135, 150, 105),
+                largura=130, altura=15,
+                texto_label="ARMOR",
+            )
+
+        if hasattr(jogador, "weapons") and jogador.weapons:
+            self._draw_weapons(surface, jogador)
+
+    def _draw_weapons(self, surface, jogador):
+        weapons = jogador.weapons
+        slot_size = 64
+        gap = 8
+        total_width = len(weapons.SLOT_ORDER) * slot_size + 3 * gap
+        start_x = config.LARGURA_TELA - total_width - 20
+        y = config.ALTURA_TELA - slot_size - 20
+
+        for index, weapon_id in enumerate(weapons.SLOT_ORDER):
+            x = start_x + index * (slot_size + gap)
+            unlocked = weapon_id in weapons.unlocked
+            selected = weapon_id == weapons.current_id
+            background = (24, 27, 30) if unlocked else (12, 13, 14)
+            border = (255, 210, 70) if selected else (90, 95, 100)
+            pygame.draw.rect(surface, background, (x, y, slot_size, slot_size))
+            pygame.draw.rect(surface, border, (x, y, slot_size, slot_size), 3 if selected else 1)
+
+            definition = weapons.content.weapons[weapon_id]
+            image = recursos.SPRITES.get(definition.sprite)
+            if image and unlocked:
+                icon = pygame.transform.scale(image, (56, 56))
+                surface.blit(icon, (x + 4, y + 4))
+            elif not unlocked:
+                pygame.draw.line(surface, (55, 58, 60), (x + 18, y + 18), (x + 46, y + 46), 3)
+                pygame.draw.line(surface, (55, 58, 60), (x + 46, y + 18), (x + 18, y + 46), 3)
+
+        weapon = weapons.current
+        name = self.font.render(weapon.name, True, config.BRANCO)
+        surface.blit(name, (start_x, y - 26))
+
+        if weapon.kind == "ranged":
+            magazine = weapons.magazines[weapons.current_id]
+            reserve = jogador.inventory.ammo_count(weapon.ammo_type)
+            color = (230, 70, 60) if magazine == 0 else config.BRANCO
+            ammo = self.font_huge.render(f"{magazine} / {reserve}", True, color)
+            ammo_rect = ammo.get_rect(bottomright=(config.LARGURA_TELA - 20, y - 5))
+            surface.blit(ammo, ammo_rect)
+
+        if weapons.is_reloading:
+            width = total_width
+            pygame.draw.rect(surface, (35, 35, 35), (start_x, y - 8, width, 4))
+            pygame.draw.rect(
+                surface,
+                (240, 190, 70),
+                (start_x, y - 8, int(width * weapons.reload_progress), 4),
+            )

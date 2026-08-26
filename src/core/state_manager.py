@@ -1,75 +1,107 @@
+from __future__ import annotations
+
+from abc import ABC
+from enum import Enum
+from typing import Dict, List, Type
+
 import pygame
 
-class BaseState:
-    """
-    Classe Abstrata que define o contrato para qualquer estado do jogo
-    (Menu, Jogo, Inventário, Pause, etc.)
-    """
-    def __init__(self, manager, registry, input_manager):
+from core.context import GameContext
+
+
+class Scene(str, Enum):
+    MENU = "menu"
+    GAME = "game"
+    PAUSE = "pause"
+    INVENTORY = "inventory"
+    GAME_OVER = "game_over"
+
+
+class BaseState(ABC):
+    """Contract shared by every screen and overlay in the game."""
+
+    transparent = False
+
+    def __init__(self, manager: "StateManager", context: GameContext):
         self.manager = manager
-        self.registry = registry 
-        self.input = input_manager
+        self.context = context
+        self.input = context.input
 
-    def enter(self, **kwargs):
-        """Chamado quando o estado entra no topo da pilha"""
+    def enter(self, **kwargs) -> None:
         pass
 
-    def exit(self):
-        """Chamado quando o estado sai do topo"""
+    def exit(self) -> None:
         pass
 
-    def handle_input(self, event):
-        """Gerencia eventos brutos do Pygame (teclado/mouse)"""
+    def handle_input(self, event: pygame.event.Event) -> None:
         pass
 
-    def update(self, dt):
-        """Lógica do frame (IA, física, etc)"""
+    def update(self, dt: float) -> None:
         pass
 
-    def draw(self, surface):
-        for state in self.stack:
-            state.draw(surface)
+    def draw(self, surface: pygame.Surface) -> None:
+        pass
 
 
 class StateManager:
-    """
-    Gerencia a pilha de estados.
-    Permite 'Pause' (push) sobrepondo o 'Jogo', ou troca total (change).
-    """
-    # --- CORREÇÃO AQUI: Adicione 'registry' nos argumentos ---
-    def __init__(self, registry, input_manager):
-        self.stack = []
-        self.registry = registry # Agora usa o dicionário que veio do MainApp
-        self.input_manager = input_manager
-    # ---------------------------------------------------------
+    """Owns scene navigation and draws transparent overlays correctly."""
 
-    def push(self, state_class, **kwargs):
-        new_state = state_class(self, self.registry, self.input_manager)
-        new_state.enter(**kwargs)
-        self.stack.append(new_state)
+    def __init__(self, context: GameContext):
+        self.context = context
+        self._stack: List[BaseState] = []
+        self._routes: Dict[Scene, Type[BaseState]] = {}
 
-    def pop(self):
-        """Remove o estado do topo (ex: Fecha Pause, volta pro Jogo)"""
-        if self.stack:
-            top_state = self.stack.pop()
-            top_state.exit()
+    @property
+    def stack(self) -> tuple[BaseState, ...]:
+        return tuple(self._stack)
 
-    def change(self, state_class, **kwargs):
-        while self.stack:
+    @property
+    def current(self) -> BaseState | None:
+        return self._stack[-1] if self._stack else None
+
+    def register(self, route: Scene, state_class: Type[BaseState]) -> None:
+        self._routes[route] = state_class
+
+    def _create(self, route: Scene) -> BaseState:
+        try:
+            state_class = self._routes[route]
+        except KeyError as exc:
+            raise ValueError(f"Scene route is not registered: {route.value}") from exc
+        return state_class(self, self.context)
+
+    def push(self, route: Scene, **kwargs) -> BaseState:
+        state = self._create(route)
+        state.enter(**kwargs)
+        self._stack.append(state)
+        return state
+
+    def pop(self) -> BaseState | None:
+        if not self._stack:
+            return None
+        state = self._stack.pop()
+        state.exit()
+        return state
+
+    def change(self, route: Scene, **kwargs) -> BaseState:
+        while self._stack:
             self.pop()
+        return self.push(route, **kwargs)
 
-        new_state = state_class(self, self.registry, self.input_manager)
-        new_state.enter(**kwargs)
-        self.stack.append(new_state)
+    def handle_input(self, event: pygame.event.Event) -> None:
+        if self.current:
+            self.current.handle_input(event)
 
-    def handle_input(self, event):
-        if self.stack:
-            self.stack[-1].handle_input(event)
+    def update(self, dt: float) -> None:
+        if self.current:
+            self.current.update(dt)
 
-    def update(self, dt):
-        if self.stack:
-            self.stack[-1].update(dt)
+    def draw(self, surface: pygame.Surface) -> None:
+        if not self._stack:
+            return
 
-    def draw(self, surface):
-        if self.stack:
-            self.stack[-1].draw(surface)
+        first_visible = len(self._stack) - 1
+        while first_visible > 0 and self._stack[first_visible].transparent:
+            first_visible -= 1
+
+        for state in self._stack[first_visible:]:
+            state.draw(surface)

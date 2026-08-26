@@ -2,12 +2,11 @@ import pygame
 import math
 from core import config
 from core.input_manager import Actions
+from core.state_manager import BaseState, Scene
 
-class MenuState:
-    def __init__(self, manager, registry, input_manager):
-        self.manager = manager
-        self.registry = registry
-        self.input_manager = input_manager
+class MenuState(BaseState):
+    def __init__(self, manager, context):
+        super().__init__(manager, context)
         
         # Fontes
         self.font_title = pygame.font.SysFont("arial", 80, bold=True)
@@ -33,22 +32,17 @@ class MenuState:
     def exit(self):
         pass
 
-    def handle_input(self, event):
-        self.input_manager.process_event(event)
-
     def update(self, dt):
         self.timer += dt
         
         # Detecta ENTER para começar o jogo
         # Vamos precisar adicionar a ação START no InputManager depois!
-        if self.input_manager.is_pressed(Actions.START):
-            from states.game_state import GameState
-            self.manager.change(GameState)
+        if self.input.is_pressed(Actions.START):
+            self.manager.change(Scene.GAME)
             
         # Detecta QUIT para fechar
-        if self.input_manager.is_pressed(Actions.QUIT):
-            pygame.quit()
-            exit()
+        if self.input.is_pressed(Actions.QUIT):
+            self.context.request_quit()
 
     def draw(self, surface):
         # Fundo roxo escuro (estilo místico)

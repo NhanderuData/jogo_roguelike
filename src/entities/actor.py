@@ -11,50 +11,57 @@ from components.ai import AIComponent
 from components.combat import CombatComponent
 from components.inventory import InventoryComponent
 from components.status import StatusComponent
-
-# --- IMPORTAÇÃO DE DADOS ---
-from core.game_data import DATA_INIMIGOS 
+from components.weapons import WeaponComponent
+from core.context import GameContext
 
 class Entidade:
-    def __init__(self, x, y, nome):
+    def __init__(self, x, y, nome, context: GameContext):
         self.nome = nome
+        self.context = context
+        self.content = context.content
         
         # --- CORREÇÃO DO ERRO ---
         # Antes usava "Orc". Agora usamos "Walker" como padrão de segurança.
         # Se o nome não existir, ele vira um "Walker".
-        if nome not in DATA_INIMIGOS:
+        if nome not in self.content.entities:
             print(f"AVISO: Entidade '{nome}' não encontrada. Usando 'Walker' como fallback.")
             nome_dados = "Walker"
         else:
             nome_dados = nome
             
-        dados = DATA_INIMIGOS[nome_dados]
+        dados = self.content.entities[nome_dados]
         # ------------------------
         
         # --- 1. FÍSICA ---
         self.physics = PhysicsComponent(self, x, y)
-        self.physics.speed = dados.get("speed", 0.04)
+        self.physics.speed = dados.speed
 
         # Se for o jogador (Survivor), damos o inventário
         if nome == "Survivor":
             # Inventário já existia aqui
-            self.inventory = InventoryComponent()
+            self.inventory = InventoryComponent(self.content)
+            self.weapons = WeaponComponent(self, self.content, context.audio)
             self.inventory.add_item("Bandagem", 2)
             self.inventory.add_item("Enlatado", 1)
-            self.inventory.add_item("Garrafa d'Agua", 1) # <--- Item novo
+            self.inventory.add_item("Garrafa d'Agua", 1)
+            self.inventory.add_item("Energético", 1)
+            self.inventory.add_item("Colete Tático", 1)
+            self.inventory.add_item("Munição 9mm", 4)
+            self.inventory.add_item("Cartuchos calibre 12", 2)
             
             # Novo Sistema de Sobrevivência
             self.status = StatusComponent(self) 
         else:
             self.inventory = None
+            self.weapons = None
             self.status = None
 
         # --- 2. VISUAL ---
-        sprite_key = dados.get("sprite", "orc_run") # fallback visual seguro
+        sprite_key = dados.sprite
         
         # Define a layer (chão, corpo ou topo) automaticamente
         layer = config.LAYER_CORPO
-        if dados.get("layer_topo"):
+        if dados.top_layer:
             layer = config.LAYER_TOPO
             
         self.sprite = SpriteComponent(self, sprite_key, layer=layer)
@@ -62,15 +69,15 @@ class Entidade:
         # --- 3. COMBATE ---
         self.combat = CombatComponent(
             self, 
-            hp_max=dados.get("hp", 10), 
-            damage=dados.get("dano", 1), 
-            xp_reward=dados.get("xp", 0)
+            hp_max=dados.hp,
+            damage=dados.damage,
+            xp_reward=dados.xp,
         )
         
         # --- 4. INTELIGÊNCIA ARTIFICIAL ---
         self.ai = AIComponent(self)
         # Desativa a IA se o dado disser que não tem (ex: Árvores)
-        if not dados.get("ai", True):
+        if not dados.has_ai:
             self.ai.active = False
 
 
@@ -121,7 +128,10 @@ class Entidade:
 
     # --- MÉTODOS DE AÇÃO ---
     def tomar_dano(self, qtd, mapa_obj=None):
+        hp_before = self.combat.hp
         self.combat.take_damage(qtd, mapa_obj)
+        if self.nome == "Survivor" and self.combat.hp < hp_before:
+            self.context.audio.play("hurt", 0.65)
 
     def ganhar_xp(self, qtd):
         self.combat.gain_xp(qtd)
@@ -129,20 +139,22 @@ class Entidade:
     def atirar(self, tx, ty, mapa_obj, origem):
         if self.combat.cooldown_shoot > 0: return
         combat_system.criar_projetil(self.x, self.y, tx, ty, origem, mapa_obj, dono=self)
-        self.combat.cooldown_shoot = 10
+        self.combat.cooldown_shoot = 10 / config.FPS
 
     def atacar_espada(self, tx, ty, mapa_obj):
         if self.combat.cooldown_sword > 0: return
         combat_system.executar_golpe_espada(self, tx, ty, mapa_obj)
-        self.combat.cooldown_sword = 30 
+        self.combat.cooldown_sword = 30 / config.FPS
 
-    def update(self, mapa_obj):
+    def update(self, dt, mapa_obj):
         # Atualiza TODOS os sistemas da entidade
-        self.physics.update(0)
-        self.sprite.update(0)
-        self.combat.update(0)
-        if self.status:      # <--- LINHA NOVA
-            self.status.update(0)
+        self.physics.update(dt)
+        self.sprite.update(dt)
+        self.combat.update(dt)
+        if self.weapons:
+            self.weapons.update(dt)
+        if self.status:
+            self.status.update(dt)
         
         # A IA decide se move ou ataca
         self.ai.update(mapa_obj)

@@ -3,6 +3,7 @@ import pygame
 from core import config
 from graphics import recursos
 from graphics import shaders
+from graphics.ambience import AmbientRenderer
 import debug
 
 class Renderer:
@@ -10,11 +11,9 @@ class Renderer:
         self.camera = camera
         self.vignette_surf = shaders.gerar_vignette(config.LARGURA_TELA, config.ALTURA_TELA)
         
-        # Luz do Player (Fura a escuridão - Branca/Amarelada)
-        self.luz_player = self.criar_luz_gradiente(raio=100, cor=(255, 255, 220)) 
-        
         # Luz do Projétil (Glow Aditivo - Laranja/Avermelhada para destacar)
         self.luz_projetil = self.criar_luz_gradiente(raio=50, cor=(255, 100, 50))
+        self.ambience = AmbientRenderer()
 
     def criar_luz_gradiente(self, raio, cor=(255, 255, 255)):
         luz = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
@@ -36,7 +35,7 @@ class Renderer:
         try:
             mask = pygame.mask.from_surface(sprite_img)
             sombra_surf = mask.to_surface(setcolor=(0, 0, 0, 80), unsetcolor=(0, 0, 0, 0))
-        except:
+        except (pygame.error, ValueError, TypeError):
             return None
 
         # 2. Achata a sombra verticalmente (Escala Y)
@@ -86,20 +85,32 @@ class Renderer:
                 screen_x = x * config.TAMANHO_TILE - cam_x
                 screen_y = y * config.TAMANHO_TILE - cam_y
                 
-                img_key = "grass"
-                if tile.tipo == "rocha": img_key = "rock"
+                img_key = "terrain_grass"
+                if tile.tipo == "rocha": img_key = "terrain_rubble"
                 elif tile.tipo == "parede": img_key = "wall"
-                elif tile.tipo == "blue_ground": img_key = "blue_ground"
-                elif tile.tipo == "estrada": img_key = "estrada"
-                elif tile.tipo == "deep_water": img_key = "deep_water"
-                elif tile.tipo == "sand": img_key = "sand"
+                elif tile.tipo in ("terra", "terrain_dirt"): img_key = "terrain_dirt"
+                elif tile.tipo == "grass": img_key = "terrain_grass"
+                elif tile.tipo == "blue_ground": img_key = "terrain_moss"
+                elif tile.tipo == "estrada": img_key = "terrain_road"
+                elif tile.tipo == "deep_water": img_key = "terrain_water"
+                elif tile.tipo == "sand": img_key = "terrain_sand"
+                elif tile.tipo == "coast": img_key = "terrain_coast"
+                elif tile.tipo == "rubble": img_key = "terrain_rubble"
+                elif tile.tipo == "mud": img_key = "terrain_mud"
+
+                variation = (x * 31 + y * 17) % 3
+                if variation == 1 and f"{img_key}_flip_x" in recursos.SPRITES:
+                    img_key = f"{img_key}_flip_x"
+                elif variation == 2 and f"{img_key}_flip_y" in recursos.SPRITES:
+                    img_key = f"{img_key}_flip_y"
                 
                 img = recursos.SPRITES.get(img_key)
                 if img: 
                     render_queue.append((config.LAYER_CHAO, screen_y, img, screen_x, screen_y))
                 
-                if tile.tipo == "blue_ground":
-                    self.adicionar_bordas(mapa_obj, x, y, screen_x, screen_y, render_queue)
+                self.adicionar_transicoes(
+                    mapa_obj, tile.tipo, x, y, screen_x, screen_y, render_queue
+                )
 
         # Entidades
         for ent in mapa_obj.entidades:
@@ -160,12 +171,16 @@ class Renderer:
         for _, _, img, x, y in render_queue:
             surface.blit(img, (x, y))
 
+        mapa_obj.particulas.draw(surface, cam_x, cam_y)
+
         # --- 2. ESCURIDÃO AMBIENTAL (Subtractive) ---
         if cor_noite[3] > 0:
             self.aplicar_escuridao(surface, mapa_obj, cam_x, cam_y, cor_noite)
 
         # --- 3. LUZES ADITIVAS / GLOW (Additive) ---
         self.aplicar_glows(surface, mapa_obj, cam_x, cam_y)
+
+        self.ambience.draw(surface, mapa_obj)
 
         # Pós-Processamento e UI
         surface.blit(self.vignette_surf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
@@ -184,28 +199,37 @@ class Renderer:
         if config.DEBUG_MODE:
              debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
 
-    def adicionar_bordas(self, mapa_obj, x, y, sx, sy, queue):
-        vizinhos = [
-            (0, -1, "border_top"), (0, 1, "border_bottom"), 
-            (-1, 0, "border_left"), (1, 0, "border_right")
-        ]
-        for dx, dy, img_key in vizinhos:
-            viz = mapa_obj.obter_tile(x + dx, y + dy)
-            if viz and viz.tipo not in ["blue_ground", 'deep_water', "parede"]:
-                bord = recursos.SPRITES.get(img_key)
-                if bord: queue.append((config.LAYER_CHAO, sy, bord, sx, sy))
+    def adicionar_transicoes(self, mapa_obj, tile_type, x, y, sx, sy, queue):
+        neighbors = (
+            (0, -1, "top"),
+            (0, 1, "bottom"),
+            (-1, 0, "left"),
+            (1, 0, "right"),
+        )
+        land_types = {"coast", "grass", "terra", "rubble", "mud", "parede"}
+        for dx, dy, side in neighbors:
+            neighbor = mapa_obj.obter_tile(x + dx, y + dy)
+            if not neighbor:
+                continue
+
+            prefix = None
+            if tile_type == "sand" and neighbor.tipo in land_types:
+                prefix = "coast_edge"
+            elif tile_type == "blue_ground" and neighbor.tipo in {"sand", "coast"}:
+                prefix = "sand_edge"
+            elif tile_type == "deep_water" and neighbor.tipo == "blue_ground":
+                prefix = "moss_edge"
+            elif tile_type == "deep_water" and neighbor.tipo in {"sand", "coast"}:
+                prefix = "sand_edge"
+
+            image = recursos.SPRITES.get(f"{prefix}_{side}") if prefix else None
+            if image:
+                queue.append((config.LAYER_CHAO + 0.5, sy, image, sx, sy))
 
     def aplicar_escuridao(self, surface, mapa_obj, cam_x, cam_y, cor_noite):
         overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
         overlay.fill(cor_noite)
 
-        if mapa_obj.jogador:
-            px = mapa_obj.jogador.physics.x * config.TAMANHO_TILE - cam_x + (config.TAMANHO_TILE // 2)
-            py = mapa_obj.jogador.physics.y * config.TAMANHO_TILE - cam_y + (config.TAMANHO_TILE // 2)
-            overlay.blit(self.luz_player, 
-                            (px - self.luz_player.get_width()//2, py - self.luz_player.get_height()//2), 
-                            special_flags=pygame.BLEND_RGBA_SUB)
-        
         surface.blit(overlay, (0, 0))
 
     def aplicar_glows(self, surface, mapa_obj, cam_x, cam_y):

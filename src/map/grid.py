@@ -10,7 +10,7 @@ class Grid:
 
     def configurar_tile(self, x, y, tipo, bloqueado=False):
         if 0 <= x < self.largura and 0 <= y < self.altura:
-            self.tiles[y][x] = Tile(tipo, bloqueado)
+            self.tiles[y][x] = Tile(tipo=tipo, bloqueado=bloqueado)
 
     def obter_tile(self, x, y):
         ix, iy = int(x), int(y)

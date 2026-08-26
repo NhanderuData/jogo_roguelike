@@ -1,7 +1,7 @@
 # src/states/game_state.py
 import pygame
-from states.game_over_state import GameOverState
-from core.state_manager import BaseState
+import random
+from core.state_manager import BaseState, Scene
 from core import config
 from map import map_gen
 from core import camera
@@ -9,27 +9,30 @@ from graphics import ui
 from graphics.renderer import Renderer
 from core.time_system import TimeSystem
 from core.input_manager import Actions
-from states.pause_state import PauseState
-from states.inventory_state import InventoryState
 
 class GameState(BaseState):
-    def __init__(self, manager, registry, input_manager):
-        super().__init__(manager, registry, input_manager)
+    def __init__(self, manager, context):
+        super().__init__(manager, context)
         
         self.relogio = TimeSystem()
-        self.mapa = map_gen.Mapa()
+        self.mapa = map_gen.Mapa(context)
         self.camera = camera.Camera()
         self.renderer = Renderer(self.camera)
         self.ui = ui.UI()
+        self.ambient_sound_timer = random.uniform(6.0, 12.0)
         
     def enter(self):
         print("Entrando no GameState")
+        self.context.audio.play_ambient("wind")
 
-    def handle_input(self, event):
-        # A lógica bruta saiu daqui, pois o InputManager processa antes.
-        pass
+    def exit(self):
+        self.context.audio.stop_ambient()
 
     def update(self, dt):
+        self.ambient_sound_timer -= dt
+        if self.ambient_sound_timer <= 0:
+            self.context.audio.play("bird", 0.16)
+            self.ambient_sound_timer = random.uniform(8.0, 16.0)
         # --- 1. MOVIMENTO (CONTÍNUO - IS_HELD) ---
         dx, dy = 0, 0
         
@@ -42,19 +45,33 @@ class GameState(BaseState):
         # Verifica se há intenção de movimento
         if dx != 0 or dy != 0:
             # Chamamos o physics.move, que já lida com colisão E normalização de diagonal
-            self.mapa.jogador.physics.move(dx, dy, self.mapa)
+            speed_boost = self.mapa.jogador.status.speed_multiplier
+            self.mapa.jogador.physics.move(dx * speed_boost, dy * speed_boost, self.mapa)
         else:
             # Se não houver input, garantimos que ele pare
             self.mapa.jogador.moving = False
         
         if self.input.is_pressed(Actions.PAUSE):
-            self.manager.push(PauseState)
+            self.manager.push(Scene.PAUSE)
             return
         
         if self.input.is_pressed(Actions.INVENTORY):
             # Passamos o jogador como argumento para o estado saber o que mostrar
-            self.manager.push(InventoryState, player=self.mapa.jogador)
+            self.manager.push(Scene.INVENTORY, player=self.mapa.jogador)
             return
+
+        weapon_actions = (
+            Actions.WEAPON_1,
+            Actions.WEAPON_2,
+            Actions.WEAPON_3,
+            Actions.WEAPON_4,
+        )
+        for slot, action in enumerate(weapon_actions):
+            if self.input.is_pressed(action):
+                self.mapa.jogador.weapons.select_slot(slot)
+
+        if self.input.is_pressed(Actions.RELOAD):
+            self.mapa.jogador.weapons.start_reload()
 
         # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
         screen_mx, screen_my = self.input.get_mouse_position()
@@ -63,19 +80,24 @@ class GameState(BaseState):
         world_mx = (screen_mx + self.camera.camera_x) / config.TAMANHO_TILE
         world_my = (screen_my + self.camera.camera_y) / config.TAMANHO_TILE
         
-        # Verifica ataques
-        if self.input.is_pressed(Actions.ATTACK_PRIMARY):
-            self.mapa.jogador.atacar_espada(world_mx, world_my, self.mapa)
-            
+        weapon = self.mapa.jogador.weapons.current
+        wants_to_attack = self.input.is_pressed(Actions.ATTACK_PRIMARY)
+        if weapon.kind == "ranged" and weapon.cooldown <= 0.1:
+            wants_to_attack = wants_to_attack or self.input.is_held(Actions.ATTACK_PRIMARY)
+        if wants_to_attack:
+            self.mapa.jogador.weapons.attack(world_mx, world_my, self.mapa)
+
         if self.input.is_pressed(Actions.ATTACK_SECONDARY):
-            self.mapa.jogador.atirar(world_mx, world_my, self.mapa, "player")
+            self.mapa.jogador.atacar_espada(world_mx, world_my, self.mapa)
+            self.context.audio.play("melee")
 
         if self.mapa.jogador.hp <= 0:
             print("Jogador morreu! Indo para Game Over.")
-            self.manager.change(GameOverState)
+            self.manager.change(Scene.GAME_OVER)
+            return
 
         # --- 3. ATUALIZAÇÃO DOS SISTEMAS ---
-        self.mapa.update()
+        self.mapa.update(dt)
         self.relogio.update(dt)
         if self.mapa.jogador:
             self.camera.update(self.mapa.jogador.x, self.mapa.jogador.y)
@@ -89,6 +111,8 @@ class GameState(BaseState):
                 # Tenta adicionar ao inventário
                 sucesso = self.mapa.jogador.inventory.add_item(loot.item_name)
                 if sucesso:
+                    self.context.audio.play("pickup")
+                    self.mapa.particulas.emit(loot.x, loot.y, "pickup", 12)
                     self.mapa.criar_texto_dano(loot.x, loot.y - 1, f"+{loot.item_name}") # Reusa texto flutuante
                     self.mapa.items_no_chao.remove(loot)
 

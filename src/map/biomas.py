@@ -1,53 +1,49 @@
-# src/map/biomas.py
 import random
+
 from entities import actor
 
-def aplicar_bioma_floresta(mapa, gx, gy, tile, rng):
-    if rng < 6: 
-        # Chance de ser Arvore ou Cipreste
-        tipo_arvore = "Arvore"
-        if random.random() < 0.5: # 50% de chance
-            tipo_arvore = "Cipreste"
-            
-        # CORREÇÃO: Agora usamos actor.Entidade diretamente, sem passar HP
-        arv = actor.Entidade(gx, gy, tipo_arvore)
-        mapa.entidades.append(arv)
-        
-        
-    elif rng < 12:
-        tile.tipo = "rocha"
-        
 
-def aplicar_bioma_ruinas(mapa, gx, gy, tile, rng):
-    if rng < 5:
-        # CORREÇÃO: Usa Entidade e o nome "RedTree" (que deve estar no game_data.py)
-        arv_vermelha = actor.Entidade(gx, gy, "RedTree")
-        mapa.entidades.append(arv_vermelha)
-    
-    elif rng < 16:
+FOREST_TREES = ("Arvore", "Arvore", "Arvore", "RedTree")
+
+
+def _spawn_tree(map_obj, x, y, tree_name):
+    map_obj.entidades.append(actor.Entidade(x, y, tree_name, map_obj.context))
+
+
+def aplicar_bioma_floresta(map_obj, x, y, tile, roll):
+    tile.tipo = "grass"
+    if roll < 3:
+        _spawn_tree(map_obj, x, y, random.choice(FOREST_TREES))
+    elif roll < 6:
+        tile.tipo = "rocha"
+    elif roll < 12:
+        tile.tipo = "mud"
+
+
+def aplicar_bioma_ruinas(map_obj, x, y, tile, roll):
+    tile.tipo = "rubble"
+    if roll < 2:
+        _spawn_tree(map_obj, x, y, "RedTree")
+    elif roll < 9:
         tile.tipo = "parede"
-    
-    elif rng < 26:
+        tile.bloqueado = True
+    elif roll < 24:
         tile.tipo = "terra"
 
-def aplicar_bioma_azul(mapa, gx, gy, tile, rng):
-    tile.tipo = "blue_ground"
 
-def spawn_inimigos_por_bioma(mapa, ox, oy, tipo_bioma):
-    qtd = random.randint(2, 4)
-    for _ in range(qtd):
-        mx = ox + random.randint(5, 25)
-        my = oy + random.randint(5, 25)
-        
-        if not mapa.is_blocked_terrain(mx, my):
-            # Define apenas o NOME do inimigo
-            if tipo_bioma == "ruinas":
-                nome = "Troll"
-            elif tipo_bioma == "azul":
-                nome = "REI TROLL"
-            else:
-                nome = "Orc"
-                
-            # CORREÇÃO: Instancia Entidade apenas com posição e nome
-            # A classe Entidade vai buscar o HP/Dano no game_data.py
-            mapa.entidades.append(actor.Entidade(mx, my, nome))
+def aplicar_bioma_azul(map_obj, x, y, tile, roll):
+    tile.tipo = "blue_ground"
+    if roll < 2:
+        _spawn_tree(map_obj, x, y, "Arvore")
+    elif roll < 7:
+        tile.tipo = "mud"
+
+
+def spawn_inimigos_por_bioma(map_obj, origin_x, origin_y, biome_type):
+    quantity = random.randint(2, 4)
+    enemy_name = {"ruinas": "Runner", "azul": "Tank"}.get(biome_type, "Walker")
+    for _ in range(quantity):
+        x = origin_x + random.randint(5, 25)
+        y = origin_y + random.randint(5, 25)
+        if not map_obj.is_blocked_terrain(x, y):
+            map_obj.entidades.append(actor.Entidade(x, y, enemy_name, map_obj.context))

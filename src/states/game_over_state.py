@@ -1,12 +1,11 @@
 import pygame
 from core import config
 from core.input_manager import Actions 
+from core.state_manager import BaseState, Scene
 
-class GameOverState:
-    def __init__(self, manager, registry, input_manager):
-        self.manager = manager
-        self.registry = registry
-        self.input_manager = input_manager
+class GameOverState(BaseState):
+    def __init__(self, manager, context):
+        super().__init__(manager, context)
         
         self.font_big = pygame.font.SysFont("arial", 64, bold=True)
         self.font_small = pygame.font.SysFont("arial", 24)
@@ -23,18 +22,10 @@ class GameOverState:
     def exit(self):
         pass
 
-    # --- MÉTODO QUE FALTAVA ---
-    def handle_input(self, event):
-        # Repassa o evento (clique, tecla) para o InputManager processar
-        # Sem isso, o InputManager não sabe que você apertou 'R'
-        self.input_manager.process_event(event)
-    # --------------------------
-
     def update(self, dt):
         # Verifica se a ação RESTART (Tecla R) foi ativada neste frame
-        if self.input_manager.is_pressed(Actions.RESTART):
-            from states.game_state import GameState 
-            self.manager.change(GameState)
+        if self.input.is_pressed(Actions.RESTART):
+            self.manager.change(Scene.GAME)
 
     def draw(self, surface):
         surface.fill((20, 0, 0))
