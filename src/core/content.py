@@ -35,6 +35,8 @@ class WeaponDefinition:
     reload_time: float = 0.0
     ammo_type: str | None = None
     melee_range: float = 1.0
+    critical_chance: float = 0.0
+    critical_multiplier: float = 1.5
 
 
 @dataclass(frozen=True)
@@ -116,6 +118,8 @@ class ContentCatalog:
                 reload_time=float(data.get("reload_time", 0.0)),
                 ammo_type=data.get("ammo_type"),
                 melee_range=float(data.get("melee_range", 1.0)),
+                critical_chance=float(data.get("critical_chance", 0.0)),
+                critical_multiplier=float(data.get("critical_multiplier", 1.5)),
             )
             for weapon_id, data in weapons_raw.items()
         }

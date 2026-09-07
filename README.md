@@ -11,6 +11,7 @@ Roguelike em Pygame com mundo procedural, combate, inventario e sobrevivencia.
 - `R`: recarregar.
 - `I` ou `Tab`: inventario.
 - `Esc` ou `P`: pausar.
+- `F3`: mostrar ou ocultar hitboxes e tiles bloqueados.
 
 ## Arsenal e itens
 

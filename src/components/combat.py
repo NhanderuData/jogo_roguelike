@@ -1,3 +1,14 @@
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class DamageResult:
+    requested: int
+    absorbed: int
+    health_damage: int
+    critical: bool = False
+
+
 # src/components/combat.py
 
 class CombatComponent:
@@ -25,24 +36,41 @@ class CombatComponent:
         self.cooldown_sword = 0
         self.cooldown_shoot = 0
 
-    def take_damage(self, amount, map_obj=None):
-        if self.dead: return
+    def take_damage(self, amount, map_obj=None, critical=False):
+        amount = max(0, int(amount))
+        if self.dead:
+            return DamageResult(amount, 0, 0, critical)
+        requested = amount
         absorbed = min(self.armor, amount)
         self.armor -= absorbed
         amount -= absorbed
-        if amount <= 0:
-            return
-        self.hp -= amount
+        health_damage = amount
+        self.hp -= health_damage
         
         if hasattr(self.entity, 'sprite') and self.entity.sprite:
-            self.entity.sprite.dano_timer = 5
+            self.entity.sprite.dano_timer = 0.12
+
+        if map_obj and self.entity is getattr(map_obj, "jogador", None):
+            camera = getattr(map_obj, "camera", None)
+            if camera:
+                camera.add_trauma(min(0.55, 0.12 + requested / 100))
             
         if map_obj:
-            map_obj.criar_texto_dano(self.entity.x, self.entity.y, int(amount))
+            if critical and health_damage:
+                map_obj.criar_texto_dano(
+                    self.entity.x, self.entity.y, f"CRÍTICO! {health_damage}", (255, 220, 70)
+                )
+            elif health_damage:
+                map_obj.criar_texto_dano(self.entity.x, self.entity.y, health_damage)
+            elif absorbed:
+                map_obj.criar_texto_dano(
+                    self.entity.x, self.entity.y, "BLOQUEADO", (90, 205, 255)
+                )
 
         if self.hp <= 0:
             self.hp = 0
             self.dead = True
+        return DamageResult(requested, absorbed, health_damage, critical)
 
     def heal(self, amount):
         self.hp += amount

@@ -18,6 +18,7 @@ class Actions:
     WEAPON_2 = "weapon_2"
     WEAPON_3 = "weapon_3"
     WEAPON_4 = "weapon_4"
+    TOGGLE_DEBUG = "toggle_debug"
 
 class InputManager:
     def __init__(self):
@@ -37,6 +38,7 @@ class InputManager:
             Actions.WEAPON_2: [pygame.K_2],
             Actions.WEAPON_3: [pygame.K_3],
             Actions.WEAPON_4: [pygame.K_4],
+            Actions.TOGGLE_DEBUG: [pygame.K_F3],
         }
         
         # Mapa de Mouse: Ação -> Índice do Botão (0=Esq, 1=Meio, 2=Dir)

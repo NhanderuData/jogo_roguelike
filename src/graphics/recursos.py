@@ -13,6 +13,16 @@ def criar_sprite_provisorio(cor):
     surf.fill(cor)
     return surf
 
+def criar_sprite_projetil():
+    """Traçante horizontal; o renderer usa a versão rotacionada do projétil."""
+    surf = pygame.Surface((22, 8), pygame.SRCALPHA)
+    pygame.draw.polygon(surf, (255, 125, 35, 45), ((1, 4), (17, 1), (17, 7)))
+    pygame.draw.line(surf, (255, 185, 55, 145), (4, 4), (18, 4), 3)
+    pygame.draw.line(surf, (255, 250, 205), (13, 4), (21, 4), 2)
+    pygame.draw.circle(surf, (255, 255, 235), (20, 4), 2)
+    return surf
+
+
 # --- GERADOR DE PRAIA (ESTILO MINECRAFT/ZELDA) ---
 def criar_borda_praia(lado):
     surf = pygame.Surface((32, 32), pygame.SRCALPHA)
@@ -158,7 +168,7 @@ def carregar_tudo():
     SPRITES["blue_ground"] = criar_sprite_provisorio(config.AZUL_AGUA)
     SPRITES["grass"] = carregar_estatico("grass.png", escala=2.0)
     SPRITES["estrada"] = criar_sprite_provisorio(config.MARROM_ESTRADA)
-    SPRITES["shoot"] = carregar_estatico("shoot.png", escala=2.0)
+    SPRITES["shoot"] = criar_sprite_projetil()
 
     for sprite_name in (
         "weapon_pistol", "weapon_shotgun", "weapon_smg", "weapon_machete",

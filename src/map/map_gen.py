@@ -6,6 +6,7 @@ from entities import actor
 from graphics import efeitos
 from graphics.particles import ParticleSystem
 from .grid import Grid
+from .spatial_hash import SpatialHash
 from . import biomas
 # Novos imports necessários
 from entities.loot import LootDrop
@@ -24,6 +25,7 @@ class Mapa:
         self.altura = config.ALTURA_MAPA
         self.grid_sistema = Grid(self.largura, self.altura)
         self.grid = self.grid_sistema.tiles
+        self.spatial_index = SpatialHash(cell_tiles=4)
         
         self.entidades = []
         self.items_no_chao = [] # Lista para os drops
@@ -32,6 +34,7 @@ class Mapa:
         self.textos = []
         self.particulas = ParticleSystem()
         self.jogador = None
+        self.camera = None
         
         self.seed = random.randint(0, 10000)
         self.gerar_novo_nivel()
@@ -266,7 +269,13 @@ class Mapa:
                 self.entidades.append(inimigo)
                 count += 1
 
+        self.spatial_index.rebuild(self.entidades)
+
+    def nearby_entities(self, rect):
+        return self.spatial_index.query(rect)
+
     def update(self, dt):
+        self.spatial_index.rebuild(self.entidades)
         # Atualiza Jogador
         if self.jogador:
             self.jogador.update(dt, self)
@@ -298,21 +307,22 @@ class Mapa:
                     self.jogador.ganhar_xp(ent.xp_reward)
                     self.particulas.emit(ent.x, ent.y, "hit", 14)
                     if ent in self.entidades:
+                        self.spatial_index.remove(ent)
                         self.entidades.remove(ent)
         
         # Atualiza Projéteis
         for p in self.projeteis[:]:
-            p.update(self)
+            p.update(dt, self)
             if not p.active: self.projeteis.remove(p)
             
         # Atualiza Efeitos
         for e in self.efeitos[:]:
-            e.update()
+            e.update(dt)
             if e.life <= 0: self.efeitos.remove(e)
             
         # Atualiza Textos
         for t in self.textos[:]:
-            t.update()
+            t.update(dt)
             if t.life <= 0: self.textos.remove(t)
 
         # Atualiza Itens

@@ -37,13 +37,20 @@ class ParticleSystem:
         self.ambient_timer = 0.0
         self.footstep_timer = 0.0
 
-    def emit(self, x: float, y: float, kind: str, count: int = 6) -> None:
+    def emit(self, x: float, y: float, kind: str, count: int = 6, direction=None) -> None:
         palettes = {
             "leaf": ((100, 135, 55), (145, 165, 70), (180, 125, 45)),
             "dust": ((125, 105, 75), (155, 135, 95), (95, 80, 65)),
             "mist": ((155, 180, 175), (125, 155, 155), (185, 195, 185)),
             "hit": ((225, 185, 70), (180, 70, 45), (240, 225, 170)),
+            "blood": ((120, 24, 28), (185, 38, 35), (225, 75, 45)),
             "pickup": ((255, 225, 85), (110, 210, 255), (255, 255, 220)),
+            "spark": ((255, 245, 170), (255, 170, 45), (245, 95, 35)),
+            "stone": ((95, 91, 84), (145, 137, 121), (190, 180, 155)),
+            "wood": ((88, 55, 30), (145, 91, 42), (188, 132, 66)),
+            "splash": ((110, 205, 255), (65, 150, 235), (210, 240, 255)),
+            "armor": ((120, 205, 255), (230, 245, 255), (85, 125, 170)),
+            "critical": ((255, 235, 85), (255, 145, 35), (255, 255, 220)),
         }
         palette = palettes.get(kind, palettes["dust"])
         for _ in range(min(count, self.MAX_PARTICLES - len(self.particles))):
@@ -51,6 +58,14 @@ class ParticleSystem:
                 vx, vy, life, size, gravity = random.uniform(-0.15, 0.25), random.uniform(0.08, 0.3), random.uniform(1.5, 3.0), random.choice((2, 3)), 0.0
             elif kind == "mist":
                 vx, vy, life, size, gravity = random.uniform(0.08, 0.22), random.uniform(-0.03, 0.03), random.uniform(2.0, 4.0), random.choice((4, 5, 6)), 0.0
+            elif kind in {"blood", "spark", "stone", "wood", "splash", "armor", "critical"} and direction:
+                dir_x, dir_y = direction
+                force = random.uniform(0.8, 1.8)
+                vx = dir_x * force + random.uniform(-0.35, 0.35)
+                vy = dir_y * force + random.uniform(-0.35, 0.35)
+                life = random.uniform(0.2, 0.55)
+                size = random.choice((2, 3))
+                gravity = -0.5 if kind == "splash" else 1.1
             else:
                 vx, vy, life, size, gravity = random.uniform(-0.8, 0.8), random.uniform(-0.9, -0.15), random.uniform(0.25, 0.65), random.choice((2, 3)), 1.4
             self.particles.append(

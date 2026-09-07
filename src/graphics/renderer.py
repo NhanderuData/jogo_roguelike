@@ -155,7 +155,6 @@ class Renderer:
             if hasattr(sprite, 'dano_timer') and sprite.dano_timer > 0:
                 img_hit = shaders.aplicar_flash_branco(sprite.image)
                 if img_hit: img_final = img_hit
-                sprite.dano_timer -= 1
             render_queue.append((sprite.layer, screen_y, img_final, draw_x, draw_y))
 
         # Projéteis

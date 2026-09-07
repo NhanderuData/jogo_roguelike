@@ -34,7 +34,8 @@ AZUL_AGUA = (60, 160, 240) # Azul estilo "Minecraft" / Zelda
 MARROM_CASA = (139, 69, 19)
 
 # Gameplay
-VELOCIDADE_ANIMACAO = 0.15
+# Quadros de animação por segundo.
+VELOCIDADE_ANIMACAO = 9.0
 
 CHAO = 0
 PAREDE = 1

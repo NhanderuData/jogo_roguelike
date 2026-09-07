@@ -127,17 +127,22 @@ class Entidade:
     def xp_proximo_nivel(self): return self.combat.next_level_xp
 
     # --- MÉTODOS DE AÇÃO ---
-    def tomar_dano(self, qtd, mapa_obj=None):
+    def tomar_dano(self, qtd, mapa_obj=None, critical=False):
         hp_before = self.combat.hp
-        self.combat.take_damage(qtd, mapa_obj)
+        result = self.combat.take_damage(qtd, mapa_obj, critical=critical)
         if self.nome == "Survivor" and self.combat.hp < hp_before:
             self.context.audio.play("hurt", 0.65)
+        return result
 
     def ganhar_xp(self, qtd):
         self.combat.gain_xp(qtd)
 
     def atirar(self, tx, ty, mapa_obj, origem):
         if self.combat.cooldown_shoot > 0: return
+        if origem == "enemy":
+            # A IA fornece a posição do tile do jogador; mira no centro dele.
+            tx += 0.5
+            ty += 0.5
         combat_system.criar_projetil(self.x, self.y, tx, ty, origem, mapa_obj, dono=self)
         self.combat.cooldown_shoot = 10 / config.FPS
 
@@ -157,4 +162,4 @@ class Entidade:
             self.status.update(dt)
         
         # A IA decide se move ou ataca
-        self.ai.update(mapa_obj)
+        self.ai.update(mapa_obj, dt)

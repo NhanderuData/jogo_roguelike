@@ -17,6 +17,7 @@ class GameState(BaseState):
         self.relogio = TimeSystem()
         self.mapa = map_gen.Mapa(context)
         self.camera = camera.Camera()
+        self.mapa.camera = self.camera
         self.renderer = Renderer(self.camera)
         self.ui = ui.UI()
         self.ambient_sound_timer = random.uniform(6.0, 12.0)
@@ -29,6 +30,9 @@ class GameState(BaseState):
         self.context.audio.stop_ambient()
 
     def update(self, dt):
+        if self.input.is_pressed(Actions.TOGGLE_DEBUG):
+            config.DEBUG_MODE = not config.DEBUG_MODE
+
         self.ambient_sound_timer -= dt
         if self.ambient_sound_timer <= 0:
             self.context.audio.play("bird", 0.16)
@@ -46,7 +50,9 @@ class GameState(BaseState):
         if dx != 0 or dy != 0:
             # Chamamos o physics.move, que já lida com colisão E normalização de diagonal
             speed_boost = self.mapa.jogador.status.speed_multiplier
-            self.mapa.jogador.physics.move(dx * speed_boost, dy * speed_boost, self.mapa)
+            self.mapa.jogador.physics.move(
+                dx * speed_boost, dy * speed_boost, self.mapa, dt
+            )
         else:
             # Se não houver input, garantimos que ele pare
             self.mapa.jogador.moving = False
@@ -100,7 +106,7 @@ class GameState(BaseState):
         self.mapa.update(dt)
         self.relogio.update(dt)
         if self.mapa.jogador:
-            self.camera.update(self.mapa.jogador.x, self.mapa.jogador.y)
+            self.camera.update(self.mapa.jogador.x, self.mapa.jogador.y, dt)
 
         player_rect = pygame.Rect(self.mapa.jogador.x * config.TAMANHO_TILE, 
                                   self.mapa.jogador.y * config.TAMANHO_TILE, 

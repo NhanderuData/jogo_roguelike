@@ -97,6 +97,8 @@ class WeaponComponent:
                 map_obj,
                 damage=weapon.damage,
                 alcance=weapon.melee_range,
+                critical_chance=weapon.critical_chance,
+                critical_multiplier=weapon.critical_multiplier,
             )
             self.cooldown = weapon.cooldown
             self.audio.play(weapon.sound)
@@ -120,7 +122,21 @@ class WeaponComponent:
                 damage=weapon.damage,
                 speed=weapon.projectile_speed,
                 angle_offset=random.uniform(-weapon.spread, weapon.spread),
+                critical_chance=weapon.critical_chance,
+                critical_multiplier=weapon.critical_multiplier,
             )
+        combat_system.criar_feedback_disparo(
+            self.owner,
+            target_x,
+            target_y,
+            map_obj,
+            intensity=1.25 if weapon.pellets > 1 else 0.9,
+        )
         self.cooldown = weapon.cooldown
         self.audio.play(weapon.sound)
+        self.audio.play("casing", 0.16)
+        camera = getattr(map_obj, "camera", None)
+        if camera:
+            recoil = min(0.28, 0.06 + weapon.damage * weapon.pellets / 260)
+            camera.add_trauma(recoil)
         return True

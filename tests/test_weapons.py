@@ -63,6 +63,20 @@ class ArmorTests(unittest.TestCase):
         self.assertEqual(combat.armor, 5)
         self.assertEqual(combat.hp, 100)
 
+    def test_damage_result_reports_partial_armor_absorption(self):
+        class Entity:
+            pass
+
+        entity = Entity()
+        combat = CombatComponent(entity, hp_max=100, damage=1)
+        combat.add_armor(6)
+
+        result = combat.take_damage(10)
+
+        self.assertEqual(result.absorbed, 6)
+        self.assertEqual(result.health_damage, 4)
+        self.assertEqual(combat.hp, 96)
+
 
 if __name__ == "__main__":
     unittest.main()

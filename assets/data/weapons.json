@@ -4,42 +4,48 @@
     "type": "ranged",
     "damage": 18,
     "cooldown": 0.24,
-    "projectile_speed": 0.42,
+    "projectile_speed": 25.2,
     "pellets": 1,
     "spread": 0.025,
     "magazine_size": 12,
     "reload_time": 1.1,
     "ammo_type": "9mm",
     "sprite": "weapon_pistol",
-    "sound": "pistol"
+    "sound": "pistol",
+    "critical_chance": 0.12,
+    "critical_multiplier": 1.75
   },
   "shotgun": {
     "name": "Escopeta Tática",
     "type": "ranged",
     "damage": 11,
     "cooldown": 0.85,
-    "projectile_speed": 0.36,
+    "projectile_speed": 21.6,
     "pellets": 6,
     "spread": 0.18,
     "magazine_size": 5,
     "reload_time": 1.65,
     "ammo_type": "shell",
     "sprite": "weapon_shotgun",
-    "sound": "shotgun"
+    "sound": "shotgun",
+    "critical_chance": 0.08,
+    "critical_multiplier": 1.6
   },
   "smg": {
     "name": "SMG de Sucata",
     "type": "ranged",
     "damage": 8,
     "cooldown": 0.09,
-    "projectile_speed": 0.48,
+    "projectile_speed": 28.8,
     "pellets": 1,
     "spread": 0.08,
     "magazine_size": 24,
     "reload_time": 1.45,
     "ammo_type": "9mm",
     "sprite": "weapon_smg",
-    "sound": "smg"
+    "sound": "smg",
+    "critical_chance": 0.07,
+    "critical_multiplier": 1.5
   },
   "machete": {
     "name": "Facão Reforçado",
@@ -48,6 +54,8 @@
     "cooldown": 0.42,
     "melee_range": 1.35,
     "sprite": "weapon_machete",
-    "sound": "melee"
+    "sound": "melee",
+    "critical_chance": 0.15,
+    "critical_multiplier": 1.8
   }
 }
