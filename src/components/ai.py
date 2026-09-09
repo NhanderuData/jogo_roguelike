@@ -4,13 +4,14 @@ import random
 from core import config
 
 class AIComponent:
-    def __init__(self, entity):
+    def __init__(self, entity, rng=None):
         self.entity = entity
+        self.rng = rng or random
         self.active = True
         self.path = []
         self.repath_timer = 0.0
         self.last_goal = None
-        self.ranged_decision_timer = random.uniform(0.35, 0.8)
+        self.ranged_decision_timer = self.rng.uniform(0.35, 0.8)
 
     def _find_path(self, mapa_obj, goal):
         start = (round(self.entity.x), round(self.entity.y))
@@ -65,7 +66,7 @@ class AIComponent:
             if self.repath_timer == 0 or goal != self.last_goal:
                 self.path = self._find_path(mapa_obj, goal)
                 self.last_goal = goal
-                self.repath_timer = 0.45 + random.uniform(0.0, 0.15)
+                self.repath_timer = 0.45 + self.rng.uniform(0.0, 0.15)
 
             while self.path:
                 waypoint_x, waypoint_y = self.path[0]
@@ -91,7 +92,7 @@ class AIComponent:
                 return
         
     def update(self, mapa_obj, dt):
-        if not self.active or self.entity.nome == "Heroi":
+        if not self.active:
             return
 
         player = mapa_obj.jogador
@@ -111,13 +112,16 @@ class AIComponent:
             dir_x, dir_y = self._navigation_direction(mapa_obj, dir_x, dir_y, dt)
             self._move_with_local_avoidance(dir_x, dir_y, mapa_obj, dt)
 
+        attack_mode = self.entity.ai_mode
         if dist < 8:
-            if dist < 1.5:
+            if dist < 1.5 and attack_mode in {"melee", "hybrid"}:
     
                 self.entity.atacar_espada(player.x, player.y, mapa_obj)
             
-            elif dist > 3 and self.entity.nome in {"Runner", "Tank", "Troll", "REI"}:
+            elif dist > 3 and attack_mode in {"ranged", "hybrid"}:
                 if self.ranged_decision_timer == 0:
                     self.entity.atirar(player.x, player.y, mapa_obj, "enemy")
-                    interval = 1.25 if self.entity.nome == "Runner" else 1.8
-                    self.ranged_decision_timer = interval + random.uniform(-0.15, 0.2)
+                    self.ranged_decision_timer = (
+                        self.entity.ranged_interval
+                        + self.rng.uniform(-0.15, 0.2)
+                    )

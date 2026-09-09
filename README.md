@@ -29,9 +29,24 @@ corpo a corpo sao sintetizados localmente pelo `SoundManager`.
 
 ## Mundo e ambientacao
 
-- Oito texturas 2D de 64x64 para grama, terra, asfalto, areia, agua, musgo,
-  ruinas e lama, com variacoes automáticas para reduzir repeticao visual.
-- Arvores cartunescas baseadas em `tree.png` e `RedTree.png`, renderizadas sem animacao.
+- Um grande deserto procedural reutiliza a textura de areia existente, com formato
+  irregular; caminhos de terra podem atravessar a região e passos levantam poeira.
+- Jogador, esqueleto e orcs usam animações `idle/run` do Pixel Crawler Free Pack,
+  ampliadas em escala inteira e alinhadas ao grid de 32x32.
+- Grama, terra, água, lama, neve, pedras e sete variações de árvores usam os
+  atlas de natureza do Pixel Crawler; as árvores adultas vêm das folhas Size_04
+  nativas e todos os elementos mantêm escala inteira e pixels nítidos.
+- Bosques são formados em grupos e abrem clareiras conectadas por trilhas
+  orgânicas. Hortas cercadas e acampamentos com fogueira funcionam como pequenos
+  pontos de interesse e deixam corredores livres para o jogador.
+- Lagoas são posicionadas em áreas verdes, usam as margens animadas do atlas e
+  recebem juncos e flores. Rotas que cruzam água viram pontes de madeira.
+- A antiga área azul virou uma região de neve com árvores congeladas, pinheiros,
+  pedras sem quadrados de grama e cristais raros.
+- As pedras bloqueadas são desenhadas sobre a grama, sem quadrados transparentes;
+  o deserto preserva a textura de areia que já existia no projeto.
+- Florestas, ruínas, neve e desertos distribuem em densidades diferentes arbustos,
+  plantas, capim, flores, cogumelos, folhas, galhos, tocos, minerais e pedras.
 - Folhas ao vento, poeira de passos, nevoa, brilhos de coleta e particulas de impacto.
 - Coloracao ambiental por terreno, nevoa movel, vento continuo e passaros ocasionais.
 - O grid visual de debug fica desligado durante o jogo normal.
@@ -55,23 +70,38 @@ python -m unittest discover -s tests -v
 ## Arquitetura
 
 - `core/application.py`: inicializa o Pygame, monta as dependencias e executa o loop.
-- `core/context.py`: concentra os servicos compartilhados pelas cenas.
+- `core/context.py`: concentra servicos injetados e o estado global explicito da sessao.
+- `states/base_state.py`: define o contrato das cenas sem criar ciclo com o gerenciador.
 - `core/state_manager.py`: registra rotas e controla a pilha de cenas e overlays.
 - `assets/data/`: define itens, entidades e armas em JSON validado pelo `ContentCatalog`.
 - `assets/sprites/`: pixel arts 2D de armas e itens em 64x64.
+- `assets/sprites/pixel_crawler/`: personagens e atlas de natureza de Anokolisa,
+  acompanhados da licença original.
 - `graphics/particles.py`: particulas ambientais e feedback de combate.
 - `graphics/ambience.py`: coloracao de bioma e faixas de nevoa 2D.
+- `graphics/lighting.py`: escuridao e luzes com gradientes reutilizados em cache.
 - `states/`: telas isoladas que dependem apenas do contexto e das rotas.
-- `components/`: regras reutilizaveis de fisica, combate, status, sprite e inventario.
+- `components/`: regras reutilizaveis de fisica, combate, impacto, status, sprite e inventario.
 - `entities/`: composicao dos componentes em entidades do jogo.
-- `map/`: grid, biomas e geracao procedural do mundo.
+- `map/settings.py`: configuracao validada das dimensoes e da populacao do mundo.
+- `map/terrain_generation.py`, `map/roads.py` e `map/composicao.py`: etapas isoladas da geracao procedural.
+- `map/simulation.py`: atualizacao de entidades, projeteis, drops, efeitos e particulas.
+- `map/terrain.py`: fonte unica para colisao e materiais de tiles e decoracoes.
+- `map/map_gen.py`: orquestra as etapas acima usando uma seed e RNGs injetados.
 - `graphics/`: carregamento de recursos e renderizacao.
+
+A mesma seed produz o mesmo terreno, pontos de interesse e entidades. Decisoes de
+gameplay usam um RNG separado, evitando que efeitos visuais alterem a geracao. Assets
+sao procurados no projeto, no diretorio instalado ou no caminho definido por
+`ROGUE_LLAMA_ASSETS`.
 
 ## Adicionar conteudo
 
 Itens novos entram em `assets/data/items.json`, armas em `assets/data/weapons.json`
-e inimigos em `assets/data/entities.json`. Referencias sao validadas ao iniciar o jogo;
-um nome de item inexistente produz um erro explicito.
+e entidades em `assets/data/entities.json`. Entidades declaram `role`, `tags`,
+`impact_material` e comportamento de IA nos dados; regras de jogo nao devem depender
+do nome exibido. Referencias, tipos, slots, materiais e limites numericos sao validados
+ao iniciar o jogo, produzindo um erro explicito quando o conteudo e inconsistente.
 
 ## Adicionar uma cena
 

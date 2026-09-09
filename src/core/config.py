@@ -63,5 +63,3 @@ LAYER_TOPO = 4       # Copa das árvores, telhados (passar por baixo)
 LAYER_AEREO = 5      # Pássaros, projéteis voando alto
 LAYER_FX = 6         # Partículas, explosões
 LAYER_UI = 7         # Barras de vida, texto
-
-DEBUG_MODE = False

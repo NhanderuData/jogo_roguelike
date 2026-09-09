@@ -30,6 +30,10 @@ class WeaponTests(unittest.TestCase):
         self.owner.weapons = self.weapons
 
     def test_selects_unlocked_2d_weapon_slot(self):
+        self.assertEqual(
+            self.weapons.slot_order,
+            ("pistol", "shotgun", "smg", "machete"),
+        )
         self.assertTrue(self.weapons.select_slot(1))
         self.assertEqual(self.weapons.current_id, "shotgun")
         self.assertEqual(self.weapons.current.sprite, "weapon_shotgun")

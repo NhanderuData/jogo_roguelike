@@ -1,28 +1,35 @@
 # src/map/map_gen.py
+import logging
 import random
-from perlin_noise import PerlinNoise 
-from core import config
 from entities import actor
 from graphics import efeitos
 from graphics.particles import ParticleSystem
 from .grid import Grid
 from .spatial_hash import SpatialHash
-from . import biomas
+from . import composicao
+from .terrain import tile_is_blocking
 # Novos imports necessários
-from entities.loot import LootDrop
 from core.context import GameContext
+from .simulation import WorldSimulation
+from .settings import WorldSettings
+from .roads import RoadGenerator
+from .terrain_generation import TerrainPainter, inside_ellipse
+from .world_noise import WorldNoise
 
-# Configurações do Gerador
-NOISE_SCALE = 40.0 
-NOISE_OCTAVES = 1
-BIOME_SCALE = 120.0
+logger = logging.getLogger(__name__)
 
 class Mapa:
-    def __init__(self, context: GameContext):
+    def __init__(
+        self,
+        context: GameContext,
+        seed: int | None = None,
+        settings: WorldSettings | None = None,
+    ):
         self.context = context
         self.content = context.content
-        self.largura = config.LARGURA_MAPA
-        self.altura = config.ALTURA_MAPA
+        self.settings = settings or WorldSettings()
+        self.largura = self.settings.width
+        self.altura = self.settings.height
         self.grid_sistema = Grid(self.largura, self.altura)
         self.grid = self.grid_sistema.tiles
         self.spatial_index = SpatialHash(cell_tiles=4)
@@ -35,199 +42,173 @@ class Mapa:
         self.particulas = ParticleSystem()
         self.jogador = None
         self.camera = None
+        self.desert_center = (0, 0)
+        self.desert_radii = (1, 1)
+        self.desert_tile_count = 0
+        self.snow_center = (0, 0)
+        self.snow_radii = (1, 1)
+        self.snow_tile_count = 0
+        self.ponds = []
+        self.pond_tile_count = 0
+        self.clareiras = []
+        self.trilha_tiles = set()
+        self.pontos_interesse = []
+        self._tree_positions = set()
         
-        self.seed = random.randint(0, 10000)
-        self.gerar_novo_nivel()
+        self.seed = 0
+        self.rng = random.Random()
+        self.gameplay_rng = random.Random()
+        self.simulation = WorldSimulation(self)
+        self.gerar_novo_nivel(seed)
 
     def obter_tile(self, x, y):
         return self.grid_sistema.obter_tile(x, y)
 
-    def desenhar_faixa_estrada(self, x1, y1, x2, y2, largura_estrada=5):
-        """ Desenha uma linha grossa entre dois pontos (Horizontal ou Vertical) """
-        
-        # Determina os limites (start/end)
-        start_x, end_x = min(x1, x2), max(x1, x2)
-        start_y, end_y = min(y1, y2), max(y1, y2)
-        
-        # Calcula o 'raio' da estrada (ex: 5 tiles = 2 pra cada lado + 1 centro)
-        raio = largura_estrada // 2 
+    @staticmethod
+    def dentro_do_deserto(x, y, center, radii, edge_noise=0.0):
+        """Compatibilidade para consumidores da função geométrica antiga."""
+        return inside_ellipse(x, y, center, radii, edge_noise)
 
-        # Loop apenas na área da estrada
-        for y in range(start_y - raio, end_y + raio + 1):
-            for x in range(start_x - raio, end_x + raio + 1):
-                
-                # Verificações de segurança
-                if x < 0 or x >= self.largura or y < 0 or y >= self.altura:
-                    continue
-                
-                tile = self.obter_tile(x, y)
-                if tile:
-                    tile.tipo = "estrada"
-                    tile.bloqueado = False
-                    
-                    # Remove árvores/pedras que estejam no meio do asfalto
-                    for ent in self.entidades[:]:
-                        if int(ent.x) == x and int(ent.y) == y:
-                            self.entidades.remove(ent)
+    def desenhar_faixa_estrada(self, x1, y1, x2, y2, largura_estrada=3):
+        """Compatibilidade para ferramentas antigas; delega ao gerador."""
+        RoadGenerator(self, self.rng, self.settings)._draw_strip(
+            x1, y1, x2, y2, largura_estrada
+        )
 
     def gerar_estradas_walker(self):
-        print("Gerando estradas contínuas (Walker)...")
-        largura_chunk = config.TAMANHO_CHUNK
-        chunks_x = config.CHUNKS_X
-        chunks_y = config.CHUNKS_Y
-        
-        # Lista de conexões: armazena tuplas ((cx1, cy1), (cx2, cy2))
-        # Isso garante que desenhamos apenas segmentos válidos
-        conexoes = []
-        chunks_visitados = []
-
-        # 1. Ponto de partida (Borda Esquerda)
-        cx, cy = 0, random.randint(0, chunks_y - 1)
-        chunks_visitados.append((cx, cy))
-        
-        # 2. Caminhar até a Borda Direita (Estrada Principal)
-        while cx < chunks_x - 1:
-            opcoes = []
-            
-            # Prioridade: Direita (para cruzar o mapa)
-            if cx + 1 < chunks_x: 
-                opcoes.append((1, 0)) # Direita
-                opcoes.append((1, 0)) # Peso maior
-                opcoes.append((1, 0)) 
-            
-            # Cima
-            if cy - 1 >= 0: opcoes.append((0, -1))
-            
-            # Baixo
-            if cy + 1 < chunks_y: opcoes.append((0, 1))
-            
-            # Escolhe direção
-            dx, dy = random.choice(opcoes)
-            
-            # Define o vizinho
-            nx, ny = cx + dx, cy + dy
-            
-            # Registra a conexão
-            conexoes.append(((cx, cy), (nx, ny)))
-            chunks_visitados.append((nx, ny))
-            
-            # Move o walker
-            cx, cy = nx, ny
-
-        # 3. Ramificações (Branches)
-        # Cria ruas secundárias a partir da estrada principal
-        num_branches = 3
-        for _ in range(num_branches):
-            if not chunks_visitados: break
-            
-            # Começa de um ponto aleatório da estrada principal
-            start_node = random.choice(chunks_visitados)
-            bx, by = start_node
-            
-            # Anda alguns passos
-            for _ in range(random.randint(1, 3)):
-                dirs = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-                dx, dy = random.choice(dirs)
-                
-                nx, ny = bx + dx, by + dy
-                
-                if 0 <= nx < chunks_x and 0 <= ny < chunks_y:
-                    conexoes.append(((bx, by), (nx, ny)))
-                    chunks_visitados.append((nx, ny)) # Adiciona para futuras ramificações
-                    bx, by = nx, ny
-
-        # 4. Desenhar o Asfalto
-        # Itera sobre as conexões seguras e desenha linhas entre os centros
-        for (c1, c2) in conexoes:
-            # Converte Coordenada de Chunk -> Coordenada de Pixel (Centro)
-            p1_x = c1[0] * largura_chunk + (largura_chunk // 2)
-            p1_y = c1[1] * largura_chunk + (largura_chunk // 2)
-            
-            p2_x = c2[0] * largura_chunk + (largura_chunk // 2)
-            p2_y = c2[1] * largura_chunk + (largura_chunk // 2)
-            
-            self.desenhar_faixa_estrada(p1_x, p1_y, p2_x, p2_y, largura_estrada=5)
+        """Compatibilidade para ferramentas antigas; delega ao gerador."""
+        RoadGenerator(self, self.rng, self.settings).generate()
 
     def is_blocked_terrain(self, x, y):
         tile = self.obter_tile(x, y)
-        if tile:
-            return tile.bloqueado or tile.tipo == "parede" or tile.tipo == "deep_water"
-        return True
+        return tile_is_blocking(tile) if tile else True
 
-    def gerar_novo_nivel(self):
+    def gerar_novo_nivel(self, seed: int | None = None):
         # 1. Reset das Listas
         self.entidades = []
         self.items_no_chao = []
         self.projeteis = []
         self.efeitos = []
         self.textos = []
+        self.desert_tile_count = 0
+        self.snow_tile_count = 0
+        self.pond_tile_count = 0
+        self.clareiras = []
+        self.trilha_tiles = set()
+        self.pontos_interesse = []
+        self._tree_positions = set()
         
-        self.seed = random.randint(0, 10000)
-        print(f"Gerando Mapa Aberto (Seed: {self.seed})")
+        self.seed = (
+            random.SystemRandom().randint(0, 2**31 - 1)
+            if seed is None
+            else int(seed)
+        )
+        self.rng = random.Random(self.seed)
+        self.gameplay_rng = random.Random(self.seed + 10_007)
+        logger.info("Generating world with seed %s", self.seed)
 
-        # 2. Preparar Geradores de Ruído
-        noise_gen = PerlinNoise(octaves=NOISE_OCTAVES, seed=self.seed)
-        biome_gen = PerlinNoise(octaves=2, seed=self.seed + 1)
+        # 2. Preparar campos determinísticos de ruído.
+        noise = WorldNoise(self.seed)
+        margin = 28
+        self.desert_center = (
+            self.rng.randint(margin, self.largura - margin),
+            self.rng.randint(margin, self.altura - margin),
+        )
+        self.desert_radii = (
+            self.rng.randint(24, 34),
+            self.rng.randint(20, 29),
+        )
+        self.snow_radii = (
+            self.rng.randint(22, 30),
+            self.rng.randint(19, 26),
+        )
+        self.snow_center = (self.largura - margin, margin)
+        for _ in range(120):
+            candidate = (
+                self.rng.randint(margin, self.largura - margin),
+                self.rng.randint(margin, self.altura - margin),
+            )
+            combined_radii = (
+                self.desert_radii[0] + self.snow_radii[0] + 10,
+                self.desert_radii[1] + self.snow_radii[1] + 10,
+            )
+            if composicao.distancia_eliptica(
+                candidate[0], candidate[1], self.desert_center, combined_radii
+            ) > 1.0:
+                self.snow_center = candidate
+                break
 
-        # 3. Gerar o Terreno (Loop por todo o mapa)
-        for y in range(self.altura):
-            for x in range(self.largura):
-                tile = self.obter_tile(x, y)
-                if not tile: continue
+        pond_rng = random.Random(self.seed + 97)
 
-                # Reseta o tile
-                tile.bloqueado = False
-                tile.tipo = "terra"
+        def centro_lagoa_valido(x, y, raio_x, raio_y):
+            # As lagoas pequenas pertencem a áreas verdes. Evita o antigo aro
+            # de grama surgindo no meio de praia, ruína ou mar aberto.
+            amostras = (
+                (x, y),
+                (x - raio_x - 4, y),
+                (x + raio_x + 4, y),
+                (x, y - raio_y - 4),
+                (x, y + raio_y + 4),
+            )
+            if any(
+                noise.terrain(px, py) <= -0.02
+                for px, py in amostras
+            ):
+                return False
+            return noise.biome(x, y) < 0.08
 
-                valor_ruido = noise_gen([x / NOISE_SCALE, y / NOISE_SCALE])
-                valor_bioma = biome_gen([x / BIOME_SCALE, y / BIOME_SCALE])
-                rng = random.randint(0, 100)
+        self.ponds = composicao.gerar_lagoas(
+            self.largura,
+            self.altura,
+            pond_rng,
+            regioes_excluidas=(
+                (self.desert_center, self.desert_radii),
+                (self.snow_center, self.snow_radii),
+            ),
+            quantidade=3,
+            centro_valido=centro_lagoa_valido,
+        )
 
-                # --- LÓGICA DE TERRENO ---
-                if valor_ruido < -0.28:
-                    tile.tipo = "deep_water"
-                    tile.bloqueado = True
-                elif valor_ruido < -0.19:
-                    biomas.aplicar_bioma_azul(self, x, y, tile, rng)
-                elif valor_ruido < -0.08:
-                    tile.tipo = "sand"
-                elif valor_ruido < -0.02:
-                    tile.tipo = "coast"
-                else:
-                    # --- LÓGICA DE BIOMAS ---
-                    if valor_bioma < 0.0: # Floresta
-                        biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
-                    elif valor_bioma > 0.2: # Ruínas
-                        biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
-                    else: # Transição
-                        if random.random() < 0.5:
-                            biomas.aplicar_bioma_floresta(self, x, y, tile, rng)
-                        else:
-                            biomas.aplicar_bioma_ruinas(self, x, y, tile, rng)
+        TerrainPainter(self, noise, self.rng).paint()
+
+        # O atlas da lagoa possui bordas retas e cantos de 90 graus. Remove
+        # pontas de um tile que exigiriam peças de três ou quatro lados e que,
+        # sem essa limpeza, aparecem como quadrados azuis sem margem.
+        self.pond_tile_count = composicao.suavizar_margens_lagoa(self)
         
         # --- 3.5 GERAR ESTRADAS (WALKER) ---
-        self.gerar_estradas_walker()
+        RoadGenerator(self, self.rng, self.settings).generate()
         # -----------------------------------
+
+        # 3.6 Compõe clareiras, trilhas e pequenas hortas conectadas.
+        composicao.CompositorMundo(self, self.seed).gerar()
 
         # 4. Spawn do Jogador
         sx, sy = 15, 15
-        encontrou = False
-        for _ in range(100):
-            tx = random.randint(5, self.largura - 5)
-            ty = random.randint(5, self.altura - 5)
-            if not self.is_blocked_terrain(tx, ty):
-                sx, sy = tx, ty
-                encontrou = True
-                break
+        encontrou = bool(self.clareiras)
+        if encontrou:
+            sx, sy = self.clareiras[0].centro
+        else:
+            for _ in range(100):
+                tx = self.rng.randint(5, self.largura - 5)
+                ty = self.rng.randint(5, self.altura - 5)
+                if not self.is_blocked_terrain(tx, ty):
+                    sx, sy = tx, ty
+                    encontrou = True
+                    break
         
         if not encontrou:
             tile = self.obter_tile(sx, sy)
             if tile: 
                 tile.tipo = "terra"
                 tile.bloqueado = False
+                tile.decoracao = None
+                tile.bioma = "clareira"
 
         if not self.jogador:
-            self.jogador = actor.Entidade(sx, sy, "Survivor", self.context)
+            self.jogador = actor.Entidade(
+                sx, sy, "Survivor", self.context, rng=self.gameplay_rng
+            )
         else:
             self.jogador.x, self.jogador.y = float(sx), float(sy)
             self.jogador.hp = self.jogador.hp_max
@@ -237,20 +218,20 @@ class Mapa:
         self.entidades.append(self.jogador)
 
         # 5. Spawn de Inimigos
-        quantidade_monstros = 40
+        quantidade_monstros = self.settings.enemy_count
         count = 0
         tentativas = 0
         while count < quantidade_monstros and tentativas < 2000:
             tentativas += 1
-            mx = random.randint(5, self.largura - 5)
-            my = random.randint(5, self.altura - 5)
+            mx = self.rng.randint(5, self.largura - 5)
+            my = self.rng.randint(5, self.altura - 5)
             
             dist = ((mx - sx)**2 + (my - sy)**2)**0.5
             if dist < 10: continue
 
             if not self.is_blocked_terrain(mx, my):
-                v_ruido = noise_gen([mx / NOISE_SCALE, my / NOISE_SCALE])
-                v_bioma = biome_gen([mx / BIOME_SCALE, my / BIOME_SCALE])
+                v_ruido = noise.terrain(mx, my)
+                v_bioma = noise.biome(mx, my)
                 
                 tipo_bioma = "padrao"
                 if v_ruido < -0.15 and v_ruido >= -0.25:
@@ -265,7 +246,9 @@ class Mapa:
                 else:
                     nome = "Walker"
                 
-                inimigo = actor.Entidade(mx, my, nome, self.context)
+                inimigo = actor.Entidade(
+                    mx, my, nome, self.context, rng=self.gameplay_rng
+                )
                 self.entidades.append(inimigo)
                 count += 1
 
@@ -275,61 +258,7 @@ class Mapa:
         return self.spatial_index.query(rect)
 
     def update(self, dt):
-        self.spatial_index.rebuild(self.entidades)
-        # Atualiza Jogador
-        if self.jogador:
-            self.jogador.update(dt, self)
-            
-        # Atualiza Inimigos
-        for ent in self.entidades:
-            if ent != self.jogador:
-                ent.update(dt, self)
-
-        # --- LÓGICA DE MORTE E LOOT ---
-        for ent in self.entidades[:]:
-            if ent.hp <= 0:
-                if ent != self.jogador:
-                    tx, ty = int(round(ent.x)), int(round(ent.y))
-                    tile_atual = self.obter_tile(tx, ty)
-                    if tile_atual: 
-                        tile_atual.bloqueado = False
-                    
-                    # DROP
-                    dados = self.content.entities.get(ent.nome)
-                    if dados and dados.loot:
-                        if random.random() < dados.loot_chance:
-                            item_escolhido = random.choice(dados.loot)
-                            drop = LootDrop(ent.x, ent.y, item_escolhido, self.content)
-                            self.items_no_chao.append(drop)
-                            print(f"Loot Dropado: {item_escolhido}")
-
-                    # XP e Remoção
-                    self.jogador.ganhar_xp(ent.xp_reward)
-                    self.particulas.emit(ent.x, ent.y, "hit", 14)
-                    if ent in self.entidades:
-                        self.spatial_index.remove(ent)
-                        self.entidades.remove(ent)
-        
-        # Atualiza Projéteis
-        for p in self.projeteis[:]:
-            p.update(dt, self)
-            if not p.active: self.projeteis.remove(p)
-            
-        # Atualiza Efeitos
-        for e in self.efeitos[:]:
-            e.update(dt)
-            if e.life <= 0: self.efeitos.remove(e)
-            
-        # Atualiza Textos
-        for t in self.textos[:]:
-            t.update(dt)
-            if t.life <= 0: self.textos.remove(t)
-
-        # Atualiza Itens
-        for loot in self.items_no_chao:
-            loot.update(dt)
-
-        self.particulas.update(dt, self)
+        self.simulation.update(dt)
 
     def criar_texto_dano(self, x, y, valor, cor=(255, 50, 50)):
         txt = efeitos.TextoFlutuante(x, y, str(valor), cor)

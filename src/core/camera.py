@@ -17,7 +17,7 @@ class Camera:
     def add_trauma(self, amount):
         self.trauma = min(1.0, self.trauma + max(0.0, amount))
 
-    def update(self, target_x, target_y, dt):
+    def update(self, target_x, target_y, dt, world_size=None):
         # 1. Calcula onde a câmera quer ir (focar no alvo)
         target_px = (target_x + 0.5) * config.TAMANHO_TILE
         target_py = (target_y + 0.5) * config.TAMANHO_TILE
@@ -27,8 +27,16 @@ class Camera:
         desired_y = target_py - (config.ALTURA_TELA // 2)
         
         # 3. Respeita os limites do mundo (Clamping)
-        limit_x = config.LARGURA_MAPA * config.TAMANHO_TILE - config.LARGURA_TELA
-        limit_y = config.ALTURA_MAPA * config.TAMANHO_TILE - config.ALTURA_TELA
+        world_width, world_height = world_size or (
+            config.LARGURA_MAPA,
+            config.ALTURA_MAPA,
+        )
+        limit_x = max(
+            0, world_width * config.TAMANHO_TILE - config.LARGURA_TELA
+        )
+        limit_y = max(
+            0, world_height * config.TAMANHO_TILE - config.ALTURA_TELA
+        )
         
         desired_x = max(0, min(desired_x, limit_x))
         desired_y = max(0, min(desired_y, limit_y))

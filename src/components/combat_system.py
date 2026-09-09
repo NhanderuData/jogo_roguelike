@@ -5,6 +5,8 @@ from core import config
 from graphics import recursos
 from graphics import efeitos
 from components.sprite import SpriteComponent
+from components.impact import impact_profile
+from map.terrain import terrain_material
 
 # --- EFEITO VISUAL (Risco da Espada) ---
 # Mantemos simples pois é apenas visual temporário
@@ -79,7 +81,7 @@ class Projetil:
                 if not mapa_obj.is_blocked_terrain(tx, ty):
                     continue
                 tile = mapa_obj.obter_tile(tx, ty) if hasattr(mapa_obj, "obter_tile") else None
-                return getattr(tile, "tipo", "solid")
+                return terrain_material(tile)
         return None
 
     @staticmethod
@@ -89,15 +91,12 @@ class Projetil:
         if audio:
             audio.play(name, volume)
 
-    def _impact_terrain(self, mapa_obj, terrain_type, x, y):
-        if terrain_type == "deep_water":
-            particle, sound = "splash", "impact_water"
-        elif terrain_type in {"parede", "rubble", "rocha", "solid"}:
-            particle, sound = "stone", "impact_stone"
-        else:
-            particle, sound = "dust", "impact_stone"
-        mapa_obj.particulas.emit(x, y, particle, 7, (-self.dx, -self.dy))
-        self._play_impact_sound(mapa_obj, sound, 0.38)
+    def _impact_terrain(self, mapa_obj, material, x, y):
+        profile = impact_profile(material)
+        mapa_obj.particulas.emit(
+            x, y, profile.particle, 7, (-self.dx, -self.dy)
+        )
+        self._play_impact_sound(mapa_obj, profile.sound, 0.38)
 
     def _hit_entity(self, rect, mapa_obj):
         candidates = (
@@ -116,26 +115,22 @@ class Projetil:
         base_damage = self.damage if self.damage is not None else (
             5 if self.origem == "enemy" else 15
         )
-        critical = self.critical_chance > 0 and random.random() < self.critical_chance
+        rng = getattr(mapa_obj, "gameplay_rng", random)
+        critical = self.critical_chance > 0 and rng.random() < self.critical_chance
         damage = round(base_damage * self.critical_multiplier) if critical else base_damage
         result = ent.tomar_dano(damage, mapa_obj, critical=critical)
 
         absorbed = getattr(result, "absorbed", 0)
         health_damage = getattr(result, "health_damage", damage)
-        wooden_names = {"Arvore", "RedTree", "Cipreste", "Carvalho", "Salgueiro", "Arvore Seca", "Pinheiro"}
+        profile = impact_profile(getattr(ent, "impact_material", "flesh"))
         if absorbed:
             mapa_obj.particulas.emit(ent.x, ent.y, "armor", 9, (-self.dx, -self.dy))
             self._play_impact_sound(mapa_obj, "impact_armor", 0.55)
         if health_damage:
-            entity_name = getattr(ent, "nome", "")
-            if entity_name in wooden_names:
-                particle, sound = "wood", "impact_wood"
-            elif entity_name == "Carro Quebrado":
-                particle, sound = "spark", "impact_metal"
-            else:
-                particle, sound = "blood", "impact_flesh"
-            mapa_obj.particulas.emit(ent.x, ent.y, particle, 9, (self.dx, self.dy))
-            self._play_impact_sound(mapa_obj, sound)
+            mapa_obj.particulas.emit(
+                ent.x, ent.y, profile.particle, 9, (self.dx, self.dy)
+            )
+            self._play_impact_sound(mapa_obj, profile.sound)
         if critical:
             mapa_obj.particulas.emit(ent.x, ent.y, "critical", 12, (-self.dx, -self.dy))
             self._play_impact_sound(mapa_obj, "critical", 0.5)
@@ -145,10 +140,26 @@ class Projetil:
                 ent.y + 0.5,
                 self.dx,
                 self.dy,
-                (255, 225, 75) if critical else (255, 210, 95),
+                (255, 225, 75) if critical else profile.color,
             )
         )
         ent.physics.move_by(self.dx, self.dy, min(0.28, 0.08 + damage / 100), mapa_obj)
+
+    def _impact_static_entity(self, ent, mapa_obj):
+        profile = impact_profile(getattr(ent, "impact_material", "stone"))
+        mapa_obj.particulas.emit(
+            ent.x, ent.y, profile.particle, 7, (-self.dx, -self.dy)
+        )
+        self._play_impact_sound(mapa_obj, profile.sound, 0.38)
+        mapa_obj.efeitos.append(
+            efeitos.ImpactoDirecional(
+                ent.x + 0.5,
+                ent.y + 0.5,
+                self.dx,
+                self.dy,
+                profile.color,
+            )
+        )
 
     def update(self, dt, mapa_obj):
         distance = self.speed * max(0.0, dt)
@@ -171,7 +182,10 @@ class Projetil:
             target = self._hit_entity(rect, mapa_obj)
             if target:
                 self.x, self.y = next_x, next_y
-                self._damage(target, mapa_obj)
+                if getattr(target, "is_static", False):
+                    self._impact_static_entity(target, mapa_obj)
+                else:
+                    self._damage(target, mapa_obj)
                 self.active = False
                 return
 
@@ -238,9 +252,24 @@ def executar_golpe_espada(
         if alvo is atacante:
             continue
         if area_golpe.colliderect(alvo.hitbox):
+            if getattr(alvo, "is_static", False):
+                profile = impact_profile(
+                    getattr(alvo, "impact_material", "stone")
+                )
+                mapa_obj.particulas.emit(
+                    alvo.x,
+                    alvo.y,
+                    profile.particle,
+                    7,
+                    (-math.cos(angle), -math.sin(angle)),
+                )
+                Projetil._play_impact_sound(mapa_obj, profile.sound, 0.38)
+                acertou = True
+                continue
             # Usa o Dano vindo do CombatComponent do atacante
             base_damage = damage if damage is not None else atacante.dano * 2
-            critical = critical_chance > 0 and random.random() < critical_chance
+            rng = getattr(mapa_obj, "gameplay_rng", random)
+            critical = critical_chance > 0 and rng.random() < critical_chance
             final_damage = round(base_damage * critical_multiplier) if critical else base_damage
             result = alvo.tomar_dano(final_damage, mapa_obj, critical=critical)
             absorbed = getattr(result, "absorbed", 0)
@@ -248,8 +277,15 @@ def executar_golpe_espada(
                 mapa_obj.particulas.emit(alvo.x, alvo.y, "armor", 9, (-math.cos(angle), -math.sin(angle)))
                 Projetil._play_impact_sound(mapa_obj, "impact_armor", 0.5)
             if getattr(result, "health_damage", final_damage):
+                profile = impact_profile(
+                    getattr(alvo, "impact_material", "flesh")
+                )
                 mapa_obj.particulas.emit(
-                    alvo.x, alvo.y, "blood", 12, (math.cos(angle), math.sin(angle))
+                    alvo.x,
+                    alvo.y,
+                    profile.particle,
+                    12,
+                    (math.cos(angle), math.sin(angle)),
                 )
             if critical:
                 mapa_obj.particulas.emit(alvo.x, alvo.y, "critical", 12, (-math.cos(angle), -math.sin(angle)))

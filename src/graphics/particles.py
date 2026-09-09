@@ -36,6 +36,7 @@ class ParticleSystem:
         self.particles: list[Particle] = []
         self.ambient_timer = 0.0
         self.footstep_timer = 0.0
+        self._surface_cache = {}
 
     def emit(self, x: float, y: float, kind: str, count: int = 6, direction=None) -> None:
         palettes = {
@@ -83,10 +84,11 @@ class ParticleSystem:
             )
 
     def update(self, dt: float, map_obj) -> None:
-        for particle in self.particles[:]:
+        for particle in self.particles:
             particle.update(dt)
-            if particle.life <= 0:
-                self.particles.remove(particle)
+        self.particles[:] = [
+            particle for particle in self.particles if particle.life > 0
+        ]
 
         player = map_obj.jogador
         if not player:
@@ -114,6 +116,13 @@ class ParticleSystem:
             alpha = int(255 * max(0.0, particle.life / particle.max_life))
             x = int(particle.x * config.TAMANHO_TILE - camera_x)
             y = int(particle.y * config.TAMANHO_TILE - camera_y)
-            particle_surface = pygame.Surface((particle.size, particle.size), pygame.SRCALPHA)
-            particle_surface.fill((*particle.color, alpha))
+            alpha = (alpha // 16) * 16
+            key = (particle.size, particle.color, alpha)
+            particle_surface = self._surface_cache.get(key)
+            if particle_surface is None:
+                particle_surface = pygame.Surface(
+                    (particle.size, particle.size), pygame.SRCALPHA
+                )
+                particle_surface.fill((*particle.color, alpha))
+                self._surface_cache[key] = particle_surface
             surface.blit(particle_surface, (x, y))

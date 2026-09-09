@@ -1,5 +1,9 @@
 # src/components/inventory.py
+import logging
+
 from core.content import ContentCatalog
+
+logger = logging.getLogger(__name__)
 
 class InventoryComponent:
     def __init__(self, content: ContentCatalog, capacity=10):
@@ -56,14 +60,14 @@ class InventoryComponent:
             if data.kind == "comida" and tem_status:
                 if entity.status.fome < entity.status.max_fome:
                     entity.status.comer(data.value)
-                    print(f"Comeu {nome}.")
+                    logger.info("Consumed food item %s", nome)
                     usou = True
 
             # --- TIPO: BEBIDA (Novo) ---
             elif data.kind == "bebida" and tem_status:
                 if entity.status.sede < entity.status.max_sede:
                     entity.status.beber(data.value)
-                    print(f"Bebeu {nome}.")
+                    logger.info("Consumed drink item %s", nome)
                     usou = True
 
             # --- TIPO: CURA / CURA_STATUS ---

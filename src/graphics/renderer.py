@@ -4,6 +4,7 @@ from core import config
 from graphics import recursos
 from graphics import shaders
 from graphics.ambience import AmbientRenderer
+from graphics.lighting import LightingRenderer
 import debug
 
 class Renderer:
@@ -11,21 +12,11 @@ class Renderer:
         self.camera = camera
         self.vignette_surf = shaders.gerar_vignette(config.LARGURA_TELA, config.ALTURA_TELA)
         
-        # Luz do Projétil (Glow Aditivo - Laranja/Avermelhada para destacar)
-        self.luz_projetil = self.criar_luz_gradiente(raio=50, cor=(255, 100, 50))
+        self.lighting = LightingRenderer(
+            (config.LARGURA_TELA, config.ALTURA_TELA)
+        )
         self.ambience = AmbientRenderer()
-
-    def criar_luz_gradiente(self, raio, cor=(255, 255, 255)):
-        luz = pygame.Surface((raio * 2, raio * 2), pygame.SRCALPHA)
-        passos = 20
-        r, g, b = cor
-        for i in range(passos):
-            fracao = 1 - (i / passos)
-            alpha = int(100 * (fracao ** 2)) 
-            raio_atual = int(raio * (i / passos))
-            if raio_atual > 0:
-                pygame.draw.circle(luz, (r, g, b, alpha), (raio, raio), raio_atual)
-        return luz
+        self._shared_shadow_cache = {}
 
     # --- CORREÇÃO AQUI: Substituímos Rotação por SKEW (Cisalhamento) ---
     def gerar_sombra_realista(self, sprite_img, escala_tamanho=1.0):
@@ -69,13 +60,15 @@ class Renderer:
 
     def draw(self, surface, mapa_obj, cor_noite=(0, 0, 0, 0)):
         cam_x, cam_y = self.camera.camera_x, self.camera.camera_y
+        # O atlas original possui quatro frames de 100 ms.
+        water_animation_frame = pygame.time.get_ticks() // 100
         
         # --- 1. RENDER QUEUE (Camadas) ---
         render_queue = []
         start_col = max(0, int(cam_x // config.TAMANHO_TILE))
-        end_col = min(config.LARGURA_MAPA, start_col + (config.LARGURA_TELA // config.TAMANHO_TILE) + 2)
+        end_col = min(mapa_obj.largura, start_col + (surface.get_width() // config.TAMANHO_TILE) + 2)
         start_row = max(0, int(cam_y // config.TAMANHO_TILE))
-        end_row = min(config.ALTURA_MAPA, start_row + (config.ALTURA_TELA // config.TAMANHO_TILE) + 2)
+        end_row = min(mapa_obj.altura, start_row + (surface.get_height() // config.TAMANHO_TILE) + 2)
 
         # Tiles
         for y in range(start_row, end_row):
@@ -86,7 +79,12 @@ class Renderer:
                 screen_y = y * config.TAMANHO_TILE - cam_y
                 
                 img_key = "terrain_grass"
-                if tile.tipo == "rocha": img_key = "terrain_rubble"
+                if tile.tipo == "rocha":
+                    img_key = {
+                        "neve": "terrain_moss",
+                        "ruinas": "terrain_rubble",
+                        "deserto": "terrain_sand",
+                    }.get(getattr(tile, "bioma", None), "terrain_grass")
                 elif tile.tipo == "parede": img_key = "wall"
                 elif tile.tipo in ("terra", "terrain_dirt"): img_key = "terrain_dirt"
                 elif tile.tipo == "grass": img_key = "terrain_grass"
@@ -97,23 +95,101 @@ class Renderer:
                 elif tile.tipo == "coast": img_key = "terrain_coast"
                 elif tile.tipo == "rubble": img_key = "terrain_rubble"
                 elif tile.tipo == "mud": img_key = "terrain_mud"
+                elif tile.tipo == "bridge":
+                    orientacao = getattr(tile, "orientacao", None) or "vertical"
+                    img_key = f"terrain_bridge_{orientacao}"
 
-                variation = (x * 31 + y * 17) % 3
-                if variation == 1 and f"{img_key}_flip_x" in recursos.SPRITES:
-                    img_key = f"{img_key}_flip_x"
-                elif variation == 2 and f"{img_key}_flip_y" in recursos.SPRITES:
-                    img_key = f"{img_key}_flip_y"
-                
-                img = recursos.SPRITES.get(img_key)
+                pond_edge_frames = None
+                if tile.tipo == "deep_water" and tile.bioma == "lagoa":
+                    edge_name = self._pond_edge_name(mapa_obj, x, y)
+                    if edge_name:
+                        pond_edge_frames = recursos.SPRITES.get(
+                            f"terrain_pond_edge_{edge_name}_frames"
+                        )
+
+                variants = recursos.SPRITES.get(f"{img_key}_variants")
+                if pond_edge_frames:
+                    img = pond_edge_frames[
+                        water_animation_frame % len(pond_edge_frames)
+                    ]
+                elif variants:
+                    if tile.tipo == "deep_water":
+                        phase = (x // 5) * 3 + (y // 5) * 5
+                        variation = (water_animation_frame + phase) % len(variants)
+                    else:
+                        variation = (x * 31 + y * 17) % len(variants)
+                    img = variants[variation]
+                else:
+                    variation = (x * 31 + y * 17) % 3
+                    if variation == 1 and f"{img_key}_flip_x" in recursos.SPRITES:
+                        img_key = f"{img_key}_flip_x"
+                    elif variation == 2 and f"{img_key}_flip_y" in recursos.SPRITES:
+                        img_key = f"{img_key}_flip_y"
+                    img = recursos.SPRITES.get(img_key)
                 if img: 
                     render_queue.append((config.LAYER_CHAO, screen_y, img, screen_x, screen_y))
+
+                if tile.tipo == "rocha":
+                    rock_key = "rock_brown" if (x * 13 + y * 7) % 3 == 0 else "rock"
+                    rock = recursos.SPRITES.get(rock_key)
+                    if rock:
+                        rock_x = screen_x + (config.TAMANHO_TILE - rock.get_width()) // 2
+                        rock_y = screen_y + config.TAMANHO_TILE - rock.get_height()
+                        render_queue.append((
+                            config.LAYER_CORPO,
+                            screen_y + config.TAMANHO_TILE,
+                            rock,
+                            rock_x,
+                            rock_y,
+                        ))
                 
                 self.adicionar_transicoes(
                     mapa_obj, tile.tipo, x, y, screen_x, screen_y, render_queue
                 )
 
-        # Entidades
-        for ent in mapa_obj.entidades:
+                decoration_key = getattr(tile, "decoracao", None)
+                decoration_frames = recursos.SPRITES.get(
+                    f"{decoration_key}_frames"
+                )
+                if decoration_frames:
+                    decoration = decoration_frames[
+                        water_animation_frame % len(decoration_frames)
+                    ]
+                else:
+                    decoration = recursos.SPRITES.get(decoration_key)
+                if decoration:
+                    decoration_x = screen_x + (
+                        config.TAMANHO_TILE - decoration.get_width()
+                    ) // 2
+                    decoration_y = (
+                        screen_y + config.TAMANHO_TILE - decoration.get_height()
+                    )
+                    layer = (
+                        config.LAYER_CORPO
+                        if decoration_key in recursos.DECORACOES_ALTAS
+                        else config.LAYER_DECORACAO
+                    )
+                    render_queue.append((
+                        layer,
+                        screen_y + config.TAMANHO_TILE,
+                        decoration,
+                        decoration_x,
+                        decoration_y,
+                    ))
+
+        # Entidades próximas da câmera. A margem superior inclui copas grandes.
+        view_rect = pygame.Rect(
+            int(cam_x) - 320,
+            int(cam_y) - 384,
+            config.LARGURA_TELA + 640,
+            config.ALTURA_TELA + 768,
+        )
+        if hasattr(mapa_obj, "nearby_entities"):
+            visible_entities = list(mapa_obj.nearby_entities(view_rect))
+        else:
+            visible_entities = mapa_obj.entidades
+
+        for ent in visible_entities:
             if not hasattr(ent, 'sprite') or not ent.sprite.image: continue
             
             physics = ent.physics
@@ -128,12 +204,28 @@ class Renderer:
             draw_x = screen_x + (config.TAMANHO_TILE // 2) - (img_w // 2) + sprite.offset_x
             draw_y = screen_y + config.TAMANHO_TILE - img_h + sprite.offset_y
 
+            # Árvores 3x são grandes; descarte entidades totalmente fora da tela
+            # antes de gerar suas sombras para manter o custo proporcional à visão.
+            render_margin = 48
+            if (
+                draw_x + img_w < -render_margin
+                or draw_x > config.LARGURA_TELA + render_margin
+                or draw_y + img_h < -render_margin
+                or draw_y > config.ALTURA_TELA + render_margin
+            ):
+                continue
+
             # --- Sombra (CORRIGIDO) ---
             # Só desenha sombra se não for Layer de chão e tiver escala configurada
             if sprite.scale_sombra > 0:
                 if not sprite.sombra_cache:
-                    # Gera a sombra com Skew
-                    sprite.sombra_cache = self.gerar_sombra_realista(sprite.image, sprite.scale_sombra)
+                    cache_key = (id(sprite.image), sprite.scale_sombra)
+                    sprite.sombra_cache = self._shared_shadow_cache.get(cache_key)
+                    if not sprite.sombra_cache:
+                        sprite.sombra_cache = self.gerar_sombra_realista(
+                            sprite.image, sprite.scale_sombra
+                        )
+                        self._shared_shadow_cache[cache_key] = sprite.sombra_cache
                 
                 if sprite.sombra_cache:
                     sombra = sprite.sombra_cache
@@ -174,18 +266,19 @@ class Renderer:
 
         # --- 2. ESCURIDÃO AMBIENTAL (Subtractive) ---
         if cor_noite[3] > 0:
-            self.aplicar_escuridao(surface, mapa_obj, cam_x, cam_y, cor_noite)
+            self.lighting.apply_darkness(surface, cor_noite)
 
         # --- 3. LUZES ADITIVAS / GLOW (Additive) ---
-        self.aplicar_glows(surface, mapa_obj, cam_x, cam_y)
+        self.lighting.draw_lights(surface, mapa_obj, cam_x, cam_y)
 
         self.ambience.draw(surface, mapa_obj)
 
         # Pós-Processamento e UI
         surface.blit(self.vignette_surf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
         
-        for ent in mapa_obj.entidades:
-            if ent.nome != "Heroi": self.desenhar_barra_flutuante(surface, ent)
+        for ent in visible_entities:
+            if ent is not mapa_obj.jogador:
+                self.desenhar_barra_flutuante(surface, ent)
         
         for loot in mapa_obj.items_no_chao:
             loot.draw(surface, cam_x, cam_y)
@@ -195,8 +288,35 @@ class Renderer:
             
         for e in mapa_obj.efeitos: e.draw(surface, cam_x, cam_y)
         
-        if config.DEBUG_MODE:
+        if mapa_obj.context.debug_enabled:
              debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
+
+    @staticmethod
+    def _pond_edge_name(mapa_obj, x, y):
+        """Escolhe o autotile do lago a partir das quatro margens vizinhas."""
+        land = set()
+        for dx, dy, side in (
+            (0, -1, "north"),
+            (0, 1, "south"),
+            (-1, 0, "west"),
+            (1, 0, "east"),
+        ):
+            neighbor = mapa_obj.obter_tile(x + dx, y + dy)
+            if neighbor and neighbor.tipo not in {"deep_water", "bridge"}:
+                land.add(side)
+
+        for first, second, name in (
+            ("north", "west", "north_west"),
+            ("north", "east", "north_east"),
+            ("south", "west", "south_west"),
+            ("south", "east", "south_east"),
+        ):
+            if first in land and second in land:
+                return name
+        for side in ("north", "south", "west", "east"):
+            if side in land:
+                return side
+        return None
 
     def adicionar_transicoes(self, mapa_obj, tile_type, x, y, sx, sy, queue):
         neighbors = (
@@ -206,13 +326,20 @@ class Renderer:
             (1, 0, "right"),
         )
         land_types = {"coast", "grass", "terra", "rubble", "mud", "parede"}
+        path_types = {"terra", "estrada"}
         for dx, dy, side in neighbors:
             neighbor = mapa_obj.obter_tile(x + dx, y + dy)
             if not neighbor:
                 continue
 
             prefix = None
-            if tile_type == "sand" and neighbor.tipo in land_types:
+            if tile_type in {"grass", "coast", "sand"} and neighbor.tipo in path_types:
+                prefix = "dirt_edge"
+            elif tile_type in {"grass", "terra", "mud"} and neighbor.tipo in {"rubble", "parede"}:
+                prefix = "rubble_edge"
+            elif tile_type in {"grass", "terra", "rubble", "mud"} and neighbor.tipo == "blue_ground":
+                prefix = "moss_edge"
+            elif tile_type == "sand" and neighbor.tipo in land_types:
                 prefix = "coast_edge"
             elif tile_type == "blue_ground" and neighbor.tipo in {"sand", "coast"}:
                 prefix = "sand_edge"
@@ -224,23 +351,6 @@ class Renderer:
             image = recursos.SPRITES.get(f"{prefix}_{side}") if prefix else None
             if image:
                 queue.append((config.LAYER_CHAO + 0.5, sy, image, sx, sy))
-
-    def aplicar_escuridao(self, surface, mapa_obj, cam_x, cam_y, cor_noite):
-        overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
-        overlay.fill(cor_noite)
-
-        surface.blit(overlay, (0, 0))
-
-    def aplicar_glows(self, surface, mapa_obj, cam_x, cam_y):
-        for p in mapa_obj.projeteis:
-            if not p.active: continue
-            px = p.x * config.TAMANHO_TILE - cam_x
-            py = p.y * config.TAMANHO_TILE - cam_y
-            
-            lx = px - self.luz_projetil.get_width() // 2
-            ly = py - self.luz_projetil.get_height() // 2
-            
-            surface.blit(self.luz_projetil, (lx, ly), special_flags=pygame.BLEND_ADD)
 
     def desenhar_barra_flutuante(self, surface, ent):
         if ent.hp <= 0 or ent.hp >= ent.hp_max: return 

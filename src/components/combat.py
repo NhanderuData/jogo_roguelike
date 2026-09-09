@@ -1,4 +1,7 @@
+import logging
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -91,7 +94,7 @@ class CombatComponent:
         self.hp = self.hp_max
         self.damage += 1
         self.next_level_xp = int(self.next_level_xp * 1.5)
-        print(f"{self.entity.nome} subiu para o nível {self.level}!")
+        logger.info("%s reached level %s", self.entity.nome, self.level)
 
     def update(self, dt):
         self.cooldown_shoot = max(0.0, self.cooldown_shoot - dt)

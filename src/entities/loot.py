@@ -16,6 +16,12 @@ class LootDrop:
         data = content.items.get(item_name)
         self.cor = data.color if data else (255, 255, 255)
         self.sprite_key = data.sprite if data else None
+        source_image = recursos.SPRITES.get(self.sprite_key)
+        self.image = (
+            pygame.transform.scale(source_image, (40, 40))
+            if source_image
+            else None
+        )
         
         # Animação
         self.float_y = 0
@@ -50,10 +56,8 @@ class LootDrop:
         pygame.draw.circle(surface, (255, 255, 255), 
                          (screen_x + 16, screen_y + 16), 12, 2) # Círculo vazado (borda 2)
         
-        image = recursos.SPRITES.get(self.sprite_key)
-        if image:
-            icon = pygame.transform.scale(image, (40, 40))
-            surface.blit(icon, (screen_x - 4, screen_y - 4))
+        if self.image:
+            surface.blit(self.image, (screen_x - 4, screen_y - 4))
         else:
             rect_draw = pygame.Rect(screen_x + 8, screen_y + 8, 16, 16)
             pygame.draw.rect(surface, self.cor, rect_draw)

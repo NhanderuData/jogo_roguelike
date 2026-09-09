@@ -37,6 +37,8 @@ class WeaponDefinition:
     melee_range: float = 1.0
     critical_chance: float = 0.0
     critical_multiplier: float = 1.5
+    slot: int = 0
+    unlocked_by_default: bool = False
 
 
 @dataclass(frozen=True)
@@ -48,6 +50,12 @@ class EntityDefinition:
     sprite: str
     has_ai: bool
     top_layer: bool
+    is_static: bool = False
+    impact_material: str = "flesh"
+    role: str = "enemy"
+    ai_mode: str = "melee"
+    ranged_interval: float = 1.8
+    tags: tuple[str, ...] = ()
     loot: tuple[str, ...] = ()
     loot_chance: float = 0.0
 
@@ -96,9 +104,19 @@ class ContentCatalog:
                 xp=int(cls._required(data, "xp", name)),
                 speed=float(cls._required(data, "speed", name)),
                 sprite=cls._required(data, "sprite", name),
-                has_ai=bool(data.get("ai", True)),
-                top_layer=bool(data.get("top_layer", False)),
-                loot=tuple(data.get("loot", [])),
+                has_ai=cls._boolean(data.get("ai", True), name, "ai"),
+                top_layer=cls._boolean(
+                    data.get("top_layer", False), name, "top_layer"
+                ),
+                is_static=cls._boolean(
+                    data.get("static", False), name, "static"
+                ),
+                impact_material=str(data.get("impact_material", "flesh")),
+                role=str(data.get("role", "enemy")),
+                ai_mode=str(data.get("ai_mode", "melee")),
+                ranged_interval=float(data.get("ranged_interval", 1.8)),
+                tags=cls._string_list(data.get("tags", []), name, "tags"),
+                loot=cls._string_list(data.get("loot", []), name, "loot"),
                 loot_chance=float(data.get("loot_chance", 0.0)),
             )
             for name, data in entities_raw.items()
@@ -120,6 +138,12 @@ class ContentCatalog:
                 melee_range=float(data.get("melee_range", 1.0)),
                 critical_chance=float(data.get("critical_chance", 0.0)),
                 critical_multiplier=float(data.get("critical_multiplier", 1.5)),
+                slot=int(data.get("slot", 0)),
+                unlocked_by_default=cls._boolean(
+                    data.get("unlocked_by_default", False),
+                    weapon_id,
+                    "unlocked_by_default",
+                ),
             )
             for weapon_id, data in weapons_raw.items()
         }
@@ -156,7 +180,75 @@ class ContentCatalog:
             raise RuntimeError(f"Content '{name}' has an RGB channel outside 0..255")
         return color
 
+    @staticmethod
+    def _boolean(value: Any, name: str, field: str) -> bool:
+        if not isinstance(value, bool):
+            raise RuntimeError(f"Content '{name}' has a non-boolean '{field}'")
+        return value
+
+    @staticmethod
+    def _string_list(value: Any, name: str, field: str) -> tuple[str, ...]:
+        if not isinstance(value, list) or not all(
+            isinstance(item, str) for item in value
+        ):
+            raise RuntimeError(f"Content '{name}' has an invalid '{field}' list")
+        return tuple(value)
+
     def _validate_references(self) -> None:
+        valid_item_kinds = {
+            "comida", "bebida", "cura", "cura_status", "energia",
+            "armadura", "arma", "municao",
+        }
+        for name, item in self.items.items():
+            if item.kind not in valid_item_kinds:
+                raise RuntimeError(f"Item '{name}' has unknown type '{item.kind}'")
+            if item.value < 0 or item.duration < 0:
+                raise RuntimeError(f"Item '{name}' has negative numeric values")
+
+        for name, entity in self.entities.items():
+            if entity.hp <= 0 or entity.damage < 0 or entity.speed < 0:
+                raise RuntimeError(f"Entity '{name}' has invalid combat values")
+            if not 0.0 <= entity.loot_chance <= 1.0:
+                raise RuntimeError(f"Entity '{name}' has invalid loot_chance")
+            if entity.role not in {"player", "enemy", "prop"}:
+                raise RuntimeError(f"Entity '{name}' has unknown role '{entity.role}'")
+            if entity.ai_mode not in {"melee", "ranged", "hybrid"}:
+                raise RuntimeError(
+                    f"Entity '{name}' has unknown ai_mode '{entity.ai_mode}'"
+                )
+            if entity.ranged_interval <= 0:
+                raise RuntimeError(f"Entity '{name}' has invalid ranged_interval")
+
+        for weapon_id, weapon in self.weapons.items():
+            if weapon.kind not in {"ranged", "melee"}:
+                raise RuntimeError(
+                    f"Weapon '{weapon_id}' has unknown type '{weapon.kind}'"
+                )
+            if weapon.damage < 0 or weapon.cooldown < 0:
+                raise RuntimeError(f"Weapon '{weapon_id}' has invalid combat values")
+            if weapon.kind == "ranged" and (
+                weapon.projectile_speed <= 0 or weapon.magazine_size <= 0
+            ):
+                raise RuntimeError(f"Ranged weapon '{weapon_id}' is incomplete")
+            if weapon.kind == "melee" and weapon.melee_range <= 0:
+                raise RuntimeError(f"Melee weapon '{weapon_id}' has invalid range")
+            if weapon.slot < 0:
+                raise RuntimeError(f"Weapon '{weapon_id}' has invalid slot")
+
+        slots = [weapon.slot for weapon in self.weapons.values()]
+        if len(slots) != len(set(slots)):
+            raise RuntimeError("Weapon slots must be unique")
+
+        valid_materials = {"flesh", "wood", "stone", "metal", "water"}
+        invalid_materials = {
+            entity.impact_material
+            for entity in self.entities.values()
+            if entity.impact_material not in valid_materials
+        }
+        if invalid_materials:
+            names = ", ".join(sorted(invalid_materials))
+            raise RuntimeError(f"Entities use unknown impact materials: {names}")
+
         unknown = {
             item
             for entity in self.entities.values()

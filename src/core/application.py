@@ -38,6 +38,7 @@ class GameApplication:
         self._register_scenes()
 
         recursos.carregar_tudo()
+        recursos.validar_sprites_conteudo(context.content)
         self.states.change(Scene.MENU)
 
     def _register_scenes(self) -> None:

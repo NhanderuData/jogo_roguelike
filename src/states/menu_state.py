@@ -2,7 +2,8 @@ import pygame
 import math
 from core import config
 from core.input_manager import Actions
-from core.state_manager import BaseState, Scene
+from core.state_manager import Scene
+from states.base_state import BaseState
 
 class MenuState(BaseState):
     def __init__(self, manager, context):

@@ -1,4 +1,9 @@
 # src/components/status.py
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 class StatusComponent:
     def __init__(self, entity, max_fome=100, max_sede=100):
         self.entity = entity
@@ -29,11 +34,11 @@ class StatusComponent:
     def add_sangramento(self, qtd):
         """ Adiciona 'tempo' de sangramento ou intensidade """
         self.sangramento += qtd
-        print(f"{self.entity.nome} está sangrando!")
+        logger.debug("%s started bleeding", self.entity.nome)
 
     def curar_sangramento(self):
         self.sangramento = 0
-        print(f"{self.entity.nome} estancou o sangramento.")
+        logger.debug("%s stopped bleeding", self.entity.nome)
 
     def comer(self, valor):
         self.fome += valor
@@ -67,7 +72,7 @@ class StatusComponent:
             self.timer_sangramento += dt
             if self.timer_sangramento >= 2.0:
                 self.timer_sangramento -= 2.0
-                print("Dano de sangramento!")
+                logger.debug("Applying bleeding damage to %s", self.entity.nome)
                 self.entity.tomar_dano(2)
                 self.sangramento -= 1 # O sangramento diminui sozinho lentamente ou fica fixo?
                 # Se quiser que só pare com bandagem, remova a linha acima.

@@ -68,10 +68,22 @@ class PhysicsComponent:
 
         return False
 
-    def move(self, dx, dy, mapa_obj, dt, ignore_ent=None):
-        """Move em tiles por segundo, independentemente da taxa de quadros."""
+    def move(
+        self,
+        dx,
+        dy,
+        mapa_obj,
+        dt,
+        ignore_ent=None,
+        speed_multiplier=1.0,
+    ):
+        """Move em tiles/s; direção e multiplicador têm papéis explícitos."""
         dt = max(0.0, dt)
-        return self.move_by(dx, dy, self.speed * dt, mapa_obj, ignore_ent)
+        sprite = getattr(self.entity, "sprite", None)
+        if sprite and hasattr(sprite, "set_direction") and (dx or dy):
+            sprite.set_direction(dx, dy)
+        distance = self.speed * dt * max(0.0, speed_multiplier)
+        return self.move_by(dx, dy, distance, mapa_obj, ignore_ent)
 
     def move_by(self, dx, dy, distance, mapa_obj, ignore_ent=None):
         """Move uma distância fixa; usado também por impulsos como knockback."""

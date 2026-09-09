@@ -3,8 +3,32 @@ from __future__ import annotations
 from array import array
 import math
 import random
+from typing import Protocol
 
 import pygame
+
+
+class AudioService(Protocol):
+    enabled: bool
+
+    def play(self, name: str, volume: float = 1.0) -> None: ...
+    def play_ambient(self, name: str, volume: float = 0.12) -> None: ...
+    def stop_ambient(self) -> None: ...
+
+
+class NullSoundManager:
+    """Implementação sem áudio para testes e ambientes sem mixer."""
+
+    enabled = False
+
+    def play(self, name: str, volume: float = 1.0) -> None:
+        pass
+
+    def play_ambient(self, name: str, volume: float = 0.12) -> None:
+        pass
+
+    def stop_ambient(self) -> None:
+        pass
 
 
 class SoundManager:

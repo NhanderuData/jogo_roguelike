@@ -4,6 +4,7 @@ import pygame
 
 from core.content import ContentCatalog
 from core.context import GameContext
+from core.audio import NullSoundManager
 from core.input_manager import InputManager
 from core.state_manager import BaseState, Scene, StateManager
 
@@ -20,6 +21,7 @@ class StateManagerTests(unittest.TestCase):
     def setUp(self):
         self.draws = []
         context = GameContext(InputManager(), ContentCatalog({}, {}))
+        self.assertIsInstance(context.audio, NullSoundManager)
         self.manager = StateManager(context)
 
         draws = self.draws

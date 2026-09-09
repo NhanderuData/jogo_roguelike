@@ -1,7 +1,9 @@
 # src/states/game_state.py
+import logging
 import pygame
 import random
-from core.state_manager import BaseState, Scene
+from core.state_manager import Scene
+from states.base_state import BaseState
 from core import config
 from map import map_gen
 from core import camera
@@ -9,6 +11,8 @@ from graphics import ui
 from graphics.renderer import Renderer
 from core.time_system import TimeSystem
 from core.input_manager import Actions
+
+logger = logging.getLogger(__name__)
 
 class GameState(BaseState):
     def __init__(self, manager, context):
@@ -23,7 +27,7 @@ class GameState(BaseState):
         self.ambient_sound_timer = random.uniform(6.0, 12.0)
         
     def enter(self):
-        print("Entrando no GameState")
+        logger.info("Entering game state")
         self.context.audio.play_ambient("wind")
 
     def exit(self):
@@ -31,7 +35,7 @@ class GameState(BaseState):
 
     def update(self, dt):
         if self.input.is_pressed(Actions.TOGGLE_DEBUG):
-            config.DEBUG_MODE = not config.DEBUG_MODE
+            self.context.debug_enabled = not self.context.debug_enabled
 
         self.ambient_sound_timer -= dt
         if self.ambient_sound_timer <= 0:
@@ -51,7 +55,11 @@ class GameState(BaseState):
             # Chamamos o physics.move, que já lida com colisão E normalização de diagonal
             speed_boost = self.mapa.jogador.status.speed_multiplier
             self.mapa.jogador.physics.move(
-                dx * speed_boost, dy * speed_boost, self.mapa, dt
+                dx,
+                dy,
+                self.mapa,
+                dt,
+                speed_multiplier=speed_boost,
             )
         else:
             # Se não houver input, garantimos que ele pare
@@ -98,7 +106,7 @@ class GameState(BaseState):
             self.context.audio.play("melee")
 
         if self.mapa.jogador.hp <= 0:
-            print("Jogador morreu! Indo para Game Over.")
+            logger.info("Player died; changing to game-over state")
             self.manager.change(Scene.GAME_OVER)
             return
 
@@ -106,7 +114,12 @@ class GameState(BaseState):
         self.mapa.update(dt)
         self.relogio.update(dt)
         if self.mapa.jogador:
-            self.camera.update(self.mapa.jogador.x, self.mapa.jogador.y, dt)
+            self.camera.update(
+                self.mapa.jogador.x,
+                self.mapa.jogador.y,
+                dt,
+                world_size=(self.mapa.largura, self.mapa.altura),
+            )
 
         player_rect = pygame.Rect(self.mapa.jogador.x * config.TAMANHO_TILE, 
                                   self.mapa.jogador.y * config.TAMANHO_TILE, 

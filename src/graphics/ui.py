@@ -7,6 +7,17 @@ class UI:
         self.font = pygame.font.SysFont("arial", 16, bold=True)
         self.font_big = pygame.font.SysFont("arial", 24, bold=True)
         self.font_huge = pygame.font.SysFont("arial", 32, bold=True)
+        self._icon_cache = {}
+
+    def _scaled_icon(self, key, size):
+        cache_key = (key, size)
+        icon = self._icon_cache.get(cache_key)
+        if icon is None:
+            source = recursos.SPRITES.get(key)
+            if source:
+                icon = pygame.transform.scale(source, size)
+                self._icon_cache[cache_key] = icon
+        return icon
 
     def desenhar_barra(self, surface, x, y, atual, maximo, cor_fundo, cor_cheia, largura=200, altura=20, texto_label=""):
         if maximo <= 0: maximo = 1
@@ -50,7 +61,7 @@ class UI:
         surface.blit(txt_lvl, (240, 20))
 
         # --- 4. SISTEMA DE SOBREVIVÊNCIA (NOVO) ---
-        # Verifica se o jogador possui o componente de Status (apenas o Survivor tem)
+        # O papel da entidade define se ela possui status de sobrevivência.
         if hasattr(jogador, 'status') and jogador.status:
             
             # FOME (Laranja) - Y=70
@@ -100,11 +111,14 @@ class UI:
         weapons = jogador.weapons
         slot_size = 64
         gap = 8
-        total_width = len(weapons.SLOT_ORDER) * slot_size + 3 * gap
+        total_width = (
+            len(weapons.slot_order) * slot_size
+            + max(0, len(weapons.slot_order) - 1) * gap
+        )
         start_x = config.LARGURA_TELA - total_width - 20
         y = config.ALTURA_TELA - slot_size - 20
 
-        for index, weapon_id in enumerate(weapons.SLOT_ORDER):
+        for index, weapon_id in enumerate(weapons.slot_order):
             x = start_x + index * (slot_size + gap)
             unlocked = weapon_id in weapons.unlocked
             selected = weapon_id == weapons.current_id
@@ -114,9 +128,8 @@ class UI:
             pygame.draw.rect(surface, border, (x, y, slot_size, slot_size), 3 if selected else 1)
 
             definition = weapons.content.weapons[weapon_id]
-            image = recursos.SPRITES.get(definition.sprite)
-            if image and unlocked:
-                icon = pygame.transform.scale(image, (56, 56))
+            icon = self._scaled_icon(definition.sprite, (56, 56))
+            if icon and unlocked:
                 surface.blit(icon, (x + 4, y + 4))
             elif not unlocked:
                 pygame.draw.line(surface, (55, 58, 60), (x + 18, y + 18), (x + 46, y + 46), 3)

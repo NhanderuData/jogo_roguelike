@@ -20,7 +20,18 @@ class SpatialHashTests(unittest.TestCase):
 
         result = index.query(pygame.Rect(0, 0, 32, 32))
 
-        self.assertEqual(result, {nearby})
+        self.assertEqual(result, [nearby])
+
+    def test_query_preserves_insertion_order(self):
+        first = Entity((10, 10, 16, 16))
+        second = Entity((12, 12, 16, 16))
+        index = SpatialHash(cell_tiles=2)
+        index.insert(first)
+        index.insert(second)
+
+        result = index.query(pygame.Rect(0, 0, 32, 32))
+
+        self.assertEqual(result, [first, second])
 
     def test_update_moves_entity_between_cells(self):
         entity = Entity((10, 10, 16, 16))

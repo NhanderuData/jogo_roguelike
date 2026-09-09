@@ -121,6 +121,35 @@ class ProjectileCollisionTests(unittest.TestCase):
         self.assertEqual(target.hp, 10)
         self.assertIn("critical", [args[2] for args in map_obj.particulas.emissions])
 
+    def test_projectile_stops_on_tree_without_damage_or_knockback(self):
+        class StaticPhysics:
+            def move_by(self, *args):
+                raise AssertionError("static scenery must not receive knockback")
+
+        class Tree:
+            nome = "Carvalho"
+            is_static = True
+            impact_material = "wood"
+            hp = 90
+            x = 1
+            y = 0
+            hitbox = pygame.Rect(31, 12, 18, 18)
+            physics = StaticPhysics()
+
+            def tomar_dano(self, *args, **kwargs):
+                raise AssertionError("static scenery must not take damage")
+
+        owner = object()
+        tree = Tree()
+        projectile = Projetil(0.5, 0.5, 0, "player", owner, speed=42)
+        map_obj = MapStub(entities=[owner, tree])
+
+        projectile.update(1 / 60, map_obj)
+
+        self.assertFalse(projectile.active)
+        self.assertEqual(tree.hp, 90)
+        self.assertEqual(map_obj.particulas.emissions[0][2], "wood")
+
     def test_terrain_impact_uses_material_particles(self):
         class Tile:
             tipo = "deep_water"
@@ -156,6 +185,19 @@ class PhysicsCollisionTests(unittest.TestCase):
             many_frames.move(1, 0, map_obj, 0.1)
 
         self.assertAlmostEqual(one_frame.x, many_frames.x)
+
+    def test_speed_multiplier_changes_distance_without_changing_direction(self):
+        map_obj = MapStub()
+        normal = PhysicsComponent(object(), 0, 0)
+        boosted = PhysicsComponent(object(), 0, 0)
+        normal.speed = boosted.speed = 4.0
+
+        normal.move(1, 0, map_obj, 0.25)
+        boosted.move(1, 0, map_obj, 0.25, speed_multiplier=1.35)
+
+        self.assertAlmostEqual(normal.x, 1.0)
+        self.assertAlmostEqual(boosted.x, 1.35)
+        self.assertEqual(boosted.y, 0)
 
     def test_small_corner_overlap_is_nudged_clear(self):
         entity = object()

@@ -1,6 +1,10 @@
 import unittest
 
 from components.status import StatusComponent
+from core.content import ContentCatalog
+from core.context import GameContext
+from core.input_manager import InputManager
+from entities.actor import Entidade
 from map.grid import Grid
 from core.time_system import TimeSystem
 
@@ -14,6 +18,18 @@ class GridTests(unittest.TestCase):
         tile = grid.obter_tile(1, 1)
         self.assertEqual(tile.tipo, "wall")
         self.assertTrue(tile.bloqueado)
+        self.assertIsNone(tile.decoracao)
+
+
+class EntityTests(unittest.TestCase):
+    def test_unknown_entity_definition_fails_fast(self):
+        context = GameContext(
+            input=InputManager(),
+            content=ContentCatalog(items={}, entities={}),
+        )
+
+        with self.assertRaisesRegex(ValueError, "entidade inexistente"):
+            Entidade(0, 0, "Missing", context)
 
 
 class StatusTests(unittest.TestCase):

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from abc import ABC
 from enum import Enum
 from typing import Dict, List, Type
 
 import pygame
 
 from core.context import GameContext
+from states.base_state import BaseState
 
 
 class Scene(str, Enum):
@@ -15,32 +15,6 @@ class Scene(str, Enum):
     PAUSE = "pause"
     INVENTORY = "inventory"
     GAME_OVER = "game_over"
-
-
-class BaseState(ABC):
-    """Contract shared by every screen and overlay in the game."""
-
-    transparent = False
-
-    def __init__(self, manager: "StateManager", context: GameContext):
-        self.manager = manager
-        self.context = context
-        self.input = context.input
-
-    def enter(self, **kwargs) -> None:
-        pass
-
-    def exit(self) -> None:
-        pass
-
-    def handle_input(self, event: pygame.event.Event) -> None:
-        pass
-
-    def update(self, dt: float) -> None:
-        pass
-
-    def draw(self, surface: pygame.Surface) -> None:
-        pass
 
 
 class StateManager:

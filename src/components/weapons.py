@@ -3,19 +3,28 @@ from __future__ import annotations
 import random
 
 from components import combat_system
-from core.audio import SoundManager
+from core.audio import AudioService
 from core.content import ContentCatalog, WeaponDefinition
 
 
 class WeaponComponent:
-    SLOT_ORDER = ("pistol", "shotgun", "smg", "machete")
-
-    def __init__(self, owner, content: ContentCatalog, audio: SoundManager):
+    def __init__(self, owner, content: ContentCatalog, audio: AudioService):
         self.owner = owner
         self.content = content
         self.audio = audio
-        self.unlocked = {"pistol", "shotgun", "machete"}
-        self.current_id = "pistol"
+        self.slot_order = tuple(
+            sorted(content.weapons, key=lambda key: content.weapons[key].slot)
+        )
+        self.unlocked = {
+            weapon_id
+            for weapon_id, definition in content.weapons.items()
+            if definition.unlocked_by_default
+        }
+        if not self.unlocked:
+            raise ValueError("At least one weapon must be unlocked by default")
+        self.current_id = next(
+            weapon_id for weapon_id in self.slot_order if weapon_id in self.unlocked
+        )
         self.magazines = {
             weapon_id: definition.magazine_size
             for weapon_id, definition in content.weapons.items()
@@ -47,9 +56,9 @@ class WeaponComponent:
         return True
 
     def select_slot(self, slot_index: int) -> bool:
-        if not 0 <= slot_index < len(self.SLOT_ORDER):
+        if not 0 <= slot_index < len(self.slot_order):
             return False
-        weapon_id = self.SLOT_ORDER[slot_index]
+        weapon_id = self.slot_order[slot_index]
         if weapon_id not in self.unlocked:
             return False
         self.current_id = weapon_id
@@ -110,6 +119,7 @@ class WeaponComponent:
             return False
 
         self.magazines[self.current_id] -= 1
+        rng = getattr(map_obj, "gameplay_rng", random)
         for _ in range(weapon.pellets):
             combat_system.criar_projetil(
                 self.owner.x,
@@ -121,7 +131,7 @@ class WeaponComponent:
                 dono=self.owner,
                 damage=weapon.damage,
                 speed=weapon.projectile_speed,
-                angle_offset=random.uniform(-weapon.spread, weapon.spread),
+                angle_offset=rng.uniform(-weapon.spread, weapon.spread),
                 critical_chance=weapon.critical_chance,
                 critical_multiplier=weapon.critical_multiplier,
             )

@@ -21,6 +21,20 @@ rogue-llama = "main:main"
 [tool.setuptools]
 package-dir = {"" = "src"}
 py-modules = ["debug", "main"]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+"share/rogue-llama/assets" = ["assets/*.png"]
+"share/rogue-llama/assets/data" = ["assets/data/*.json"]
+"share/rogue-llama/assets/generated" = ["assets/generated/*.png"]
+"share/rogue-llama/assets/sprites" = ["assets/sprites/*.png"]
+"share/rogue-llama/assets/sprites/pixel_crawler" = [
+    "assets/sprites/pixel_crawler/*.png",
+    "assets/sprites/pixel_crawler/LICENSE.txt",
+]
+"share/rogue-llama/assets/sprites/pixel_crawler/nature" = [
+    "assets/sprites/pixel_crawler/nature/*.png",
+]

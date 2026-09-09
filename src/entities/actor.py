@@ -1,8 +1,4 @@
-import math
-import random
-import pygame
 from core import config
-from graphics import recursos
 from components import combat_system
 # Importe todos os componentes
 from components.physics import PhysicsComponent
@@ -15,29 +11,27 @@ from components.weapons import WeaponComponent
 from core.context import GameContext
 
 class Entidade:
-    def __init__(self, x, y, nome, context: GameContext):
+    def __init__(self, x, y, nome, context: GameContext, rng=None):
         self.nome = nome
         self.context = context
         self.content = context.content
         
-        # --- CORREÇÃO DO ERRO ---
-        # Antes usava "Orc". Agora usamos "Walker" como padrão de segurança.
-        # Se o nome não existir, ele vira um "Walker".
         if nome not in self.content.entities:
-            print(f"AVISO: Entidade '{nome}' não encontrada. Usando 'Walker' como fallback.")
-            nome_dados = "Walker"
-        else:
-            nome_dados = nome
-            
-        dados = self.content.entities[nome_dados]
-        # ------------------------
-        
+            raise ValueError(f"Definição de entidade inexistente: {nome}")
+
+        dados = self.content.entities[nome]
+        self.is_static = dados.is_static
+        self.impact_material = dados.impact_material
+        self.role = dados.role
+        self.tags = frozenset(dados.tags)
+        self.ai_mode = dados.ai_mode
+        self.ranged_interval = dados.ranged_interval
         # --- 1. FÍSICA ---
         self.physics = PhysicsComponent(self, x, y)
         self.physics.speed = dados.speed
 
-        # Se for o jogador (Survivor), damos o inventário
-        if nome == "Survivor":
+        # Capacidades do jogador são definidas pelo papel no catálogo.
+        if self.role == "player":
             # Inventário já existia aqui
             self.inventory = InventoryComponent(self.content)
             self.weapons = WeaponComponent(self, self.content, context.audio)
@@ -75,10 +69,7 @@ class Entidade:
         )
         
         # --- 4. INTELIGÊNCIA ARTIFICIAL ---
-        self.ai = AIComponent(self)
-        # Desativa a IA se o dado disser que não tem (ex: Árvores)
-        if not dados.has_ai:
-            self.ai.active = False
+        self.ai = AIComponent(self, rng=rng) if dados.has_ai else None
 
 
     # --- PROXIES (Mantemos para compatibilidade) ---
@@ -130,7 +121,7 @@ class Entidade:
     def tomar_dano(self, qtd, mapa_obj=None, critical=False):
         hp_before = self.combat.hp
         result = self.combat.take_damage(qtd, mapa_obj, critical=critical)
-        if self.nome == "Survivor" and self.combat.hp < hp_before:
+        if self.role == "player" and self.combat.hp < hp_before:
             self.context.audio.play("hurt", 0.65)
         return result
 
@@ -162,4 +153,5 @@ class Entidade:
             self.status.update(dt)
         
         # A IA decide se move ou ataca
-        self.ai.update(mapa_obj, dt)
+        if self.ai:
+            self.ai.update(mapa_obj, dt)

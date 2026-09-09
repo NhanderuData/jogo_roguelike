@@ -1,7 +1,8 @@
 import pygame
 from core import config
 from core.input_manager import Actions
-from core.state_manager import BaseState, Scene
+from core.state_manager import Scene
+from states.base_state import BaseState
 
 class PauseState(BaseState):
     transparent = True

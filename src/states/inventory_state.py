@@ -1,7 +1,7 @@
 import pygame
 from core import config
 from core.input_manager import Actions
-from core.state_manager import BaseState
+from states.base_state import BaseState
 from graphics import recursos
 
 class InventoryState(BaseState):
@@ -20,6 +20,7 @@ class InventoryState(BaseState):
         
         self.overlay = pygame.Surface((config.LARGURA_TELA, config.ALTURA_TELA), pygame.SRCALPHA)
         self.overlay.fill((0, 0, 0, 200))
+        self._icon_cache = {}
 
     def enter(self, **kwargs):
         self.player = kwargs.get('player')
@@ -92,9 +93,15 @@ class InventoryState(BaseState):
                     
                     txt = font_to_use.render(texto_str, True, cor)
                     definition = self.context.content.items.get(nome)
-                    icon = recursos.SPRITES.get(definition.sprite) if definition else None
+                    sprite_key = definition.sprite if definition else None
+                    icon = self._icon_cache.get(sprite_key)
+                    if sprite_key and icon is None:
+                        source = recursos.SPRITES.get(sprite_key)
+                        if source:
+                            icon = pygame.transform.scale(source, (36, 36))
+                            self._icon_cache[sprite_key] = icon
                     if icon:
-                        surface.blit(pygame.transform.scale(icon, (36, 36)), (50, y - 6))
+                        surface.blit(icon, (50, y - 6))
                     surface.blit(txt, (96, y))
                     y += 44
                     

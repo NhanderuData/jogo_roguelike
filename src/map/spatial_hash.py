@@ -14,10 +14,14 @@ class SpatialHash:
         self.cell_size = cell_tiles * config.TAMANHO_TILE
         self._cells = defaultdict(set)
         self._entity_cells = {}
+        self._entity_order = {}
+        self._next_order = 0
 
     def clear(self):
         self._cells.clear()
         self._entity_cells.clear()
+        self._entity_order.clear()
+        self._next_order = 0
 
     def rebuild(self, entities):
         self.clear()
@@ -37,6 +41,9 @@ class SpatialHash:
         }
 
     def insert(self, entity):
+        if entity not in self._entity_order:
+            self._entity_order[entity] = self._next_order
+            self._next_order += 1
         keys = self._keys_for_rect(entity.hitbox)
         self._entity_cells[entity] = keys
         for key in keys:
@@ -50,8 +57,12 @@ class SpatialHash:
             cell.discard(entity)
             if not cell:
                 del self._cells[key]
+        self._entity_order.pop(entity, None)
 
     def update(self, entity):
+        if entity not in self._entity_order:
+            self.insert(entity)
+            return
         new_keys = self._keys_for_rect(entity.hitbox)
         old_keys = self._entity_cells.get(entity, set())
         if new_keys == old_keys:
@@ -68,4 +79,4 @@ class SpatialHash:
         result = set()
         for key in self._keys_for_rect(rect):
             result.update(self._cells.get(key, ()))
-        return result
+        return sorted(result, key=self._entity_order.__getitem__)

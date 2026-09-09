@@ -1,5 +1,7 @@
 {
   "pistol": {
+    "slot": 0,
+    "unlocked_by_default": true,
     "name": "Pistola M9",
     "type": "ranged",
     "damage": 18,
@@ -16,6 +18,8 @@
     "critical_multiplier": 1.75
   },
   "shotgun": {
+    "slot": 1,
+    "unlocked_by_default": true,
     "name": "Escopeta Tática",
     "type": "ranged",
     "damage": 11,
@@ -32,6 +36,8 @@
     "critical_multiplier": 1.6
   },
   "smg": {
+    "slot": 2,
+    "unlocked_by_default": false,
     "name": "SMG de Sucata",
     "type": "ranged",
     "damage": 8,
@@ -48,6 +54,8 @@
     "critical_multiplier": 1.5
   },
   "machete": {
+    "slot": 3,
+    "unlocked_by_default": true,
     "name": "Facão Reforçado",
     "type": "melee",
     "damage": 24,
