@@ -503,133 +503,184 @@ class CompositorMundo:
             posicoes.difference_update(coordenadas)
 
     # ------------------------------------------------------------------
-    # VILAS: três casas de layout fixo ao redor da clareira
+    # VILAS: três casas completas organizadas ao redor de uma praça
     # ------------------------------------------------------------------
 
-    # Layout relativo de cada casa: (offset_cx, offset_cy, tipo_telhado)
-    # Tipo de telhado controla a decoração central (porta/janela voltadas ao sul)
-    _LAYOUTS_CASA = [
-        # Casa 1 – ao norte-oeste da clareira
-        {"dx": -8, "dy": -8, "w": 5, "h": 4,
-         "porta_lado": "sul", "decoracao_porta": "house_door_front",
-         "decoracao_janela": "house_window_front"},
-        # Casa 2 – ao norte-leste da clareira
-        {"dx": 4,  "dy": -8, "w": 5, "h": 4,
-         "porta_lado": "sul", "decoracao_porta": "house_door_wood",
-         "decoracao_janela": "house_window_shutters"},
-        # Casa 3 – ao sul (centro) da clareira
-        {"dx": -2, "dy": 5,  "w": 5, "h": 4,
-         "porta_lado": "norte", "decoracao_porta": "house_door_front",
-         "decoracao_janela": "house_window_front"},
-    ]
+    # dx/dy apontam para a âncora central da fachada. O footprint físico se
+    # estende para cima; o sprite inclui o telhado e o beiral sem transformar
+    # cada tile da construção em um pedaço desconexo de parede.
+    _LAYOUTS_CASA = (
+        {
+            "dx": -4,
+            "dy": -3,
+            "largura": 5,
+            "profundidade": 3,
+            "sprite": "village_house_amber",
+            "rota_horizontal": False,
+        },
+        {
+            "dx": 4,
+            "dy": -3,
+            "largura": 5,
+            "profundidade": 3,
+            "sprite": "village_house_brick",
+            "rota_horizontal": False,
+        },
+        {
+            "dx": -4,
+            "dy": 6,
+            "largura": 5,
+            "profundidade": 3,
+            "sprite": "village_house_moss",
+            "rota_horizontal": True,
+        },
+    )
 
     def _montar_vila(self, clareira):
-        """Constrói três casas em posições fixas ao redor da clareira."""
+        """Monta um pequeno vilarejo determinístico em volta da praça."""
         cx, cy = clareira.centro
-        ocupados = set()
+        area_sem_arvores = set()
         for layout in self._LAYOUTS_CASA:
             casa_x = cx + layout["dx"]
             casa_y = cy + layout["dy"]
-            ocupados |= self._construir_casa(
-                casa_x, casa_y,
-                layout["w"], layout["h"],
-                porta_lado=layout["porta_lado"],
-                decoracao_porta=layout["decoracao_porta"],
-                decoracao_janela=layout["decoracao_janela"],
+            area_sem_arvores |= self._construir_casa(
+                casa_x,
+                casa_y,
+                largura=layout["largura"],
+                profundidade=layout["profundidade"],
+                sprite=layout["sprite"],
             )
-        self._remover_arvores(ocupados)
-        self.pontos_interesse.append(
-            PontoInteresse("vila", cx, cy)
-        )
+            area_sem_arvores |= self._pintar_acesso_casa(
+                (casa_x, casa_y + 1),
+                clareira.centro,
+                horizontal_primeiro=layout["rota_horizontal"],
+            )
 
-    def _construir_casa(self, ox, oy, largura, altura,
-                         porta_lado="sul",
-                         decoracao_porta="house_door_front",
-                         decoracao_janela="house_window_front"):
-        """Pinta o chão e coloca as decorações de uma casa de tamanho fixo.
+        self._remover_arvores(area_sem_arvores)
+        self.pontos_interesse.append(PontoInteresse("vila", cx, cy))
 
-        Convenção de coordenadas:
-        - (ox, oy) é o canto superior-esquerdo da casa
-        - largura e altura estão em tiles
-        - As paredes são a borda exterior; o interior é chão de terra
-        - A porta está sempre centrada no lado indicado (livre ao passar)
-        - Uma janela fica a 1 tile da porta na mesma parede
-        """
-        ocupados = set()
+    def _construir_casa(self, ancora_x, ancora_y, largura, profundidade, sprite):
+        """Pinta a fundação sólida e ancora nela um sprite de casa completo."""
+        if largura < 3 or largura % 2 == 0 or profundidade < 2:
+            raise ValueError("a casa precisa de largura ímpar e footprint válido")
 
-        # 1. Pintar INTERIOR como chão de terra transitável
-        for dy in range(1, altura - 1):
-            for dx in range(1, largura - 1):
-                tile = self.mapa.obter_tile(ox + dx, oy + dy)
-                if tile and tile.tipo != "deep_water":
-                    self._pintar_chao_casa(tile)
-                    ocupados.add((ox + dx, oy + dy))
+        metade = largura // 2
+        esquerda = ancora_x - metade
+        direita = ancora_x + metade
+        topo = ancora_y - profundidade + 1
+        area_livre = {
+            (x, y)
+            for y in range(ancora_y - 6, ancora_y + 3)
+            for x in range(esquerda - 2, direita + 3)
+            if self.mapa.obter_tile(x, y)
+        }
 
-        # 2. Pintar PAREDES bloqueadas (borda)
-        for dx in range(largura):
-            for dy in range(altura):
-                if 0 < dx < largura - 1 and 0 < dy < altura - 1:
-                    continue  # interior já pintado
-                tile = self.mapa.obter_tile(ox + dx, oy + dy)
-                if tile and tile.tipo != "deep_water":
-                    tile.tipo = "parede"
-                    tile.bloqueado = True
-                    tile.decoracao = None
-                    tile.bioma = "vila"
-                    ocupados.add((ox + dx, oy + dy))
+        # Prepara o lote inteiro que aparece atrás do sprite. Isso remove
+        # pedras, muros de ruína e arbustos cuja âncora ficava fora da antiga
+        # fundação, mas cuja imagem cobria o telhado ou a fachada.
+        for x, y in area_livre:
+            tile = self.mapa.obter_tile(x, y)
+            if not tile or tile.tipo == "deep_water":
+                continue
+            if tile.bioma == "vila" and tile.bloqueado:
+                continue
+            if tile.tipo in {"parede", "rubble", "rocha"}:
+                tile.tipo = "terra"
+            tile.bloqueado = False
+            tile.decoracao = None
+            tile.bioma = "vila"
 
-        # 3. Posicionar PORTA (centro da parede exterior, livre)
-        cx_casa = ox + largura // 2
-        cy_casa = oy + altura // 2
-        if porta_lado == "sul":
-            px, py = cx_casa, oy + altura - 1
-        elif porta_lado == "norte":
-            px, py = cx_casa, oy
-        elif porta_lado == "leste":
-            px, py = ox + largura - 1, cy_casa
-        else:  # oeste
-            px, py = ox, cy_casa
+        fundacao = set()
 
-        porta_tile = self.mapa.obter_tile(px, py)
-        if porta_tile:
-            porta_tile.tipo = "terra"
-            porta_tile.bloqueado = False
-            porta_tile.decoracao = decoracao_porta
-            porta_tile.bioma = "vila"
-            ocupados.add((px, py))
+        for y in range(topo, ancora_y + 1):
+            for x in range(esquerda, direita + 1):
+                tile = self.mapa.obter_tile(x, y)
+                if not tile:
+                    continue
+                # A clareira é escolhida longe de água; ainda assim, pintar a
+                # fundação inteira evita casas faltando pedaços na borda de um
+                # bioma ou após futuras mudanças no gerador.
+                tile.tipo = "terra"
+                tile.bloqueado = True
+                tile.decoracao = None
+                tile.bioma = "vila"
+                fundacao.add((x, y))
 
-        # 4. Posicionar JANELA (1 tile à direita da porta na mesma parede)
-        if porta_lado in ("sul", "norte"):
-            jx, jy = px + 1, py
+        # Caso a trilha procedural tenha chegado por este quadrante, ela passa
+        # a contornar a fundação. Manter o tile bloqueado dentro de
+        # ``trilha_tiles`` quebrava tanto o debug quanto a rota até a praça.
+        trilhas_interrompidas = fundacao.intersection(self.trilha_tiles)
+        self.trilha_tiles.difference_update(fundacao)
+        desvio = set()
+        if trilhas_interrompidas:
+            contorno = {
+                *((x, topo - 1) for x in range(esquerda - 1, direita + 2)),
+                *((x, ancora_y + 1) for x in range(esquerda - 1, direita + 2)),
+                *((esquerda - 1, y) for y in range(topo, ancora_y + 1)),
+                *((direita + 1, y) for y in range(topo, ancora_y + 1)),
+            }
+            for x, y in contorno:
+                tile = self.mapa.obter_tile(x, y)
+                if not tile or tile.tipo == "deep_water":
+                    continue
+                tile.tipo = "terra"
+                tile.bloqueado = False
+                tile.decoracao = None
+                tile.bioma = "vila"
+                self.trilha_tiles.add((x, y))
+                desvio.add((x, y))
+
+        ancora = self.mapa.obter_tile(ancora_x, ancora_y)
+        if ancora:
+            ancora.decoracao = sprite
+
+        # A soleira fica fora da colisão da construção e dá ao jogador um
+        # ponto inequívoco para se aproximar da porta.
+        soleira = self.mapa.obter_tile(ancora_x, ancora_y + 1)
+        if soleira:
+            soleira.tipo = "terra"
+            soleira.bloqueado = False
+            soleira.decoracao = None
+            soleira.bioma = "vila"
+
+        # Copas têm vários tiles de largura. Limpar apenas a fundação deixava
+        # árvores com tronco vizinho cobrindo fachadas inteiras.
+        return area_livre | desvio
+
+    def _pintar_acesso_casa(self, inicio, destino, horizontal_primeiro=False):
+        """Liga a soleira à praça por um caminho ortogonal de terra."""
+        x, y = inicio
+        destino_x, destino_y = destino
+        caminho = [(x, y)]
+
+        def avancar_x():
+            nonlocal x
+            while x != destino_x:
+                x += 1 if destino_x > x else -1
+                caminho.append((x, y))
+
+        def avancar_y():
+            nonlocal y
+            while y != destino_y:
+                y += 1 if destino_y > y else -1
+                caminho.append((x, y))
+
+        if horizontal_primeiro:
+            avancar_x()
+            avancar_y()
         else:
-            jx, jy = px, py + 1
-        janela_tile = self.mapa.obter_tile(jx, jy)
-        if janela_tile and (jx, jy) != (px, py):
-            janela_tile.tipo = "parede"
-            janela_tile.bloqueado = True
-            janela_tile.decoracao = decoracao_janela
-            janela_tile.bioma = "vila"
-            ocupados.add((jx, jy))
+            avancar_y()
+            avancar_x()
 
-        # 5. Chaminé no canto oposto à porta
-        if porta_lado == "sul":
-            chx, chy = ox + largura - 2, oy
-        elif porta_lado == "norte":
-            chx, chy = ox + largura - 2, oy + altura - 1
-        elif porta_lado == "leste":
-            chx, chy = ox, oy
-        else:
-            chx, chy = ox + largura - 1, oy
-        chamine_tile = self.mapa.obter_tile(chx, chy)
-        if chamine_tile:
-            chamine_tile.decoracao = "house_chimney"
-
-        return ocupados
-
-    @staticmethod
-    def _pintar_chao_casa(tile):
-        """Torna o tile um chão de terra de interior de casa."""
-        tile.tipo = "terra"
-        tile.bloqueado = False
-        tile.decoracao = None
-        tile.bioma = "vila"
+        livres = set()
+        for x, y in caminho:
+            tile = self.mapa.obter_tile(x, y)
+            if not tile or tile.bloqueado or tile.tipo == "deep_water":
+                continue
+            tile.tipo = "terra"
+            tile.bloqueado = False
+            tile.decoracao = None
+            tile.bioma = "vila"
+            self.trilha_tiles.add((x, y))
+            livres.add((x, y))
+        return livres

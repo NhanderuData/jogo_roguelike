@@ -3,6 +3,7 @@ import unittest
 
 import pygame
 
+from core import config
 from core.content import ContentCatalog
 from core.context import GameContext
 from core.input_manager import InputManager
@@ -106,6 +107,35 @@ class PondCompositionTests(unittest.TestCase):
         self.assertEqual(remaining, 25)
 
 
+class DepthSortingTests(unittest.TestCase):
+    @staticmethod
+    def _order(object_y, player_y):
+        object_depth = (object_y + 1) * config.TAMANHO_TILE
+        player_depth = Renderer._linha_de_profundidade(player_y)
+        commands = [
+            (config.LAYER_CORPO, object_depth, "object"),
+            (config.LAYER_CORPO, player_depth, "player"),
+        ]
+        commands.sort(key=lambda item: (item[0], item[1]))
+        return [item[2] for item in commands]
+
+    def test_player_depth_uses_feet_instead_of_tile_origin(self):
+        self.assertEqual(self._order(object_y=10, player_y=9.8), [
+            "player",
+            "object",
+        ])
+        self.assertEqual(self._order(object_y=10, player_y=10.2), [
+            "object",
+            "player",
+        ])
+
+    def test_player_wins_stable_tie_with_tile_decoration(self):
+        self.assertEqual(self._order(object_y=10, player_y=10), [
+            "object",
+            "player",
+        ])
+
+
 class WorldGenerationTests(unittest.TestCase):
     @staticmethod
     def _signature(world):
@@ -158,17 +188,29 @@ class BonfireRenderingTests(unittest.TestCase):
 
 
 class ClearingCompositionTests(unittest.TestCase):
-    def test_clearings_are_connected_clear_and_receive_landmarks(self):
+    @staticmethod
+    def _build_composition():
         world = FakeMap()
         compositor = CompositorMundo(world, seed=91)
-
         clearings = compositor.gerar(quantidade_clareiras=4)
+        return world, compositor, clearings
+
+    def test_clearings_are_connected_clear_and_receive_landmarks(self):
+        world, _compositor, clearings = self._build_composition()
 
         self.assertEqual(len(clearings), 4)
         self.assertGreater(len(world.trilha_tiles), 0)
-        self.assertEqual(
-            {point.tipo for point in world.pontos_interesse},
-            {"horta_abandonada", "acampamento"},
+        self.assertTrue(
+            {"horta_abandonada", "acampamento", "vila"}.issubset(
+                {point.tipo for point in world.pontos_interesse}
+            )
+        )
+        village_points = [
+            point for point in world.pontos_interesse if point.tipo == "vila"
+        ]
+        self.assertCountEqual(
+            [point.centro for point in village_points],
+            [clearing.centro for clearing in clearings[2:]],
         )
         for clearing in clearings:
             tile = world.obter_tile(*clearing.centro)
@@ -198,6 +240,69 @@ class ClearingCompositionTests(unittest.TestCase):
             )
         ]
         self.assertTrue(any(tile.bloqueado for tile in fence_footprint))
+
+    def test_each_village_has_three_prefabs_with_coherent_collision(self):
+        world, compositor, clearings = self._build_composition()
+        layouts = compositor._LAYOUTS_CASA
+
+        self.assertEqual(len(layouts), 3)
+        required_layout_fields = {
+            "dx",
+            "dy",
+            "largura",
+            "profundidade",
+            "sprite",
+        }
+        for layout in layouts:
+            self.assertTrue(required_layout_fields.issubset(layout))
+            self.assertTrue(layout["sprite"].startswith("village_house_"))
+
+        expected_anchors = {}
+        for clearing in clearings[2:]:
+            anchors_for_clearing = []
+            for layout in layouts:
+                anchor = (
+                    clearing.x + layout["dx"],
+                    clearing.y + layout["dy"],
+                )
+                anchors_for_clearing.append(anchor)
+                expected_anchors[anchor] = layout["sprite"]
+
+                anchor_tile = world.obter_tile(*anchor)
+                self.assertIsNotNone(anchor_tile)
+                self.assertEqual(anchor_tile.decoracao, layout["sprite"])
+                self.assertTrue(anchor_tile.decoracao.startswith("village_house_"))
+                self.assertTrue(anchor_tile.bloqueado)
+
+                half_width = layout["largura"] // 2
+                footprint = [
+                    world.obter_tile(x, y)
+                    for y in range(
+                        anchor[1] - layout["profundidade"] + 1,
+                        anchor[1] + 1,
+                    )
+                    for x in range(
+                        anchor[0] - half_width,
+                        anchor[0] + half_width + 1,
+                    )
+                ]
+                self.assertTrue(all(tile is not None for tile in footprint))
+                self.assertTrue(all(tile.bloqueado for tile in footprint))
+
+                access_tile = world.obter_tile(anchor[0], anchor[1] + 1)
+                self.assertIsNotNone(access_tile)
+                self.assertFalse(access_tile.bloqueado)
+
+            self.assertEqual(len(set(anchors_for_clearing)), 3)
+
+        self.assertEqual(len(expected_anchors), 3 * len(clearings[2:]))
+        actual_houses = {
+            (x, y): tile.decoracao
+            for y, row in enumerate(world.grid)
+            for x, tile in enumerate(row)
+            if (tile.decoracao or "").startswith("village_house_")
+        }
+        self.assertEqual(actual_houses, expected_anchors)
 
 
 if __name__ == "__main__":

@@ -39,6 +39,8 @@ corpo a corpo sao sintetizados localmente pelo `SoundManager`.
 - Bosques são formados em grupos e abrem clareiras conectadas por trilhas
   orgânicas. Hortas cercadas e acampamentos com fogueira funcionam como pequenos
   pontos de interesse e deixam corredores livres para o jogador.
+- As demais clareiras recebem vilarejos determinísticos com três casas completas,
+  lotes desobstruídos, fundações sólidas e acessos ligados à praça central.
 - Lagoas são posicionadas em áreas verdes, usam as margens animadas do atlas e
   recebem juncos e flores. Rotas que cruzam água viram pontes de madeira.
 - A antiga área azul virou uma região de neve com árvores congeladas, pinheiros,

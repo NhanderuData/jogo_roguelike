@@ -3,11 +3,50 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+import pygame
 from PIL import Image
 from graphics import recursos
 
 
 class SpriteAssetTests(unittest.TestCase):
+    def test_village_house_is_composed_at_native_resolution_then_scaled(self):
+        door = pygame.Surface((12, 20), pygame.SRCALPHA)
+        window = pygame.Surface((12, 12), pygame.SRCALPHA)
+        chimney = pygame.Surface((10, 18), pygame.SRCALPHA)
+        palette = {
+            "contorno": (38, 27, 24, 255),
+            "madeira": (91, 57, 38, 255),
+            "parede": (181, 143, 96, 255),
+            "parede_clara": (220, 184, 128, 255),
+            "parede_escura": (132, 91, 61, 255),
+            "fundacao": (105, 101, 92, 255),
+            "telhado": (139, 57, 43, 255),
+            "telhado_claro": (190, 82, 55, 255),
+            "telhado_escuro": (82, 37, 34, 255),
+        }
+
+        house = recursos.criar_casa_vila(
+            door,
+            window,
+            chimney,
+            palette,
+            seed=17,
+        )
+
+        self.assertEqual(house.get_size(), (192, 176))
+        self.assertGreater(pygame.mask.from_surface(house).count(), 0)
+
+        for y in range(0, house.get_height(), 2):
+            for x in range(0, house.get_width(), 2):
+                reference = house.get_at((x, y))
+                block = (
+                    house.get_at((x + 1, y)),
+                    house.get_at((x, y + 1)),
+                    house.get_at((x + 1, y + 1)),
+                )
+                if any(pixel != reference for pixel in block):
+                    self.fail(f"non-uniform 2x2 block at {(x, y)}")
+
     def test_image_loader_reuses_the_same_atlas(self):
         fake_image = Mock()
         fake_image.convert_alpha.return_value = fake_image

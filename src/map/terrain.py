@@ -21,9 +21,10 @@ SOLID_DECORATIONS = frozenset({
     # Partes de casas de vilas
     "house_window_front",
     "house_window_shutters",
-    "house_wall_h",
-    "house_wall_v",
     "house_chimney",
+    "village_house_amber",
+    "village_house_brick",
+    "village_house_moss",
 })
 
 TERRAIN_MATERIALS = {

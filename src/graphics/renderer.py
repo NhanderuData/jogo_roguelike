@@ -18,6 +18,18 @@ class Renderer:
         self.ambience = AmbientRenderer()
         self._shared_shadow_cache = {}
 
+    @staticmethod
+    def _linha_de_profundidade(world_y, camera_y=0.0):
+        """Retorna a linha de contato com o chão em coordenadas de tela.
+
+        ``x/y`` das entidades e dos elementos de tile identificam o tile onde
+        seus pés/base estão apoiados. Ordenar pela origem desse tile introduz
+        um atraso de 32 px: o personagem só vinha para frente do objeto depois
+        de atravessar uma linha inteira. A borda inferior é a referência comum
+        correta para ambos.
+        """
+        return (world_y + 1.0) * config.TAMANHO_TILE - camera_y
+
     # --- CORREÇÃO AQUI: Substituímos Rotação por SKEW (Cisalhamento) ---
     def gerar_sombra_realista(self, sprite_img, escala_tamanho=1.0):
         if not sprite_img: return None
@@ -65,10 +77,25 @@ class Renderer:
         
         # --- 1. RENDER QUEUE (Camadas) ---
         render_queue = []
-        start_col = max(0, int(cam_x // config.TAMANHO_TILE))
-        end_col = min(mapa_obj.largura, start_col + (surface.get_width() // config.TAMANHO_TILE) + 2)
-        start_row = max(0, int(cam_y // config.TAMANHO_TILE))
-        end_row = min(mapa_obj.altura, start_row + (surface.get_height() // config.TAMANHO_TILE) + 2)
+        # Decorações são ancoradas pelo centro inferior do tile. Casas e cercas
+        # largas podem continuar visíveis mesmo quando a âncora já saiu alguns
+        # tiles da tela, portanto o culling precisa considerar esse volume.
+        margem_colunas = 4
+        margem_inferior = 7
+        start_col = max(0, int(cam_x // config.TAMANHO_TILE) - margem_colunas)
+        end_col = min(
+            mapa_obj.largura,
+            int((cam_x + surface.get_width()) // config.TAMANHO_TILE)
+            + margem_colunas
+            + 1,
+        )
+        start_row = max(0, int(cam_y // config.TAMANHO_TILE) - 1)
+        end_row = min(
+            mapa_obj.altura,
+            int((cam_y + surface.get_height()) // config.TAMANHO_TILE)
+            + margem_inferior
+            + 1,
+        )
 
         # Tiles
         for y in range(start_row, end_row):
@@ -77,6 +104,7 @@ class Renderer:
                 if not tile: continue
                 screen_x = x * config.TAMANHO_TILE - cam_x
                 screen_y = y * config.TAMANHO_TILE - cam_y
+                depth_y = self._linha_de_profundidade(y, cam_y)
                 
                 img_key = "terrain_grass"
                 if tile.tipo == "rocha":
@@ -137,7 +165,7 @@ class Renderer:
                         rock_y = screen_y + config.TAMANHO_TILE - rock.get_height()
                         render_queue.append((
                             config.LAYER_CORPO,
-                            screen_y + config.TAMANHO_TILE,
+                            depth_y,
                             rock,
                             rock_x,
                             rock_y,
@@ -171,7 +199,7 @@ class Renderer:
                     )
                     render_queue.append((
                         layer,
-                        screen_y + config.TAMANHO_TILE,
+                        depth_y,
                         decoration,
                         decoration_x,
                         decoration_y,
@@ -196,6 +224,7 @@ class Renderer:
             sprite = ent.sprite
             screen_x = physics.x * config.TAMANHO_TILE - cam_x
             screen_y = physics.y * config.TAMANHO_TILE - cam_y
+            entity_depth_y = self._linha_de_profundidade(physics.y, cam_y)
             
             img_w = sprite.image.get_width()
             img_h = sprite.image.get_height()
@@ -240,14 +269,26 @@ class Renderer:
                     # Queremos que "Pé" da sombra (sombra_y + s_h) seja igual a pé do sprite
                     sombra_y = (draw_y + img_h) - s_h - 2 # -2 pixels para subir um pouquinho e não vazar
                     
-                    render_queue.append((config.LAYER_SOMBRA, screen_y, sombra, sombra_x, sombra_y))
+                    render_queue.append((
+                        config.LAYER_SOMBRA,
+                        entity_depth_y,
+                        sombra,
+                        sombra_x,
+                        sombra_y,
+                    ))
 
             # Corpo
             img_final = sprite.image
             if hasattr(sprite, 'dano_timer') and sprite.dano_timer > 0:
                 img_hit = shaders.aplicar_flash_branco(sprite.image)
                 if img_hit: img_final = img_hit
-            render_queue.append((sprite.layer, screen_y, img_final, draw_x, draw_y))
+            render_queue.append((
+                sprite.layer,
+                entity_depth_y,
+                img_final,
+                draw_x,
+                draw_y,
+            ))
 
         # Projéteis
         for p in mapa_obj.projeteis:

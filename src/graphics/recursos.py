@@ -29,8 +29,9 @@ DECORACOES_ALTAS = frozenset({
     "house_window_front",
     "house_window_shutters",
     "house_chimney",
-    "house_wall_h",
-    "house_wall_v",
+    "village_house_amber",
+    "village_house_brick",
+    "village_house_moss",
 })
 
 def criar_sprite_provisorio(cor):
@@ -281,6 +282,113 @@ def carregar_regiao_atlas(nome_arquivo, rect, escala=2.0):
         logger.warning("Could not load atlas region %s %s: %s", nome_arquivo, rect, exc)
         return criar_sprite_provisorio(config.CINZA_CLARO)
 
+
+def criar_casa_vila(porta, janela, chamine, paleta, seed=0, janela_esquerda=False):
+    """Compõe uma casa completa em pixel art usando peças do atlas original.
+
+    O desenho nasce na resolução nativa de 16 px do pacote e só então é
+    ampliado por dois. Isso mantém contornos, telhas e detalhes alinhados à
+    mesma grade dos demais sprites do jogo.
+    """
+    largura, altura = 96, 88
+    casa = pygame.Surface((largura, altura), pygame.SRCALPHA)
+    rng = random.Random(f"village-house:{seed}")
+
+    contorno = paleta["contorno"]
+    madeira = paleta["madeira"]
+    parede = paleta["parede"]
+    parede_clara = paleta["parede_clara"]
+    parede_escura = paleta["parede_escura"]
+    fundacao = paleta["fundacao"]
+    telhado = paleta["telhado"]
+    telhado_claro = paleta["telhado_claro"]
+    telhado_escuro = paleta["telhado_escuro"]
+
+    # Sombra de contato e corpo da fachada. A fundação ganha blocos irregulares
+    # em vez de repetir o tile de ruína usado pela implementação antiga.
+    pygame.draw.ellipse(casa, (18, 13, 10, 85), (5, 73, 87, 12))
+    pygame.draw.rect(casa, contorno, (7, 44, 82, 38))
+    pygame.draw.rect(casa, parede, (9, 46, 78, 33))
+    pygame.draw.rect(casa, parede_escura, (9, 74, 78, 5))
+    pygame.draw.line(casa, madeira, (9, 51), (87, 51), 2)
+    pygame.draw.line(casa, madeira, (9, 73), (87, 73), 2)
+    for x in (9, 28, 67, 85):
+        pygame.draw.rect(casa, madeira, (x, 48, 3, 28))
+
+    for _ in range(32):
+        x = rng.randint(13, 83)
+        y = rng.randint(54, 71)
+        cor = parede_clara if rng.random() < 0.55 else parede_escura
+        casa.set_at((x, y), cor)
+
+    x = 9
+    linha = 0
+    while x < 87:
+        bloco = rng.choice((7, 8, 9, 10))
+        pygame.draw.line(casa, contorno, (x, 78), (min(87, x + bloco), 78))
+        if linha % 2:
+            casa.set_at((x, 76), parede_escura)
+        x += bloco
+        linha += 1
+    pygame.draw.line(casa, fundacao, (10, 80), (86, 80), 2)
+
+    # A chaminé fica atrás da água do telhado; a parte inferior é escondida
+    # pela cobertura, dando profundidade sem criar outra camada de render.
+    casa.blit(chamine, (62, -8))
+
+    pontos_telhado = (
+        (2, 49), (10, 16), (47, 3), (85, 16),
+        (94, 49), (89, 55), (7, 55),
+    )
+    pygame.draw.polygon(casa, contorno, pontos_telhado)
+    pygame.draw.polygon(casa, telhado, (
+        (6, 48), (13, 19), (47, 7), (82, 19),
+        (90, 48), (86, 51), (10, 51),
+    ))
+    pygame.draw.line(casa, telhado_claro, (14, 18), (47, 7), 2)
+    pygame.draw.line(casa, telhado_escuro, (47, 7), (82, 19), 2)
+    pygame.draw.line(casa, telhado_escuro, (8, 51), (88, 51), 3)
+
+    # Telhas escalonadas, com pequenas falhas determinísticas para que as três
+    # casas compartilhem linguagem visual sem parecerem cópias exatas.
+    for indice, y in enumerate(range(20, 49, 5)):
+        margem = max(6, 13 - (y - 20) // 4)
+        pygame.draw.line(
+            casa,
+            telhado_escuro,
+            (margem, y),
+            (largura - margem - 1, y),
+        )
+        inicio = margem + 3 + (indice % 2) * 4
+        for x in range(inicio, largura - margem - 2, 8):
+            if rng.random() < 0.16:
+                continue
+            pygame.draw.line(casa, telhado_escuro, (x, y), (x - 1, y + 3))
+        if indice in (1, 4):
+            brilho_x = rng.randint(margem + 6, largura - margem - 10)
+            pygame.draw.line(casa, telhado_claro, (brilho_x, y - 1), (brilho_x + 5, y - 1))
+
+    # Frontão central e vigas deixam a silhueta legível como casa mesmo vista
+    # entre árvores altas.
+    pygame.draw.polygon(casa, contorno, ((23, 53), (48, 28), (73, 53)))
+    pygame.draw.polygon(casa, parede, ((27, 51), (48, 33), (69, 51)))
+    pygame.draw.line(casa, madeira, (48, 31), (48, 53), 3)
+    pygame.draw.line(casa, madeira, (25, 52), (48, 29), 2)
+    pygame.draw.line(casa, madeira, (48, 29), (71, 52), 2)
+    pygame.draw.line(casa, madeira, (22, 53), (74, 53), 3)
+
+    janela_x = 3 if janela_esquerda else 61
+    casa.blit(janela, (janela_x, 48))
+    casa.blit(porta, (32, 36))
+
+    # Degrau de pedra sob a porta e duas marcas curtas de desgaste na soleira.
+    pygame.draw.rect(casa, contorno, (36, 81, 24, 4))
+    pygame.draw.rect(casa, fundacao, (38, 81, 20, 2))
+    pygame.draw.line(casa, parede_clara, (42, 82), (47, 82))
+    pygame.draw.line(casa, parede_escura, (51, 83), (56, 83))
+
+    return pygame.transform.scale(casa, (largura * 2, altura * 2))
+
 def aplicar_paleta_clara(surface, target_color, strength=90, brightness=18):
     result = surface.copy()
     overlay = pygame.Surface(result.get_size())
@@ -525,19 +633,98 @@ def carregar_tudo():
         "farm_fence_left": ("building_props.png", (0, 192, 32, 32)),
         "farm_fence_right": ("building_props.png", (48, 192, 32, 32)),
         # Partes de casa para compor vilas
-        "house_door_front": ("building_props.png", (0, 0, 32, 48)),
-        "house_door_wood": ("building_props.png", (64, 0, 32, 48)),
-        "house_window_front": ("building_props.png", (0, 48, 32, 32)),
-        "house_window_shutters": ("building_props.png", (64, 48, 32, 32)),
-        "house_chimney": ("building_props.png", (0, 80, 16, 32)),
-        "house_wall_h": ("building_props.png", (96, 80, 32, 16)),
-        "house_wall_v": ("building_props.png", (128, 64, 16, 32)),
-        "house_bench": ("building_props.png", (32, 128, 80, 32)),
-        "house_chest": ("building_props.png", (112, 112, 32, 32)),
+        "house_door_front": ("building_props.png", (0, 16, 32, 48)),
+        "house_door_wood": ("building_props.png", (96, 16, 32, 48)),
+        "house_window_front": ("building_props.png", (64, 64, 32, 32)),
+        "house_window_shutters": ("building_props.png", (128, 64, 32, 32)),
+        "house_chimney": ("building_props.png", (0, 64, 32, 64)),
+        "house_bench": ("building_props.png", (80, 160, 64, 16)),
+        "house_chest": ("building_props.png", (112, 128, 32, 32)),
     }
     for sprite_name, (atlas_name, rect) in decoration_regions.items():
         SPRITES[sprite_name] = carregar_regiao_atlas(
             f"{nature_base}/{atlas_name}", rect, escala=2.0
+        )
+
+    # Casas de vila são sprites completos: telhado, frontão, fachada e
+    # fundação pertencem à mesma silhueta. Portas, janelas e chaminé continuam
+    # vindo do atlas do Pixel Crawler para manter a linguagem do restante do
+    # cenário.
+    building_atlas = f"{nature_base}/building_props.png"
+    portas = {
+        "plank": carregar_regiao_atlas(building_atlas, (96, 16, 32, 48), escala=1.0),
+        "banded": carregar_regiao_atlas(building_atlas, (128, 16, 32, 48), escala=1.0),
+        "steel": carregar_regiao_atlas(building_atlas, (160, 16, 32, 48), escala=1.0),
+    }
+    janelas = {
+        "arch": carregar_regiao_atlas(building_atlas, (64, 64, 32, 32), escala=1.0),
+        "green": carregar_regiao_atlas(building_atlas, (128, 64, 32, 32), escala=1.0),
+        "wood": carregar_regiao_atlas(building_atlas, (64, 96, 32, 32), escala=1.0),
+    }
+    chamine = carregar_regiao_atlas(
+        building_atlas, (0, 64, 32, 32), escala=1.0
+    )
+    estilos_casa = {
+        "village_house_amber": (
+            portas["plank"],
+            janelas["arch"],
+            {
+                "contorno": (45, 30, 23),
+                "madeira": (88, 49, 27),
+                "parede": (194, 158, 103),
+                "parede_clara": (226, 194, 128),
+                "parede_escura": (145, 111, 73),
+                "fundacao": (111, 105, 88),
+                "telhado": (133, 86, 40),
+                "telhado_claro": (180, 124, 57),
+                "telhado_escuro": (79, 47, 29),
+            },
+            11,
+            False,
+        ),
+        "village_house_brick": (
+            portas["banded"],
+            janelas["wood"],
+            {
+                "contorno": (48, 29, 26),
+                "madeira": (82, 43, 28),
+                "parede": (205, 171, 116),
+                "parede_clara": (232, 204, 151),
+                "parede_escura": (157, 118, 83),
+                "fundacao": (107, 101, 91),
+                "telhado": (146, 68, 44),
+                "telhado_claro": (193, 99, 55),
+                "telhado_escuro": (82, 39, 33),
+            },
+            23,
+            True,
+        ),
+        "village_house_moss": (
+            portas["steel"],
+            janelas["green"],
+            {
+                "contorno": (38, 36, 27),
+                "madeira": (72, 50, 30),
+                "parede": (171, 158, 119),
+                "parede_clara": (205, 191, 145),
+                "parede_escura": (121, 116, 82),
+                "fundacao": (91, 96, 78),
+                "telhado": (91, 111, 47),
+                "telhado_claro": (139, 150, 62),
+                "telhado_escuro": (52, 68, 34),
+            },
+            37,
+            False,
+        ),
+    }
+    for nome, (porta, janela, paleta, seed, janela_esquerda) in estilos_casa.items():
+        SPRITES[nome] = criar_casa_vila(
+            porta,
+            janela,
+            chamine,
+            paleta,
+            seed=seed,
+            janela_esquerda=janela_esquerda,
         )
 
     SPRITES["nature_bonfire_frames"] = carregar_spritesheet(
