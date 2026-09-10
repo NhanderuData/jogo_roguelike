@@ -85,12 +85,32 @@ def decoracao_solida(decoracao):
 
 
 def _spawn_tree(map_obj, x, y, tree_name):
+    tile = map_obj.obter_tile(x, y) if hasattr(map_obj, "obter_tile") else None
+    if tile and (tile.bloqueado or tile.tipo in ("deep_water", "parede", "estrada", "bridge")):
+        return False
+
     positions = getattr(map_obj, "_tree_positions", None)
     if positions is not None:
         for offset_y in (-1, 0, 1):
             for offset_x in (-1, 0, 1):
                 if (x + offset_x, y + offset_y) in positions:
                     return False
+
+    if tile:
+        tile.bloqueado = True
+        tile.decoracao = None
+
+    if hasattr(map_obj, "obter_tile"):
+        for dy in (-3, -2, -1, 0):
+            for dx in (-1, 0, 1):
+                neighbor = map_obj.obter_tile(x + dx, y + dy)
+                if neighbor and neighbor is not tile:
+                    if neighbor.tipo == "rocha":
+                        neighbor.tipo = tile.tipo if tile else "grass"
+                        neighbor.bloqueado = False
+                    elif neighbor.decoracao and decoration_is_solid(neighbor.decoracao):
+                        neighbor.decoracao = None
+
     map_obj.entidades.append(
         actor.Entidade(
             x,

@@ -209,6 +209,50 @@ class PhysicsCollisionTests(unittest.TestCase):
         self.assertTrue(moved)
         self.assertGreater(physics.y, 0.4375)
 
+    def test_static_tree_hitbox_covers_full_tile(self):
+        class TreeEntity:
+            is_static = True
+            tags = ("tree",)
+
+        tree = TreeEntity()
+        physics = PhysicsComponent(tree, 4, 7)
+        self.assertEqual(physics.hitbox, pygame.Rect(4 * 32, 7 * 32, 32, 32))
+
+    def test_melee_damages_static_tree_without_knockback(self):
+        from types import SimpleNamespace
+        from components.combat_system import executar_golpe_espada
+
+        class StaticPhysics:
+            def move_by(self, *args):
+                raise AssertionError("static tree must not receive knockback")
+
+        class TreeTarget:
+            is_static = True
+            impact_material = "wood"
+            hp = 50
+            x = 2
+            y = 1
+            hitbox = pygame.Rect(64, 32, 32, 32)
+            physics = StaticPhysics()
+
+            def tomar_dano(self, amount, *args, **kwargs):
+                self.hp -= amount
+                return SimpleNamespace(health_damage=amount, absorbed=0)
+
+        class Attacker:
+            x = 1.2
+            y = 1.0
+            dano = 10
+
+        tree = TreeTarget()
+        attacker = Attacker()
+        map_obj = MapStub(entities=[attacker, tree])
+
+        hit = executar_golpe_espada(attacker, 2.0, 1.0, map_obj, damage=20)
+        self.assertTrue(hit)
+        self.assertEqual(tree.hp, 30)
+        self.assertEqual(map_obj.particulas.emissions[0][2], "wood")
+
 
 if __name__ == "__main__":
     unittest.main()

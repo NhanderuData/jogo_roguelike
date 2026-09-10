@@ -54,9 +54,14 @@ class SpriteComponent:
 
     def configurar_offsets(self, key):
         # Configurações específicas por tipo de sprite
-        if "tree" in key or key == "cipreste":
+        if key in ("tree_willow", "tree_fir", "cipreste"):
             self.scale_sombra = 0.65
-            self.offset_x = -2
+            self.offset_x = 1
+            self.offset_y = 0
+        elif "tree" in key:
+            self.scale_sombra = 0.65
+            self.offset_x = 4
+            self.offset_y = 0
         elif "troll" in key:
             self.scale_sombra = 2.0
         elif "boss" in key:

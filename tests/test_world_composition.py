@@ -1,4 +1,5 @@
 import random
+from types import SimpleNamespace
 import unittest
 
 import pygame
@@ -303,6 +304,97 @@ class ClearingCompositionTests(unittest.TestCase):
             if (tile.decoracao or "").startswith("village_house_")
         }
         self.assertEqual(actual_houses, expected_anchors)
+
+
+class TreeLifecycleTests(unittest.TestCase):
+    def test_spawn_tree_blocks_base_tile_and_clears_base_decoration(self):
+        from types import SimpleNamespace
+        from map.biomas import _spawn_tree
+        from core.content import ContentCatalog
+        from map.tile import Tile
+
+        class WorldStub:
+            def __init__(self):
+                self.tiles = {(5, 5): Tile(tipo="grass", bloqueado=False)}
+                self.tiles[(5, 5)].decoracao = "nature_flower_white"
+                self.entidades = []
+                self._tree_positions = set()
+                self.context = SimpleNamespace(
+                    content=ContentCatalog.load_default(),
+                    audio=None,
+                )
+                self.gameplay_rng = None
+
+            def obter_tile(self, x, y):
+                return self.tiles.get((x, y))
+
+        world = WorldStub()
+        spawned = _spawn_tree(world, 5, 5, "Arvore")
+        self.assertTrue(spawned)
+        self.assertTrue(world.tiles[(5, 5)].bloqueado)
+        self.assertIsNone(world.tiles[(5, 5)].decoracao)
+        self.assertIn((5, 5), world._tree_positions)
+        self.assertEqual(len(world.entidades), 1)
+        tree = world.entidades[0]
+        self.assertEqual(tree.hitbox, pygame.Rect(5 * 32, 5 * 32, 32, 32))
+
+    def test_tree_death_unblocks_tile_and_drops_wood(self):
+        import random
+        from map.simulation import WorldSimulation
+        from core.content import ContentCatalog
+        from map.tile import Tile
+        from entities import actor
+
+        catalog = ContentCatalog.load_default()
+        context = SimpleNamespace(content=catalog, audio=None)
+
+        class ParticleStub:
+            def emit(self, *args):
+                pass
+            def update(self, *args):
+                pass
+
+        class SpatialIndexStub:
+            def remove(self, *args):
+                pass
+
+        class WorldStub:
+            def __init__(self):
+                self.jogador = None
+                self.tile = Tile(tipo="grass", bloqueado=True)
+                self.entidades = []
+                self._tree_positions = {(3, 4)}
+                self.items_no_chao = []
+                self.projeteis = []
+                self.efeitos = []
+                self.textos = []
+                self.particulas = ParticleStub()
+                self.spatial_index = SpatialIndexStub()
+                self.content = catalog
+                self.context = context
+                self.gameplay_rng = random.Random(42)
+
+            def obter_tile(self, x, y):
+                if (x, y) == (3, 4):
+                    return self.tile
+                return None
+
+        world = WorldStub()
+        tree = actor.Entidade(3, 4, "Arvore", context)
+        world.entidades.append(tree)
+
+        sim = WorldSimulation(world)
+        sim._resolve_deaths()
+        self.assertTrue(world.tile.bloqueado)
+        self.assertEqual(len(world.items_no_chao), 0)
+
+        tree.combat.hp = 0
+        sim._resolve_deaths()
+        self.assertFalse(world.tile.bloqueado)
+        self.assertNotIn((3, 4), world._tree_positions)
+        self.assertEqual(len(world.entidades), 0)
+        self.assertEqual(len(world.items_no_chao), 1)
+        self.assertEqual(world.items_no_chao[0].item_name, "Madeira")
 
 
 if __name__ == "__main__":

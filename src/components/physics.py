@@ -13,8 +13,12 @@ class PhysicsComponent:
         self.y = float(y)
         self.speed = 0.0
         
-        self.largura_hb_ratio = largura_hb
-        self.altura_hb_ratio = altura_hb
+        if getattr(entity, "is_static", False) or "tree" in getattr(entity, "tags", ()):
+            self.largura_hb_ratio = 1.0
+            self.altura_hb_ratio = 1.0
+        else:
+            self.largura_hb_ratio = largura_hb
+            self.altura_hb_ratio = altura_hb
         self.hitbox = pygame.Rect(0, 0, 0, 0)
         self.moving = False
         

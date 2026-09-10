@@ -71,7 +71,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "RedTree": {
     "role": "prop",
@@ -84,7 +86,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "Arvore Congelada": {
     "role": "prop",
@@ -97,7 +101,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "Cipreste": {
     "role": "prop",
@@ -110,7 +116,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "Carvalho": {
     "role": "prop",
@@ -123,7 +131,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "Salgueiro": {
     "role": "prop",
@@ -136,7 +146,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "Arvore Seca": {
     "role": "prop",
@@ -149,7 +161,9 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   },
   "Pinheiro": {
     "role": "prop",
@@ -162,6 +176,8 @@
     "top_layer": false,
     "static": true,
     "tags": ["tree"],
-    "impact_material": "wood"
+    "impact_material": "wood",
+    "loot": ["Madeira"],
+    "loot_chance": 1.0
   }
 }

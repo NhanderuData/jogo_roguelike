@@ -197,7 +197,7 @@ class ContentCatalog:
     def _validate_references(self) -> None:
         valid_item_kinds = {
             "comida", "bebida", "cura", "cura_status", "energia",
-            "armadura", "arma", "municao",
+            "armadura", "arma", "municao", "material",
         }
         for name, item in self.items.items():
             if item.kind not in valid_item_kinds:

@@ -264,6 +264,12 @@ def executar_golpe_espada(
                     (-math.cos(angle), -math.sin(angle)),
                 )
                 Projetil._play_impact_sound(mapa_obj, profile.sound, 0.38)
+                if hasattr(alvo, "tomar_dano") and getattr(alvo, "hp", 0) > 0:
+                    base_damage = damage if damage is not None else atacante.dano * 2
+                    rng = getattr(mapa_obj, "gameplay_rng", random)
+                    critical = critical_chance > 0 and rng.random() < critical_chance
+                    final_damage = round(base_damage * critical_multiplier) if critical else base_damage
+                    alvo.tomar_dano(final_damage, mapa_obj, critical=critical)
                 acertou = True
                 continue
             # Usa o Dano vindo do CombatComponent do atacante

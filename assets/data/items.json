@@ -64,5 +64,11 @@
     "weapon_id": "smg",
     "color": [160, 160, 150],
     "sprite": "weapon_smg"
+  },
+  "Madeira": {
+    "type": "material",
+    "value": 1,
+    "color": [140, 85, 45],
+    "sprite": "nature_stump"
   }
 }

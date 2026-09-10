@@ -493,6 +493,10 @@ class CompositorMundo:
             and (int(entidade.x), int(entidade.y)) in coordenadas
         }
         if removidas:
+            for entidade in removidas:
+                tile = self.mapa.obter_tile(int(entidade.x), int(entidade.y))
+                if tile:
+                    tile.bloqueado = False
             self.mapa.entidades = [
                 entidade
                 for entidade in self.mapa.entidades

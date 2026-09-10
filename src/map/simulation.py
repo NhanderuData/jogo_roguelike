@@ -41,9 +41,23 @@ class WorldSimulation:
                         LootDrop(entity.x, entity.y, item_name, world.content)
                     )
 
+            tile = world.obter_tile(round(entity.x), round(entity.y)) if hasattr(world, "obter_tile") else None
+            if tile and (getattr(entity, "is_static", False) or "tree" in getattr(entity, "tags", ())):
+                tile.bloqueado = False
+
+            tree_positions = getattr(world, "_tree_positions", None)
+            if tree_positions is not None:
+                tree_positions.discard((round(entity.x), round(entity.y)))
+
             if world.jogador:
                 world.jogador.ganhar_xp(entity.xp_reward)
-            world.particulas.emit(entity.x, entity.y, "hit", 14)
+
+            particle_type = (
+                "wood"
+                if getattr(entity, "impact_material", None) == "wood" or "tree" in getattr(entity, "tags", ())
+                else "hit"
+            )
+            world.particulas.emit(entity.x, entity.y, particle_type, 14)
             world.spatial_index.remove(entity)
             world.entidades.remove(entity)
 
