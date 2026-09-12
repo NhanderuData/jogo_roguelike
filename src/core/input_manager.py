@@ -20,6 +20,7 @@ class Actions:
     WEAPON_4 = "weapon_4"
     TOGGLE_DEBUG = "toggle_debug"
     TOGGLE_MUTE = "toggle_mute"
+    RESET_ZOOM = "reset_zoom"
 
 class InputManager:
     def __init__(self):
@@ -41,16 +42,19 @@ class InputManager:
             Actions.WEAPON_4: [pygame.K_4],
             Actions.TOGGLE_DEBUG: [pygame.K_F3],
             Actions.TOGGLE_MUTE: [pygame.K_m],
+            Actions.RESET_ZOOM: [pygame.K_BACKSPACE, pygame.K_HOME],
         }
         
         # Mapa de Mouse: Ação -> Índice do Botão (0=Esq, 1=Meio, 2=Dir)
         self.mouse_bindings = {
             Actions.ATTACK_PRIMARY: 0,   # Clique Esquerdo
-            Actions.ATTACK_SECONDARY: 2  # Clique Direito
+            Actions.ATTACK_SECONDARY: 2, # Clique Direito
+            Actions.RESET_ZOOM: 1,       # Clique Meio
         }
 
         # Estado atual
         self.mouse_pos = (0, 0)
+        self.mouse_wheel = 0
         
         # Conjuntos para armazenar o estado das ações
         self.actions_held = set()     # Ação está sendo SEGURADA (bom para andar)
@@ -60,6 +64,10 @@ class InputManager:
         """Chamado no início de cada frame pelo MainApp"""
         self.actions_pressed.clear()
         self.actions_held.clear()
+        self.mouse_wheel = 0
+
+        if not pygame.get_init() or not pygame.display.get_init():
+            return
         
         # 1. Leitura do Teclado
         keys = pygame.key.get_pressed()
@@ -67,8 +75,6 @@ class InputManager:
             for k in key_list:
                 if keys[k]:
                     self.actions_held.add(action)
-                    # Nota: Para 'pressed' (input único), usaremos o event loop do Pygame no process_event
-                    # Mas para movimento, 'held' é o que importa.
 
         # 2. Leitura do Mouse
         mouse_buttons = pygame.mouse.get_pressed()
@@ -88,6 +94,16 @@ class InputManager:
             for action, button_index in self.mouse_bindings.items():
                 if event.button == button_index + 1:
                     self.actions_pressed.add(action)
+            # Roda do mouse legado
+            if event.button == 4:
+                self.mouse_wheel += 1
+            elif event.button == 5:
+                self.mouse_wheel -= 1
+            elif event.button == 2:
+                self.actions_pressed.add(Actions.RESET_ZOOM)
+
+        elif event.type == pygame.MOUSEWHEEL:
+            self.mouse_wheel += event.y
 
     def is_held(self, action):
         return action in self.actions_held
@@ -97,3 +113,6 @@ class InputManager:
 
     def get_mouse_position(self):
         return self.mouse_pos
+
+    def get_mouse_wheel(self) -> int:
+        return self.mouse_wheel

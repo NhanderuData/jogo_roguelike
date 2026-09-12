@@ -219,6 +219,8 @@ def criar_projetil(
         critical_chance=critical_chance, critical_multiplier=critical_multiplier,
     )
     mapa_obj.projeteis.append(p)
+    if origem == "player" and hasattr(mapa_obj, "alert_enemies"):
+        mapa_obj.alert_enemies(start_x, start_y, radius=18.0)
 
 
 def criar_feedback_disparo(atacante, tx, ty, mapa_obj, intensity=1.0):

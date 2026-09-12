@@ -17,6 +17,19 @@ class InputManagerTests(unittest.TestCase):
         inputs.process_event(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_m))
         self.assertTrue(inputs.is_pressed(Actions.TOGGLE_MUTE))
 
+    def test_mouse_wheel_scroll_tracking(self):
+        inputs = InputManager()
+        inputs.process_event(pygame.event.Event(pygame.MOUSEWHEEL, y=1))
+        self.assertEqual(inputs.get_mouse_wheel(), 1)
+
+        inputs.update()
+        self.assertEqual(inputs.get_mouse_wheel(), 0)
+
+    def test_middle_click_triggers_reset_zoom_action(self):
+        inputs = InputManager()
+        inputs.process_event(pygame.event.Event(pygame.MOUSEBUTTONDOWN, button=2))
+        self.assertTrue(inputs.is_pressed(Actions.RESET_ZOOM))
+
 
 class AudioMuteTests(unittest.TestCase):
     def test_null_sound_manager_toggle_mute(self):

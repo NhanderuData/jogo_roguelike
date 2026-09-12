@@ -37,6 +37,16 @@ class GameState(BaseState):
     def update(self, dt):
         if self.input.is_pressed(Actions.TOGGLE_DEBUG):
             self.context.debug_enabled = not self.context.debug_enabled
+            if not self.context.debug_enabled:
+                self.camera.set_target_zoom(1.0)
+
+        if getattr(self.context, "debug_enabled", False):
+            wheel = self.input.get_mouse_wheel()
+            if wheel != 0:
+                zoom_factor = 1.15 if wheel > 0 else (1.0 / 1.15)
+                self.camera.set_target_zoom(self.camera.target_zoom * (zoom_factor ** abs(wheel)))
+            if self.input.is_pressed(Actions.RESET_ZOOM):
+                self.camera.set_target_zoom(1.0)
 
         if self.input.is_pressed(Actions.TOGGLE_MUTE):
             self.context.audio.toggle_mute()
@@ -111,9 +121,9 @@ class GameState(BaseState):
         # --- 2. COMBATE (AÇÃO ÚNICA - IS_PRESSED) ---
         screen_mx, screen_my = self.input.get_mouse_position()
         
-        # Converte para coordenadas do mundo
-        world_mx = (screen_mx + self.camera.camera_x) / config.TAMANHO_TILE
-        world_my = (screen_my + self.camera.camera_y) / config.TAMANHO_TILE
+        # Converte para coordenadas do mundo respeitando o zoom da câmera
+        world_mx = self.camera.screen_to_world_x(screen_mx)
+        world_my = self.camera.screen_to_world_y(screen_my)
         
         mute_rect = self.ui.get_mute_button_rect()
         clicked_mute = False

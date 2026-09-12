@@ -17,17 +17,19 @@ def desenhar_hitboxes(surface, camera, mapa_obj, config):
     cam_x, cam_y = camera.camera_x, camera.camera_y
     tile_size = config.TAMANHO_TILE
     blocked_overlay = _blocked_tile_overlay(tile_size)
+    surf_w = surface.get_width()
+    surf_h = surface.get_height()
 
     # 1. Desenha Tiles Bloqueados (Vermelho)
     start_x = max(0, int(cam_x // tile_size))
     start_y = max(0, int(cam_y // tile_size))
     end_x = min(
         mapa_obj.largura,
-        start_x + config.LARGURA_TELA // config.TAMANHO_TILE + 2,
+        start_x + surf_w // tile_size + 2,
     )
     end_y = min(
         mapa_obj.altura,
-        start_y + config.ALTURA_TELA // config.TAMANHO_TILE + 2,
+        start_y + surf_h // tile_size + 2,
     )
     for y in range(start_y, end_y):
         for x in range(start_x, end_x):
@@ -36,7 +38,7 @@ def desenhar_hitboxes(surface, camera, mapa_obj, config):
                 screen_x = x * tile_size - cam_x
                 screen_y = y * tile_size - cam_y
                 
-                if -tile_size < screen_x < config.LARGURA_TELA and -tile_size < screen_y < config.ALTURA_TELA:
+                if -tile_size < screen_x < surf_w and -tile_size < screen_y < surf_h:
                     surface.blit(blocked_overlay, (screen_x, screen_y))
                     pygame.draw.rect(
                         surface,
@@ -65,7 +67,6 @@ def desenhar_hitboxes(surface, camera, mapa_obj, config):
         pygame.draw.circle(surface, (255, 255, 0), rect.center, 2)
 
     # --- 4. Desenha Divisão de Chunks (Amarelo) ---
-    # Calcula o tamanho de um chunk em pixels
     settings = getattr(mapa_obj, "settings", None)
     chunk_size = settings.chunk_size if settings else config.TAMANHO_CHUNK
     chunks_x = settings.chunks_x if settings else config.CHUNKS_X
@@ -76,19 +77,35 @@ def desenhar_hitboxes(surface, camera, mapa_obj, config):
     for cx in range(chunks_x + 1):
         x_world = cx * pixel_chunk
         x_screen = x_world - cam_x
-        # Desenha uma linha de cima a baixo na tela
-        pygame.draw.line(surface, (255, 255, 0), (x_screen, 0), (x_screen, config.ALTURA_TELA), 3)
+        pygame.draw.line(surface, (255, 255, 0), (x_screen, 0), (x_screen, surf_h), 2)
 
     # Linhas Horizontais
     for cy in range(chunks_y + 1):
         y_world = cy * pixel_chunk
         y_screen = y_world - cam_y
-        # Desenha uma linha da esquerda a direita na tela
-        pygame.draw.line(surface, (255, 255, 0), (0, y_screen), (config.LARGURA_TELA, y_screen), 3)
+        pygame.draw.line(surface, (255, 255, 0), (0, y_screen), (surf_w, y_screen), 2)
 
-    font = pygame.font.Font(None, 25)
-    label = font.render("DEBUG HITBOXES [F3]", True, (255, 255, 255))
-    background = label.get_rect(topleft=(12, 12)).inflate(12, 8)
-    pygame.draw.rect(surface, (15, 15, 20), background)
-    pygame.draw.rect(surface, (0, 255, 170), background, 2)
-    surface.blit(label, (18, 16))
+
+def desenhar_hud_f3(surface, camera):
+    """Renderiza a caixa de status do modo debug e controle de zoom da câmera."""
+    zoom = getattr(camera, "zoom", 1.0)
+    font = pygame.font.Font(None, 24)
+    font_sub = pygame.font.Font(None, 19)
+
+    text_title = f"DEBUG [F3] | ZOOM DA CÂMERA: {zoom:.2f}x"
+    text_hint = "Scroll Mouse: Expandir / Aproximar | Clique do Meio: Reset (1.0x)"
+
+    surf_title = font.render(text_title, True, (0, 255, 180))
+    surf_hint = font_sub.render(text_hint, True, (220, 220, 230))
+
+    box_w = max(surf_title.get_width(), surf_hint.get_width()) + 20
+    box_h = surf_title.get_height() + surf_hint.get_height() + 14
+
+    bg_rect = pygame.Rect(12, 12, box_w, box_h)
+    panel = pygame.Surface((box_w, box_h), pygame.SRCALPHA)
+    panel.fill((15, 18, 24, 220))
+    surface.blit(panel, (12, 12))
+    pygame.draw.rect(surface, (0, 255, 180), bg_rect, 2, border_radius=4)
+
+    surface.blit(surf_title, (22, 18))
+    surface.blit(surf_hint, (22, 18 + surf_title.get_height() + 2))

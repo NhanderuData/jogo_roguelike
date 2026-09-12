@@ -116,8 +116,30 @@ class Mapa:
                 closest = (cx, cy, math.sqrt(d_sq))
         return closest
 
+    def alert_enemies(self, origin_x: float, origin_y: float, radius: float = 18.0) -> None:
+        radius_sq = radius * radius
+        for ent in self.entidades:
+            if getattr(ent, "role", None) == "enemy" and getattr(ent, "ai", None):
+                dx = ent.x - origin_x
+                dy = ent.y - origin_y
+                if dx * dx + dy * dy <= radius_sq:
+                    ent.ai.on_hear_sound(origin_x, origin_y)
+
+    def alert_allies(self, caller, radius: float = 7.0) -> None:
+        radius_sq = radius * radius
+        for ent in self.entidades:
+            if ent is not caller and getattr(ent, "ai", None):
+                same_group = (
+                    (caller.role == "animal" and ent.role == "animal")
+                    or (caller.role == "enemy" and ent.role == "enemy")
+                )
+                if same_group:
+                    dx = ent.x - caller.x
+                    dy = ent.y - caller.y
+                    if dx * dx + dy * dy <= radius_sq:
+                        ent.ai.on_ally_alert(caller)
+
     def gerar_novo_nivel(self, seed: int | None = None):
-        # 1. Reset das Listas
         self.entidades = []
         self.items_no_chao = []
         self.projeteis = []

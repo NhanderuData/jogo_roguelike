@@ -70,7 +70,7 @@ class Renderer:
             
         return surface_final
 
-    def draw(self, surface, mapa_obj, cor_noite=(0, 0, 0, 0)):
+    def _render_scene(self, surface, mapa_obj, cor_noite=(0, 0, 0, 0)):
         cam_x, cam_y = self.camera.camera_x, self.camera.camera_y
         # O atlas original possui quatro frames de 100 ms.
         water_animation_frame = pygame.time.get_ticks() // 100
@@ -209,8 +209,8 @@ class Renderer:
         view_rect = pygame.Rect(
             int(cam_x) - 320,
             int(cam_y) - 384,
-            config.LARGURA_TELA + 640,
-            config.ALTURA_TELA + 768,
+            surface.get_width() + 640,
+            surface.get_height() + 768,
         )
         if hasattr(mapa_obj, "nearby_entities"):
             visible_entities = list(mapa_obj.nearby_entities(view_rect))
@@ -238,9 +238,9 @@ class Renderer:
             render_margin = 48
             if (
                 draw_x + img_w < -render_margin
-                or draw_x > config.LARGURA_TELA + render_margin
+                or draw_x > surface.get_width() + render_margin
                 or draw_y + img_h < -render_margin
-                or draw_y > config.ALTURA_TELA + render_margin
+                or draw_y > surface.get_height() + render_margin
             ):
                 continue
 
@@ -309,13 +309,18 @@ class Renderer:
         if cor_noite[3] > 0:
             self.lighting.apply_darkness(surface, cor_noite)
 
+
         # --- 3. LUZES ADITIVAS / GLOW (Additive) ---
         self.lighting.draw_lights(surface, mapa_obj, cam_x, cam_y)
 
         self.ambience.draw(surface, mapa_obj)
 
         # Pós-Processamento e UI
-        surface.blit(self.vignette_surf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+        if self.vignette_surf.get_size() != surface.get_size():
+            vignette = pygame.transform.scale(self.vignette_surf, surface.get_size())
+            surface.blit(vignette, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+        else:
+            surface.blit(self.vignette_surf, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
         
         for ent in visible_entities:
             if ent is not mapa_obj.jogador:
@@ -329,8 +334,30 @@ class Renderer:
             
         for e in mapa_obj.efeitos: e.draw(surface, cam_x, cam_y)
         
-        if mapa_obj.context.debug_enabled:
-             debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
+        if getattr(mapa_obj.context, "debug_enabled", False):
+            debug.desenhar_hitboxes(surface, self.camera, mapa_obj, config)
+
+    def draw(self, surface, mapa_obj, cor_noite=(0, 0, 0, 0)):
+        zoom = getattr(self.camera, "zoom", 1.0)
+        is_zoomed = abs(zoom - 1.0) > 0.01
+
+        if not is_zoomed:
+            self._render_scene(surface, mapa_obj, cor_noite)
+        else:
+            view_w = max(32, self.camera.get_view_width())
+            view_h = max(32, self.camera.get_view_height())
+
+            if (
+                not hasattr(self, "_zoom_surface")
+                or self._zoom_surface.get_size() != (view_w, view_h)
+            ):
+                self._zoom_surface = pygame.Surface((view_w, view_h))
+
+            self._render_scene(self._zoom_surface, mapa_obj, cor_noite)
+            pygame.transform.scale(self._zoom_surface, surface.get_size(), surface)
+
+        if getattr(mapa_obj.context, "debug_enabled", False):
+            debug.desenhar_hud_f3(surface, self.camera)
 
     @staticmethod
     def _pond_edge_name(mapa_obj, x, y):

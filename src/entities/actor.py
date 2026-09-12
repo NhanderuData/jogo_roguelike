@@ -123,6 +123,8 @@ class Entidade:
         result = self.combat.take_damage(qtd, mapa_obj, critical=critical)
         if self.role == "player" and self.combat.hp < hp_before:
             self.context.audio.play("hurt", 0.65)
+        elif mapa_obj and hasattr(mapa_obj, "alert_allies") and self.role in ("enemy", "animal"):
+            mapa_obj.alert_allies(self, radius=7.0)
         return result
 
     def ganhar_xp(self, qtd):
