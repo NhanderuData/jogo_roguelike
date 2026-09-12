@@ -113,10 +113,25 @@ class GameState(BaseState):
             Actions.WEAPON_2,
             Actions.WEAPON_3,
             Actions.WEAPON_4,
+            Actions.WEAPON_5,
+            Actions.WEAPON_6,
+            Actions.WEAPON_7,
+            Actions.WEAPON_8,
+            Actions.WEAPON_9,
         )
         for slot, action in enumerate(weapon_actions):
             if self.input.is_pressed(action):
                 self.mapa.jogador.weapons.select_slot(slot)
+
+        wheel = self.input.get_mouse_wheel()
+        if wheel > 0 or self.input.is_pressed(Actions.WEAPON_PREV):
+            self.mapa.jogador.weapons.previous_weapon()
+        elif wheel < 0 or self.input.is_pressed(Actions.WEAPON_NEXT):
+            self.mapa.jogador.weapons.next_weapon()
+
+        if self.input.is_pressed(Actions.UNLOCK_ALL_WEAPONS):
+            self.mapa.jogador.weapons.unlock_all()
+            self.ui.show_banner("TODAS AS 115 ARMAS DESBLOQUEADAS! [SCROLL / Q]", (255, 215, 80))
 
         if self.input.is_pressed(Actions.RELOAD):
             self.mapa.jogador.weapons.start_reload()
@@ -137,9 +152,12 @@ class GameState(BaseState):
         weapon = self.mapa.jogador.weapons.current
         wants_to_attack = False
         if not clicked_mute and not mute_rect.collidepoint(screen_mx, screen_my):
-            wants_to_attack = self.input.is_pressed(Actions.ATTACK_PRIMARY)
-            if weapon.kind == "ranged" and weapon.cooldown <= 0.1:
-                wants_to_attack = wants_to_attack or self.input.is_held(Actions.ATTACK_PRIMARY)
+            is_continuous = getattr(weapon, "auto", False) or weapon.kind == "melee" or weapon.cooldown <= 0.1
+            if is_continuous:
+                wants_to_attack = self.input.is_pressed(Actions.ATTACK_PRIMARY) or self.input.is_held(Actions.ATTACK_PRIMARY)
+            else:
+                wants_to_attack = self.input.is_pressed(Actions.ATTACK_PRIMARY)
+
         if wants_to_attack:
             self.mapa.jogador.weapons.attack(world_mx, world_my, self.mapa)
 

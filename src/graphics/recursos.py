@@ -870,6 +870,12 @@ def carregar_tudo():
     ):
         SPRITES[sprite_name] = carregar_estatico(f"sprites/{sprite_name}.png", escala=1.0)
 
+    weapons_dir = asset_path("sprites/weapons")
+    if weapons_dir.is_dir():
+        for path in sorted(weapons_dir.glob("*.png")):
+            sprite_key = path.stem
+            SPRITES[sprite_key] = carregar_estatico(f"sprites/weapons/{path.name}", escala=1.0)
+
     # Chão natural recortado do atlas de 16 px do Pixel Crawler. A areia
     # permanece a textura já usada pelo deserto, como solicitado.
     nature_tile_regions = {

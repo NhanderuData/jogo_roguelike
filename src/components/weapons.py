@@ -12,7 +12,13 @@ class WeaponComponent:
         self.owner = owner
         self.content = content
         self.audio = audio
-        self.slot_order = tuple(
+        base_slots = [
+            wid
+            for wid, d in sorted(content.weapons.items(), key=lambda item: item[1].slot)
+            if d.slot < 6
+        ]
+        self.slot_order = tuple(base_slots)
+        self.all_slots = tuple(
             sorted(content.weapons, key=lambda key: content.weapons[key].slot)
         )
         self.unlocked = {
@@ -55,10 +61,51 @@ class WeaponComponent:
         self.audio.play("pickup")
         return True
 
-    def select_slot(self, slot_index: int) -> bool:
-        if not 0 <= slot_index < len(self.slot_order):
+    @property
+    def unlocked_weapons(self) -> list[str]:
+        primary = [wid for wid in self.slot_order if wid in self.unlocked]
+        others = [wid for wid in self.unlocked if wid not in self.slot_order]
+        others.sort(
+            key=lambda wid: self.content.weapons[wid].slot
+            if wid in self.content.weapons
+            else 999
+        )
+        return primary + others
+
+    def next_weapon(self) -> bool:
+        unlocked = self.unlocked_weapons
+        if len(unlocked) <= 1:
             return False
-        weapon_id = self.slot_order[slot_index]
+        idx = unlocked.index(self.current_id) if self.current_id in unlocked else 0
+        self.current_id = unlocked[(idx + 1) % len(unlocked)]
+        self.reload_remaining = 0.0
+        self.audio.play("reload", 0.3)
+        return True
+
+    def previous_weapon(self) -> bool:
+        unlocked = self.unlocked_weapons
+        if len(unlocked) <= 1:
+            return False
+        idx = unlocked.index(self.current_id) if self.current_id in unlocked else 0
+        self.current_id = unlocked[(idx - 1) % len(unlocked)]
+        self.reload_remaining = 0.0
+        self.audio.play("reload", 0.3)
+        return True
+
+    def unlock_all(self) -> None:
+        for wid in self.content.weapons:
+            self.unlocked.add(wid)
+        self.audio.play("pickup")
+
+    def select_slot(self, slot_index: int) -> bool:
+        weapon_id = None
+        if hasattr(self, "all_slots") and 0 <= slot_index < len(self.all_slots):
+            weapon_id = self.all_slots[slot_index]
+        elif 0 <= slot_index < len(self.slot_order):
+            weapon_id = self.slot_order[slot_index]
+        else:
+            return False
+
         if weapon_id not in self.unlocked:
             return False
         self.current_id = weapon_id
@@ -120,6 +167,7 @@ class WeaponComponent:
 
         self.magazines[self.current_id] -= 1
         rng = getattr(map_obj, "gameplay_rng", random)
+        proj_type = getattr(weapon, "projectile_type", "bullet")
         for _ in range(weapon.pellets):
             combat_system.criar_projetil(
                 self.owner.x,
@@ -134,6 +182,7 @@ class WeaponComponent:
                 angle_offset=rng.uniform(-weapon.spread, weapon.spread),
                 critical_chance=weapon.critical_chance,
                 critical_multiplier=weapon.critical_multiplier,
+                projectile_type=proj_type,
             )
         combat_system.criar_feedback_disparo(
             self.owner,

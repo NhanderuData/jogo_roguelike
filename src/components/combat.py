@@ -29,6 +29,12 @@ class CombatComponent:
         self.max_fome = 100
         self.fome_timer = 0 # Contador para diminuir a fome
         
+        
+        # --- FOME (NOVO) ---
+        self.fome = 100
+        self.max_fome = 100
+        self.fome_timer = 0 # Contador para diminuir a fome
+        
         # XP e Nível
         self.xp = 0
         self.level = 1
@@ -38,6 +44,10 @@ class CombatComponent:
         # Cooldowns
         self.cooldown_sword = 0
         self.cooldown_shoot = 0
+
+        # Efeito de Fogo / Queimadura (DoT)
+        self.burn_timer = 0.0
+        self.burn_damage_timer = 0.0
 
     def take_damage(self, amount, map_obj=None, critical=False):
         amount = max(0, int(amount))
@@ -96,6 +106,20 @@ class CombatComponent:
         self.next_level_xp = int(self.next_level_xp * 1.5)
         logger.info("%s reached level %s", self.entity.nome, self.level)
 
-    def update(self, dt):
+    def apply_burn(self, duration: float = 3.0):
+        self.burn_timer = max(self.burn_timer, duration)
+
+    def update(self, dt: float, map_obj=None) -> None:
         self.cooldown_shoot = max(0.0, self.cooldown_shoot - dt)
         self.cooldown_sword = max(0.0, self.cooldown_sword - dt)
+
+        # Atualiza efeito de fogo (Dano contínuo e partículas de brasa)
+        if self.burn_timer > 0 and not self.dead:
+            self.burn_timer = max(0.0, self.burn_timer - dt)
+            self.burn_damage_timer += dt
+            if self.burn_damage_timer >= 0.45:
+                self.burn_damage_timer = 0.0
+                burn_dmg = 4
+                self.take_damage(burn_dmg, map_obj)
+                if map_obj and hasattr(map_obj, "particulas") and map_obj.particulas:
+                    map_obj.particulas.emit(self.entity.x, self.entity.y, "fire", 3)

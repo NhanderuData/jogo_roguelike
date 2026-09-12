@@ -18,6 +18,14 @@ class Actions:
     WEAPON_2 = "weapon_2"
     WEAPON_3 = "weapon_3"
     WEAPON_4 = "weapon_4"
+    WEAPON_5 = "weapon_5"
+    WEAPON_6 = "weapon_6"
+    WEAPON_7 = "weapon_7"
+    WEAPON_8 = "weapon_8"
+    WEAPON_9 = "weapon_9"
+    WEAPON_NEXT = "weapon_next"
+    WEAPON_PREV = "weapon_prev"
+    UNLOCK_ALL_WEAPONS = "unlock_all_weapons"
     TOGGLE_DEBUG = "toggle_debug"
     TOGGLE_MUTE = "toggle_mute"
     RESET_ZOOM = "reset_zoom"
@@ -42,6 +50,13 @@ class InputManager:
             Actions.WEAPON_2: [pygame.K_2],
             Actions.WEAPON_3: [pygame.K_3],
             Actions.WEAPON_4: [pygame.K_4],
+            Actions.WEAPON_5: [pygame.K_5],
+            Actions.WEAPON_6: [pygame.K_6],
+            Actions.WEAPON_7: [pygame.K_7],
+            Actions.WEAPON_8: [pygame.K_8],
+            Actions.WEAPON_9: [pygame.K_9],
+            Actions.WEAPON_NEXT: [pygame.K_q],
+            Actions.UNLOCK_ALL_WEAPONS: [pygame.K_u],
             Actions.TOGGLE_DEBUG: [pygame.K_F3],
             Actions.TOGGLE_MUTE: [pygame.K_m],
             Actions.RESET_ZOOM: [pygame.K_BACKSPACE, pygame.K_HOME],

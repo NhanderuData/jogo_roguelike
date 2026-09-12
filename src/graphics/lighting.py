@@ -18,6 +18,9 @@ class LightingRenderer:
         self._bonfire_cores = self._variants(bonfire_core, 0.82, 1.0)
         self._darkness = pygame.Surface(size, pygame.SRCALPHA)
         self.eye_glow = self.create_gradient(16, (240, 25, 25), 140)
+        self.flame_light = self.create_gradient(48, (255, 140, 40), 110)
+        self.explosion_light = self.create_gradient(160, (255, 180, 75), 210)
+        self.explosion_core = self.create_gradient(70, (255, 245, 190), 255)
 
     @staticmethod
     def create_gradient(radius, color=(255, 255, 255), intensity=100):
@@ -153,6 +156,32 @@ class LightingRenderer:
             pygame.draw.circle(surface, (255, 220, 200), (e1_x, eye_y), 1)
             pygame.draw.circle(surface, (255, 45, 35), (e2_x, eye_y), 2)
             pygame.draw.circle(surface, (255, 220, 200), (e2_x, eye_y), 1)
+
+        # Iluminação dinâmica de efeitos visuais (Explosões e Chamas)
+        for efeito in getattr(world, "efeitos", ()):
+            if getattr(efeito, "life", 0) <= 0:
+                continue
+            ex = getattr(efeito, "x", None)
+            ey = getattr(efeito, "y", None)
+            if ex is None or ey is None:
+                continue
+            cx = int(ex * tile_size - camera_x)
+            cy = int(ey * tile_size - camera_y)
+            if not (-180 <= cx <= surface.get_width() + 180 and -180 <= cy <= surface.get_height() + 180):
+                continue
+            cls_name = efeito.__class__.__name__
+            if cls_name == "ExplosaoAnimada":
+                self._blit_centered(surface, self.explosion_light, cx, cy)
+                self._blit_centered(surface, self.explosion_core, cx, cy)
+            elif cls_name == "EfeitoChama":
+                self._blit_centered(surface, self.flame_light, cx, cy)
+
+        for entity in getattr(world, "entidades", ()):
+            combat = getattr(entity, "combat", None)
+            if combat and getattr(combat, "burn_timer", 0) > 0 and getattr(combat, "hp", 1) > 0:
+                cx = int((entity.x + 0.5) * tile_size - camera_x)
+                cy = int((entity.y + 0.5) * tile_size - camera_y)
+                self._blit_centered(surface, self.flame_light, cx, cy)
 
     @staticmethod
     def _blit_centered(surface, light, center_x, center_y):

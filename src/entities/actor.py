@@ -42,6 +42,8 @@ class Entidade:
             self.inventory.add_item("Colete Tático", 1)
             self.inventory.add_item("Munição 9mm", 4)
             self.inventory.add_item("Cartuchos calibre 12", 2)
+            self.inventory.add_item("Tanque de Combustível", 2)
+            self.inventory.add_item("Foguetes RPG", 3)
             
             # Novo Sistema de Sobrevivência
             self.status = StatusComponent(self) 
@@ -148,7 +150,7 @@ class Entidade:
         # Atualiza TODOS os sistemas da entidade
         self.physics.update(dt)
         self.sprite.update(dt)
-        self.combat.update(dt)
+        self.combat.update(dt, mapa_obj)
         if self.weapons:
             self.weapons.update(dt)
         if self.status:

@@ -370,7 +370,7 @@ class AIComponent:
 
                 if min_enemy_dist < 1.3:
                     if hasattr(self.entity, "atacar_espada"):
-                        self.entity.atacar_espada(closest_enemy.x, closest_enemy.y, mapa_obj)
+                        self.entity.atacar_espada(closest_enemy.x + 0.5, closest_enemy.y + 0.5, mapa_obj)
                     else:
                         c = getattr(closest_enemy, "combat", None)
                         if c:

@@ -8,26 +8,49 @@ from components.sprite import SpriteComponent
 from components.impact import impact_profile
 from map.terrain import terrain_material
 
-# --- EFEITO VISUAL (Risco da Espada) ---
-# Mantemos simples pois é apenas visual temporário
+# --- EFEITO VISUAL (Arco de Corte da Lâmina) ---
 class EfeitoVisual:
-    def __init__(self, x, y, angle):
+    def __init__(self, x, y, angle, radius=48):
         self.x = x
         self.y = y
         self.angle = angle
-        self.life = 10 / config.FPS
+        self.radius = max(36, radius)
+        self.life = 0.15
         self.max_life = self.life
 
     def update(self, dt):
         self.life -= dt
 
     def draw(self, surface, camera_x, camera_y):
-        cx = self.x * config.TAMANHO_TILE - camera_x
-        cy = self.y * config.TAMANHO_TILE - camera_y
-        end_x = cx + math.cos(self.angle) * 40
-        end_y = cy + math.sin(self.angle) * 40
-        largura = max(1, round(5 * max(0.0, self.life / self.max_life)))
-        pygame.draw.line(surface, config.BRANCO, (cx, cy), (end_x, end_y), largura)
+        if self.life <= 0:
+            return
+        cx = int((self.x + 0.5) * config.TAMANHO_TILE - camera_x)
+        cy = int((self.y + 0.5) * config.TAMANHO_TILE - camera_y)
+
+        progress = max(0.0, min(1.0, self.life / self.max_life))
+        alpha = int(240 * progress)
+
+        # Desenha arco dinâmico de lâmina / corte (slash swoosh)
+        arc_span = math.radians(110)
+        start_angle = self.angle - arc_span / 2
+        end_angle = self.angle + arc_span / 2
+        steps = 8
+        outer_pts = []
+        inner_pts = []
+        r_outer = self.radius
+        r_inner = max(8, self.radius * 0.45)
+        for i in range(steps + 1):
+            t = i / steps
+            a = start_angle + t * (end_angle - start_angle)
+            outer_pts.append((int(cx + math.cos(a) * r_outer), int(cy + math.sin(a) * r_outer)))
+            inner_pts.append((int(cx + math.cos(a) * r_inner), int(cy + math.sin(a) * r_inner)))
+
+        poly_pts = outer_pts + inner_pts[::-1]
+        if len(poly_pts) >= 3:
+            slash_surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+            pygame.draw.polygon(slash_surf, (255, 255, 255, min(230, alpha)), poly_pts)
+            pygame.draw.lines(slash_surf, (180, 230, 255, alpha), False, outer_pts, 3)
+            surface.blit(slash_surf, (0, 0))
 
 # --- NOVO PROJÉTIL (Entidade ECS) ---
 class Projetil:
@@ -35,6 +58,7 @@ class Projetil:
     def __init__(
         self, x, y, angle, origem, dono, damage=None, speed=18.0,
         critical_chance=0.0, critical_multiplier=1.5,
+        projectile_type="bullet",
     ):
         self.name = "Projetil"
         self.origem = origem 
@@ -42,8 +66,10 @@ class Projetil:
         self.damage = damage
         self.critical_chance = critical_chance
         self.critical_multiplier = critical_multiplier
+        self.projectile_type = projectile_type
         self.active = True
-        self.life = 100 / config.FPS
+        self.life = 0.45 if projectile_type == "flame" else (100 / config.FPS)
+        self.hit_entities = set()
         
         # Projéteis têm movimento balístico próprio: nunca deslizam em
         # paredes como personagens e, portanto, nunca curvam em quinas.
@@ -64,7 +90,7 @@ class Projetil:
     def image(self): return self.rotated_image
 
     def _rect_at(self, x, y):
-        size = max(6, config.TAMANHO_TILE // 4)
+        size = int(config.TAMANHO_TILE * 0.75) if self.projectile_type == "flame" else max(6, config.TAMANHO_TILE // 4)
         return pygame.Rect(0, 0, size, size).move(
             round(x * config.TAMANHO_TILE - size / 2),
             round(y * config.TAMANHO_TILE - size / 2),
@@ -119,7 +145,7 @@ class Projetil:
             else mapa_obj.entidades
         )
         for ent in candidates:
-            if ent is self.dono or ent.hp <= 0:
+            if ent is self.dono or getattr(ent, "hp", 1) <= 0:
                 continue
             if rect.colliderect(ent.hitbox):
                 return ent
@@ -175,7 +201,56 @@ class Projetil:
             )
         )
 
+    def _criar_explosao(self, mapa_obj, cx, cy):
+        blast_radius = 2.8
+        if hasattr(mapa_obj, "efeitos") and mapa_obj.efeitos is not None:
+            mapa_obj.efeitos.append(
+                efeitos.ExplosaoAnimada(cx, cy, radius_tiles=blast_radius, damage=self.damage or 140)
+            )
+        if hasattr(mapa_obj, "particulas") and mapa_obj.particulas:
+            mapa_obj.particulas.emit(cx, cy, "fire", 24)
+            mapa_obj.particulas.emit(cx, cy, "smoke", 18)
+            mapa_obj.particulas.emit(cx, cy, "spark", 16)
+        if hasattr(mapa_obj, "context") and getattr(mapa_obj.context, "audio", None):
+            mapa_obj.context.audio.play("explosion")
+        if hasattr(mapa_obj, "camera") and mapa_obj.camera:
+            mapa_obj.camera.add_trauma(0.48)
+
+        # Destrói / colhe vegetação e plantações na área da detonação
+        if hasattr(mapa_obj, "colher_decoracao"):
+            r_int = int(math.ceil(blast_radius))
+            for bx in range(int(cx) - r_int, int(cx) + r_int + 1):
+                for by in range(int(cy) - r_int, int(cy) + r_int + 1):
+                    if math.hypot(bx + 0.5 - cx, by + 0.5 - cy) <= blast_radius:
+                        mapa_obj.colher_decoracao(bx, by, self.dono)
+
+        for other in getattr(mapa_obj, "entidades", ()):
+            if other is self.dono:
+                continue
+            dist = math.hypot(other.x + 0.5 - cx, other.y + 0.5 - cy)
+            if dist <= blast_radius:
+                factor = max(0.3, 1.0 - (dist / blast_radius) * 0.7)
+                dmg = max(10, int((self.damage or 140) * factor))
+                c = getattr(other, "combat", None)
+                if c and not getattr(c, "dead", False):
+                    c.take_damage(dmg, mapa_obj)
+                    if hasattr(c, "apply_burn"):
+                        c.apply_burn(3.0)
+                    if hasattr(mapa_obj, "criar_texto_dano"):
+                        mapa_obj.criar_texto_dano(other.x, other.y, dmg, (255, 120, 30))
+                # Empurrão físico radial (Knockback)
+                phys = getattr(other, "physics", None)
+                if phys and dist > 0.05:
+                    push_x = (other.x + 0.5 - cx) / dist
+                    push_y = (other.y + 0.5 - cy) / dist
+                    knockback_force = min(0.65, 0.2 + factor * 0.4)
+                    phys.move_by(push_x, push_y, knockback_force, mapa_obj)
+
     def update(self, dt, mapa_obj):
+        # Disparo contínuo de plumas de chamas para o lança-chamas
+        if self.projectile_type == "flame" and hasattr(mapa_obj, "efeitos") and mapa_obj.efeitos is not None:
+            mapa_obj.efeitos.append(efeitos.EfeitoChama(self.x, self.y, self.angle, self.speed))
+
         distance = self.speed * max(0.0, dt)
         distance_px = distance * config.TAMANHO_TILE
         steps = max(1, math.ceil(distance_px / 4))
@@ -190,21 +265,53 @@ class Projetil:
             terrain_type = self._terrain_hit(rect, mapa_obj)
             if terrain_type:
                 self._impact_terrain(mapa_obj, terrain_type, next_x, next_y)
+                if self.projectile_type == "rocket":
+                    self._criar_explosao(mapa_obj, next_x, next_y)
                 self.active = False
                 return
 
-            target = self._hit_entity(rect, mapa_obj)
-            if target:
-                self.x, self.y = next_x, next_y
-                if getattr(target, "is_static", False):
-                    self._impact_static_entity(target, mapa_obj)
-                else:
-                    self._damage(target, mapa_obj)
-                self.active = False
-                return
+            if self.projectile_type == "flame":
+                # Lança-chamas perfurante: incendeia múltiplos inimigos e vegetações sem ser bloqueado
+                if hasattr(mapa_obj, "colher_decoracao"):
+                    mapa_obj.colher_decoracao(int(math.floor(next_x)), int(math.floor(next_y)), self.dono)
+
+                candidates = (
+                    mapa_obj.nearby_entities(rect)
+                    if hasattr(mapa_obj, "nearby_entities")
+                    else mapa_obj.entidades
+                )
+                for ent in candidates:
+                    if ent is self.dono or getattr(ent, "hp", 1) <= 0 or ent in self.hit_entities:
+                        continue
+                    if rect.colliderect(ent.hitbox):
+                        self.hit_entities.add(ent)
+                        if getattr(ent, "is_static", False):
+                            self._impact_static_entity(ent, mapa_obj)
+                        else:
+                            self._damage(ent, mapa_obj)
+                            c = getattr(ent, "combat", None)
+                            if c and hasattr(c, "apply_burn"):
+                                c.apply_burn(3.5)
+            else:
+                target = self._hit_entity(rect, mapa_obj)
+                if target:
+                    self.x, self.y = next_x, next_y
+                    if getattr(target, "is_static", False):
+                        self._impact_static_entity(target, mapa_obj)
+                    else:
+                        self._damage(target, mapa_obj)
+                    if self.projectile_type == "rocket":
+                        self._criar_explosao(mapa_obj, next_x, next_y)
+                    self.active = False
+                    return
 
             # X e Y são confirmados juntos: a direção nunca muda.
             self.x, self.y = next_x, next_y
+
+        if self.projectile_type == "flame" and hasattr(mapa_obj, "particulas") and mapa_obj.particulas:
+            mapa_obj.particulas.emit(self.x, self.y, "fire", 2)
+        elif self.projectile_type == "rocket" and hasattr(mapa_obj, "particulas") and mapa_obj.particulas:
+            mapa_obj.particulas.emit(self.x, self.y, "smoke", 1)
 
         self.sprite.update(dt)
         self.life -= dt
@@ -216,6 +323,7 @@ class Projetil:
 def criar_projetil(
     x, y, tx, ty, origem, mapa_obj, dono, damage=None, speed=18.0, angle_offset=0.0,
     critical_chance=0.0, critical_multiplier=1.5,
+    projectile_type="bullet",
 ):
     # Entidades usam coordenadas do canto superior esquerdo; o tiro nasce no
     # centro visual do tile e mira exatamente o ponto indicado pelo cursor.
@@ -224,6 +332,7 @@ def criar_projetil(
     p = Projetil(
         start_x, start_y, angle, origem, dono, damage=damage, speed=speed,
         critical_chance=critical_chance, critical_multiplier=critical_multiplier,
+        projectile_type=projectile_type,
     )
     mapa_obj.projeteis.append(p)
     if origem == "player" and hasattr(mapa_obj, "alert_enemies"):
@@ -243,38 +352,63 @@ def executar_golpe_espada(
     atacante, tx, ty, mapa_obj, damage=None, alcance=1.0,
     critical_chance=0.0, critical_multiplier=1.5,
 ):
-    angle = math.atan2(ty - atacante.y, tx - atacante.x)
-    efeito = EfeitoVisual(atacante.x, atacante.y, angle)
+    start_x = atacante.x + 0.5
+    start_y = atacante.y + 0.5
+    angle = math.atan2(ty - start_y, tx - start_x)
+    efeito = EfeitoVisual(atacante.x, atacante.y, angle, radius=int(alcance * config.TAMANHO_TILE))
     mapa_obj.efeitos.append(efeito)
-    
+
     distancia_golpe = alcance
-    hit_x = atacante.x + math.cos(angle) * distancia_golpe
-    hit_y = atacante.y + math.sin(angle) * distancia_golpe
+    hit_x = start_x + math.cos(angle) * distancia_golpe
+    hit_y = start_y + math.sin(angle) * distancia_golpe
     area_golpe = pygame.Rect(
-        hit_x * config.TAMANHO_TILE - 24,
-        hit_y * config.TAMANHO_TILE - 24,
-        48,
-        48,
+        int(hit_x * config.TAMANHO_TILE - 28),
+        int(hit_y * config.TAMANHO_TILE - 28),
+        56,
+        56,
     )
-    
+
+    broadphase_rect = pygame.Rect(
+        int((start_x - alcance - 0.5) * config.TAMANHO_TILE),
+        int((start_y - alcance - 0.5) * config.TAMANHO_TILE),
+        int((alcance * 2 + 1.0) * config.TAMANHO_TILE),
+        int((alcance * 2 + 1.0) * config.TAMANHO_TILE),
+    )
     alvos = (
-        mapa_obj.nearby_entities(area_golpe)
+        mapa_obj.nearby_entities(broadphase_rect)
         if hasattr(mapa_obj, "nearby_entities")
         else mapa_obj.entidades
     )
     acertou = False
-    
+
     # Ceifa/colheita de plantações e cogumelos pelo golpe
     if hasattr(mapa_obj, "colher_decoracao"):
-        for tx in (int(math.floor(hit_x)), int(round(hit_x)), int(math.ceil(hit_x))):
-            for ty in (int(math.floor(hit_y)), int(round(hit_y)), int(math.ceil(hit_y))):
-                if mapa_obj.colher_decoracao(tx, ty, atacante):
-                    acertou = True
-    
+        for step in (0.4, 0.8, distancia_golpe):
+            cx = start_x + math.cos(angle) * step
+            cy = start_y + math.sin(angle) * step
+            for tx in (int(math.floor(cx)), int(round(cx))):
+                for ty in (int(math.floor(cy)), int(round(cy))):
+                    if mapa_obj.colher_decoracao(tx, ty, atacante):
+                        acertou = True
+
     for alvo in alvos:
-        if alvo is atacante:
+        if alvo is atacante or getattr(alvo, "hp", 0) <= 0:
             continue
-        if area_golpe.colliderect(alvo.hitbox):
+
+        alvo_cx = getattr(alvo, "x", 0) + 0.5
+        alvo_cy = getattr(alvo, "y", 0) + 0.5
+        dist = math.hypot(alvo_cx - start_x, alvo_cy - start_y)
+        
+        # Conexão abrangente: cone frontal OU queima-roupa OU colisão de hitbox
+        atingiu = False
+        if dist <= alcance + 0.45:
+            diff_angle = abs((math.atan2(alvo_cy - start_y, alvo_cx - start_x) - angle + math.pi) % (2 * math.pi) - math.pi)
+            if diff_angle <= math.radians(80) or dist <= 0.85:
+                atingiu = True
+        if not atingiu and hasattr(alvo, "hitbox") and area_golpe.colliderect(alvo.hitbox):
+            atingiu = True
+
+        if atingiu:
             if getattr(alvo, "is_static", False):
                 profile = impact_profile(
                     getattr(alvo, "impact_material", "stone")

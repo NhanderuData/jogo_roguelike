@@ -39,6 +39,8 @@ class WeaponDefinition:
     critical_multiplier: float = 1.5
     slot: int = 0
     unlocked_by_default: bool = False
+    projectile_type: str = "bullet"
+    auto: bool = False
 
 
 @dataclass(frozen=True)
@@ -144,6 +146,8 @@ class ContentCatalog:
                     weapon_id,
                     "unlocked_by_default",
                 ),
+                projectile_type=str(data.get("projectile_type", "bullet")),
+                auto=cls._boolean(data.get("auto", False), weapon_id, "auto"),
             )
             for weapon_id, data in weapons_raw.items()
         }

@@ -52,6 +52,8 @@ class ParticleSystem:
             "splash": ((110, 205, 255), (65, 150, 235), (210, 240, 255)),
             "armor": ((120, 205, 255), (230, 245, 255), (85, 125, 170)),
             "critical": ((255, 235, 85), (255, 145, 35), (255, 255, 220)),
+            "fire": ((255, 235, 90), (255, 140, 30), (230, 60, 20), (190, 35, 15)),
+            "smoke": ((55, 55, 60), (85, 80, 85), (115, 110, 110), (45, 45, 50)),
         }
         palette = palettes.get(kind, palettes["dust"])
         for _ in range(min(count, self.MAX_PARTICLES - len(self.particles))):
@@ -59,6 +61,21 @@ class ParticleSystem:
                 vx, vy, life, size, gravity = random.uniform(-0.15, 0.25), random.uniform(0.08, 0.3), random.uniform(1.5, 3.0), random.choice((2, 3)), 0.0
             elif kind == "mist":
                 vx, vy, life, size, gravity = random.uniform(0.08, 0.22), random.uniform(-0.03, 0.03), random.uniform(2.0, 4.0), random.choice((4, 5, 6)), 0.0
+            elif kind == "fire":
+                vx = random.uniform(-0.4, 0.4)
+                vy = random.uniform(-0.9, -0.2)
+                if direction:
+                    vx += direction[0] * 0.5
+                    vy += direction[1] * 0.5
+                life = random.uniform(0.28, 0.55)
+                size = random.choice((3, 4, 5))
+                gravity = -0.3
+            elif kind == "smoke":
+                vx = random.uniform(-0.35, 0.35)
+                vy = random.uniform(-0.6, -0.15)
+                life = random.uniform(0.6, 1.1)
+                size = random.choice((4, 5, 6))
+                gravity = -0.18
             elif kind in {"blood", "spark", "stone", "wood", "splash", "armor", "critical"} and direction:
                 dir_x, dir_y = direction
                 force = random.uniform(0.8, 1.8)

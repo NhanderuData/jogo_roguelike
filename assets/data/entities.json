@@ -32,7 +32,7 @@
     "sprite": "enemy_orc_rogue",
     "ai": true,
     "top_layer": false,
-    "loot": ["Munição 9mm", "SMG de Sucata", "Energético"],
+    "loot": ["Munição 9mm", "Submetralhadora MP5", "Energético"],
     "loot_chance": 1.0
   },
   "Tank": {
@@ -46,7 +46,7 @@
     "sprite": "enemy_orc_warrior",
     "ai": true,
     "top_layer": false,
-    "loot": ["Medkit", "Cartuchos calibre 12", "Colete Tático"],
+    "loot": ["Medkit", "Cartuchos calibre 12", "Colete Tático", "Escopeta Remington 870"],
     "loot_chance": 1.0
   },
   "Stalker Noturno": {
@@ -60,7 +60,7 @@
     "ai": true,
     "top_layer": false,
     "tags": ["nocturnal", "beast"],
-    "loot": ["Energético", "Munição 9mm", "Colete Tático", "Bandagem"],
+    "loot": ["Energético", "Munição 9mm", "Cartuchos calibre 12", "Colete Tático", "Bandagem"],
     "loot_chance": 0.85
   },
   "Carro Quebrado": {

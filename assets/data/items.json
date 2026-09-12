@@ -2,85 +2,115 @@
   "Medkit": {
     "type": "cura",
     "value": 50,
-    "color": [255, 255, 255],
+    "color": [
+      255,
+      255,
+      255
+    ],
     "sprite": "item_medkit"
   },
   "Enlatado": {
     "type": "comida",
     "value": 20,
-    "color": [200, 100, 50],
+    "color": [
+      200,
+      100,
+      50
+    ],
     "sprite": "rock"
   },
   "Munição 9mm": {
     "type": "municao",
     "value": 10,
     "ammo_type": "9mm",
-    "color": [255, 220, 80],
+    "color": [
+      255,
+      220,
+      80
+    ],
     "sprite": "item_ammo_box"
   },
   "Cartuchos calibre 12": {
     "type": "municao",
     "value": 5,
     "ammo_type": "shell",
-    "color": [220, 70, 50],
+    "color": [
+      220,
+      70,
+      50
+    ],
     "sprite": "item_ammo_box"
   },
   "Garrafa d'Agua": {
     "type": "bebida",
     "value": 40,
-    "color": [0, 100, 255],
+    "color": [
+      0,
+      100,
+      255
+    ],
     "sprite": "shoot"
   },
   "Bandagem": {
     "type": "cura_status",
     "value": 10,
     "effect": "estancar",
-    "color": [200, 200, 200],
+    "color": [
+      200,
+      200,
+      200
+    ],
     "sprite": "item_medkit"
   },
   "Energético": {
     "type": "energia",
     "value": 25,
     "duration": 8.0,
-    "color": [40, 130, 255],
+    "color": [
+      40,
+      130,
+      255
+    ],
     "sprite": "item_energy_drink"
   },
   "Colete Tático": {
     "type": "armadura",
     "value": 35,
-    "color": [120, 130, 95],
+    "color": [
+      120,
+      130,
+      95
+    ],
     "sprite": "item_armor"
-  },
-  "Escopeta Tática": {
-    "type": "arma",
-    "value": 0,
-    "weapon_id": "shotgun",
-    "color": [190, 130, 75],
-    "sprite": "weapon_shotgun"
-  },
-  "SMG de Sucata": {
-    "type": "arma",
-    "value": 0,
-    "weapon_id": "smg",
-    "color": [160, 160, 150],
-    "sprite": "weapon_smg"
   },
   "Madeira": {
     "type": "material",
     "value": 1,
-    "color": [140, 85, 45],
+    "color": [
+      140,
+      85,
+      45
+    ],
     "sprite": "nature_stump"
   },
   "Carne Crua": {
     "type": "comida",
     "value": 25,
-    "color": [210, 65, 65],
+    "color": [
+      210,
+      65,
+      65
+    ],
     "sprite": "nature_crystal_blue"
   },
   "Couro": {
     "type": "material",
     "value": 1,
-    "color": [130, 85, 45],
+    "color": [
+      130,
+      85,
+      45
+    ],
     "sprite": "nature_stump"
   },
   "Cenoura": {
@@ -88,7 +118,11 @@
     "value": 15,
     "effect": "visao_noturna",
     "duration": 45.0,
-    "color": [245, 130, 32],
+    "color": [
+      245,
+      130,
+      32
+    ],
     "sprite": "farm_carrot"
   },
   "Beterraba": {
@@ -96,7 +130,11 @@
     "value": 20,
     "effect": "regeneracao",
     "duration": 12.0,
-    "color": [200, 30, 80],
+    "color": [
+      200,
+      30,
+      80
+    ],
     "sprite": "farm_beet"
   },
   "Repolho": {
@@ -104,7 +142,11 @@
     "value": 25,
     "effect": "regeneracao",
     "duration": 12.0,
-    "color": [100, 190, 70],
+    "color": [
+      100,
+      190,
+      70
+    ],
     "sprite": "farm_cabbage"
   },
   "Cebola": {
@@ -112,7 +154,11 @@
     "value": 15,
     "effect": "regeneracao",
     "duration": 8.0,
-    "color": [220, 215, 180],
+    "color": [
+      220,
+      215,
+      180
+    ],
     "sprite": "farm_onion"
   },
   "Couve-flor": {
@@ -120,7 +166,11 @@
     "value": 25,
     "effect": "regeneracao",
     "duration": 12.0,
-    "color": [235, 240, 220],
+    "color": [
+      235,
+      240,
+      220
+    ],
     "sprite": "farm_cauliflower"
   },
   "Cogumelo": {
@@ -128,7 +178,11 @@
     "value": 15,
     "effect": "estancar",
     "duration": 0.0,
-    "color": [160, 110, 50],
+    "color": [
+      160,
+      110,
+      50
+    ],
     "sprite": "nature_mushroom"
   },
   "Cogumelo Estranho": {
@@ -136,7 +190,1100 @@
     "value": 10,
     "effect": "tontura",
     "duration": 8.0,
-    "color": [70, 180, 200],
+    "color": [
+      70,
+      180,
+      200
+    ],
     "sprite": "nature_mushroom_toxic"
+  },
+  "Tanque de Combustível": {
+    "type": "municao",
+    "value": 60,
+    "ammo_type": "fuel",
+    "color": [
+      245,
+      120,
+      20
+    ],
+    "sprite": "item_ammo_box"
+  },
+  "Foguetes RPG": {
+    "type": "municao",
+    "value": 2,
+    "ammo_type": "rocket",
+    "color": [
+      180,
+      70,
+      40
+    ],
+    "sprite": "item_ammo_box"
+  },
+  "Lança-Chamas M2": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "flamethrower",
+    "color": [
+      240,
+      110,
+      30
+    ],
+    "sprite": "weapon_heavy_flamethrower"
+  },
+  "Lança-Foguetes RPG-7": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rpg",
+    "color": [
+      160,
+      150,
+      110
+    ],
+    "sprite": "weapon_heavy_rpg7"
+  },
+  "Munição de Fuzil": {
+    "type": "municao",
+    "value": 30,
+    "ammo_type": "rifle",
+    "color": [
+      190,
+      210,
+      70
+    ],
+    "sprite": "item_ammo_box"
+  },
+  "Munição Pesada": {
+    "type": "municao",
+    "value": 10,
+    "ammo_type": "heavy",
+    "color": [
+      240,
+      110,
+      40
+    ],
+    "sprite": "item_ammo_box"
+  },
+  "Pistola Glock 17": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_glock17",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_glock17"
+  },
+  "Escopeta Remington 870": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_remington870",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_remington870"
+  },
+  "Submetralhadora MP5": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_mp5",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_mp5"
+  },
+  "Facão Reforçado": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "machete",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_machete"
+  },
+  "Granada Frag M67": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "grenade_frag",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_grenade_frag"
+  },
+  "Kunai Tática": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "knife_kunai",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_knife_kunai"
+  },
+  "Escopeta de Cano Serrado": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_sawed_off",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_sawed_off"
+  },
+  "Fuzil AK-47": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_ak47",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_ak47"
+  },
+  "Carabina Winchester 1873": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_winchester",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_winchester"
+  },
+  "Metralhadora RPK": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_rpk",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_rpk"
+  },
+  "Lança-Granadas M79 Thumper": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_m79",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_m79"
+  },
+  "Granada de Fumaça": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "grenade_smoke",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_grenade_smoke"
+  },
+  "Faca Militar Ka-Bar": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "knife_kabar",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_knife_kabar"
+  },
+  "Pistola Beretta 92FS": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_beretta92",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_beretta92"
+  },
+  "Escopeta Cano Duplo": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_double_barrel",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_double_barrel"
+  },
+  "Fuzil Moderno AK-74M": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_ak74m",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_ak74m"
+  },
+  "Fuzil de Precisão Kar98k": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_kar98k",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_kar98k"
+  },
+  "Metralhadora M249 SAW": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_m249",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_m249"
+  },
+  "Lança-Granadas M32 MGL": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_m32_mgl",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_m32_mgl"
+  },
+  "Lança-Foguetes Quádruplo": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_quad_launcher",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_quad_launcher"
+  },
+  "Granada Flashbang": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "grenade_flash",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_grenade_flash"
+  },
+  "Faca Bowie Caçador": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "knife_bowie",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_knife_bowie"
+  },
+  "Pistola Colt M1911": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_m1911",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_m1911"
+  },
+  "Escopeta Sobreposta": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_over_under",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_over_under"
+  },
+  "Fuzil de Serviço M16A2": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_m16a2",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_m16a2"
+  },
+  "Fuzil Mosin-Nagant": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_mosin",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_mosin"
+  },
+  "Metralhadora M60": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_m60",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_m60"
+  },
+  "Motosserra Motorizada": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "melee_chainsaw",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_melee_chainsaw"
+  },
+  "Coquetel Molotov": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "grenade_molotov",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_grenade_molotov"
+  },
+  "Canivete Borboleta": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "knife_balisong",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_knife_balisong"
+  },
+  "Pistola SIG P226": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_sig_p226",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_sig_p226"
+  },
+  "Carabina Tática M4A1": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_m4a1",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_m4a1"
+  },
+  "Fuzil M1 Garand": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_m1_garand",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_m1_garand"
+  },
+  "Metralhadora Pesada PKM": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_pkm",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_pkm"
+  },
+  "Bazuca M1 Antitanque": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_bazooka",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_bazooka"
+  },
+  "Metralhadora Giratória Minigun": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_minigun",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_minigun"
+  },
+  "Karambit Curva": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "knife_karambit",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_knife_karambit"
+  },
+  "Pistola Desert Eagle .50": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_deagle",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_deagle"
+  },
+  "Escopeta Mossberg 590": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_mossberg590",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_mossberg590"
+  },
+  "Fuzil Compacto G36C": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_g36c",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_g36c"
+  },
+  "Rifle Sniper Remington 700": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_remington700",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_remington700"
+  },
+  "Metralhadora Browning M1919": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_browning_m1919",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_browning_m1919"
+  },
+  "Lança-Mísseis Javelin FGM-148": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_javelin",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_javelin"
+  },
+  "Morteiro Portátil 60mm": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "heavy_mortar",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_heavy_mortar"
+  },
+  "Dinamite": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "explosive_dynamite",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_explosive_dynamite"
+  },
+  "Derringer .22": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_derringer",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_derringer"
+  },
+  "Micro-Uzi": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_micro_uzi",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_micro_uzi"
+  },
+  "Escopeta Tática SPAS-12": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_spas12",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_spas12"
+  },
+  "Fuzil Bullpup Steyr AUG": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_steyr_aug",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_steyr_aug"
+  },
+  "Fuzil Sniper Dragunov SVD": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_dragunov",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_dragunov"
+  },
+  "Metralhadora MG42 Buzzsaw": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_mg42",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_mg42"
+  },
+  "Mina Terrestre": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "explosive_landmine",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_explosive_landmine"
+  },
+  "Revólver Snubnose .38": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "revolver_snubnose",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_revolver_snubnose"
+  },
+  "Submetralhadora MAC-10": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_mac10",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_mac10"
+  },
+  "Escopeta Benelli M4": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_benelli_m4",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_benelli_m4"
+  },
+  "Fuzil Bullpup FAMAS": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_famas",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_famas"
+  },
+  "Fuzil de Precisão AWP L96": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_awp",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_awp"
+  },
+  "Metralhadora de Assalto Negev": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_negev",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_negev"
+  },
+  "C4 com Detonador": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "explosive_c4",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_explosive_c4"
+  },
+  "Pistola de Bolso .380": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_pocket",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_pocket"
+  },
+  "Submetralhadora TEC-9": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_tec9",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_tec9"
+  },
+  "Escopeta Striker de Tambor": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_striker",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_striker"
+  },
+  "Fuzil Modular SCAR-L": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_scar_l",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_scar_l"
+  },
+  "Rifle Sniper Steyr Scout": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_scout",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_scout"
+  },
+  "Metralhadora DShK Calibre .50": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_dshk",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_dshk"
+  },
+  "Mina Claymore": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "explosive_claymore",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_explosive_claymore"
+  },
+  "Pistola Silenciada PPK": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "pistol_ppk_silenced",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_pistol_ppk_silenced"
+  },
+  "Skorpion vz. 61": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_skorpion",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_skorpion"
+  },
+  "Escopeta Automática AA-12": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_aa12",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_aa12"
+  },
+  "Fuzil Tavor TAR-21": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_tar21",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_tar21"
+  },
+  "Sniper Silenciado VSS Vintorez": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_vss",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_vss"
+  },
+  "Metralhadora Browning M2 .50": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "lmg_m2hb",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_lmg_m2hb"
+  },
+  "Detonador Remoto": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "explosive_detonator",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_explosive_detonator"
+  },
+  "Escopeta Bullpup KSG": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_ksg",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_ksg"
+  },
+  "Fuzil de Assalto Galil": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_galil",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_galil"
+  },
+  "Barrett .50 BMG Antimaterial": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_barrett_m82",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_barrett_m82"
+  },
+  "Taco com Pregos": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "bat_spiked",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_bat_spiked"
+  },
+  "Revólver Colt Peacemaker": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "revolver_colt_saa",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_revolver_colt_saa"
+  },
+  "Submetralhadora MP5-SD": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_mp5sd",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_mp5sd"
+  },
+  "Escopeta USAS-12": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "shotgun_usas12",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_shotgun_usas12"
+  },
+  "Fuzil de Batalha FN FAL": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_fn_fal",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_fn_fal"
+  },
+  "Sniper CheyTac M200 Extremo": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_cheytac",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_cheytac"
+  },
+  "Porrete de Madeira": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "wood_club",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_wood_club"
+  },
+  "Revólver Magnum .357": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "revolver_magnum_357",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_revolver_magnum_357"
+  },
+  "PDW Tática MP7": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_mp7",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_mp7"
+  },
+  "Fuzil de Batalha M14 EBR": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_m14_ebr",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_m14_ebr"
+  },
+  "Rifle Sniper Bullpup DSR-1": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "sniper_dsr1",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_sniper_dsr1"
+  },
+  "Katana de Aço": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "katana",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_katana"
+  },
+  "Revólver Pesado Magnum .44": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "revolver_magnum_44",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_revolver_magnum_44"
+  },
+  "Submetralhadora FN P90": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_p90",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_p90"
+  },
+  "Fuzil de Batalha HK G3": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_hk_g3",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_hk_g3"
+  },
+  "KRISS Vector .45": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "smg_vector",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_smg_vector"
+  },
+  "Fuzil Adaptativo ACR": {
+    "type": "arma",
+    "value": 0,
+    "weapon_id": "rifle_acr",
+    "color": [
+      220,
+      190,
+      80
+    ],
+    "sprite": "weapon_rifle_acr"
   }
 }

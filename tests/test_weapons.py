@@ -32,26 +32,26 @@ class WeaponTests(unittest.TestCase):
     def test_selects_unlocked_2d_weapon_slot(self):
         self.assertEqual(
             self.weapons.slot_order,
-            ("pistol", "shotgun", "smg", "machete"),
+            ("pistol_glock17", "shotgun_remington870", "smg_mp5", "machete", "flamethrower", "rpg"),
         )
         self.assertTrue(self.weapons.select_slot(1))
-        self.assertEqual(self.weapons.current_id, "shotgun")
-        self.assertEqual(self.weapons.current.sprite, "weapon_shotgun")
+        self.assertEqual(self.weapons.current_id, "shotgun_remington870")
+        self.assertEqual(self.weapons.current.sprite, "weapon_shotgun_remington870")
 
     def test_reload_moves_reserve_ammo_into_magazine(self):
-        self.weapons.magazines["pistol"] = 2
+        self.weapons.magazines["pistol_glock17"] = 2
         reserve_before = self.owner.inventory.ammo_count("9mm")
 
         self.assertTrue(self.weapons.start_reload())
         self.weapons.update(self.weapons.current.reload_time)
 
-        self.assertEqual(self.weapons.magazines["pistol"], 12)
-        self.assertEqual(self.owner.inventory.ammo_count("9mm"), reserve_before - 10)
+        self.assertEqual(self.weapons.magazines["pistol_glock17"], 17)
+        self.assertEqual(self.owner.inventory.ammo_count("9mm"), reserve_before - 15)
 
     def test_unlock_rejects_duplicate_weapon(self):
-        self.assertFalse(self.weapons.unlock("shotgun"))
-        self.assertTrue(self.weapons.unlock("smg"))
-        self.assertEqual(self.weapons.current_id, "smg")
+        self.assertFalse(self.weapons.unlock("shotgun_remington870"))
+        self.assertTrue(self.weapons.unlock("rifle_ak47"))
+        self.assertEqual(self.weapons.current_id, "rifle_ak47")
 
 
 class ArmorTests(unittest.TestCase):

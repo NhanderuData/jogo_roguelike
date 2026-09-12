@@ -85,6 +85,12 @@ class SoundManager:
             "bird": (0.22, 780.0, 1380.0, 0.05),
             "night_howl": (1.4, 480.0, 160.0, 0.35),
             "fire_hiss": (0.18, 750.0, 220.0, 0.75),
+            "rifle": (0.085, 290.0, 85.0, 0.65),
+            "sniper": (0.18, 240.0, 50.0, 0.85),
+            "heavy_mg": (0.065, 340.0, 90.0, 0.70),
+            "explosion": (0.32, 140.0, 30.0, 0.95),
+            "flame": (0.14, 450.0, 180.0, 0.80),
+            "chainsaw": (0.07, 180.0, 260.0, 0.60),
         }
         for name, spec in specs.items():
             self.sounds[name] = self._synthesize(frequency, channels, name, *spec)

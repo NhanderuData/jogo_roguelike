@@ -370,49 +370,90 @@ class UI:
 
     def _draw_weapons(self, surface, jogador):
         weapons = jogador.weapons
-        slot_size = 64
+        if not weapons or not hasattr(weapons, "current"):
+            return
+
+        unlocked_list = getattr(weapons, "unlocked_weapons", None)
+        if not unlocked_list:
+            unlocked_list = [w for w in weapons.slot_order if w in weapons.unlocked]
+        if not unlocked_list:
+            unlocked_list = [weapons.current_id]
+
+        curr_id = weapons.current_id
+        curr_idx = unlocked_list.index(curr_id) if curr_id in unlocked_list else 0
+        total_unlocked = len(unlocked_list)
+
+        slot_size = 58
         gap = 8
-        total_width = (
-            len(weapons.slot_order) * slot_size
-            + max(0, len(weapons.slot_order) - 1) * gap
-        )
-        start_x = config.LARGURA_TELA - total_width - 20
-        y = config.ALTURA_TELA - slot_size - 20
+        base_slots = list(weapons.slot_order)
+        if curr_id not in base_slots:
+            visible_slots = base_slots + [curr_id]
+        else:
+            visible_slots = base_slots
 
-        for index, weapon_id in enumerate(weapons.slot_order):
-            x = start_x + index * (slot_size + gap)
-            unlocked = weapon_id in weapons.unlocked
-            selected = weapon_id == weapons.current_id
-            background = (24, 27, 30) if unlocked else (12, 13, 14)
-            border = (255, 210, 70) if selected else (90, 95, 100)
-            pygame.draw.rect(surface, background, (x, y, slot_size, slot_size))
-            pygame.draw.rect(surface, border, (x, y, slot_size, slot_size), 3 if selected else 1)
+        total_width = len(visible_slots) * slot_size + (len(visible_slots) - 1) * gap
+        scr_w = surface.get_width()
+        scr_h = surface.get_height()
+        start_x = scr_w - total_width - 20
+        y = scr_h - slot_size - 18
 
-            definition = weapons.content.weapons[weapon_id]
-            icon = self._scaled_icon(definition.sprite, (56, 56))
-            if icon and unlocked:
-                surface.blit(icon, (x + 4, y + 4))
-            elif not unlocked:
-                pygame.draw.line(surface, (55, 58, 60), (x + 18, y + 18), (x + 46, y + 46), 3)
-                pygame.draw.line(surface, (55, 58, 60), (x + 46, y + 18), (x + 18, y + 46), 3)
+        for slot_idx, weapon_id in enumerate(visible_slots):
+            x = start_x + slot_idx * (slot_size + gap)
+            is_unlocked = weapon_id in weapons.unlocked
+            is_selected = (weapon_id == curr_id)
+            definition = weapons.content.weapons.get(weapon_id)
+            if not definition:
+                continue
+
+            bg_color = (32, 38, 46) if is_selected else ((18, 22, 26) if is_unlocked else (12, 13, 16))
+            border_color = (255, 215, 65) if is_selected else ((80, 90, 100) if is_unlocked else (42, 46, 52))
+            border_width = 3 if is_selected else 1
+
+            pygame.draw.rect(surface, bg_color, (x, y, slot_size, slot_size), border_radius=6)
+            pygame.draw.rect(surface, border_color, (x, y, slot_size, slot_size), border_width, border_radius=6)
+
+            # Número do atalho (1 a 6) ou estrela para arma especial equipada
+            num_color = (255, 215, 65) if is_selected else ((180, 185, 195) if is_unlocked else (75, 80, 88))
+            label_text = str(slot_idx + 1) if slot_idx < len(base_slots) else "★"
+            num_surf = self.font_small.render(label_text, True, num_color)
+            surface.blit(num_surf, (x + 5, y + 3))
+
+            if is_unlocked:
+                icon = self._scaled_icon(definition.sprite, (slot_size - 8, slot_size - 8))
+                if icon:
+                    surface.blit(icon, (x + 4, y + 4))
+            else:
+                lock_txt = self.font_small.render("[LOCK]", True, (75, 80, 88))
+                surface.blit(lock_txt, (x + (slot_size - lock_txt.get_width()) // 2, y + 22))
 
         weapon = weapons.current
-        name = self.font.render(weapon.name, True, config.BRANCO)
-        surface.blit(name, (start_x, y - 26))
+        name = self.font.render(weapon.name, True, (255, 240, 200))
+        surface.blit(name, (start_x, y - 24))
 
         if weapon.kind == "ranged":
-            magazine = weapons.magazines[weapons.current_id]
-            reserve = jogador.inventory.ammo_count(weapon.ammo_type)
-            color = (230, 70, 60) if magazine == 0 else config.BRANCO
-            ammo = self.font_huge.render(f"{magazine} / {reserve}", True, color)
-            ammo_rect = ammo.get_rect(bottomright=(config.LARGURA_TELA - 20, y - 5))
+            magazine = weapons.magazines.get(weapons.current_id, 0)
+            reserve = jogador.inventory.ammo_count(weapon.ammo_type) if hasattr(jogador, "inventory") else 0
+            color = (240, 75, 65) if magazine == 0 else config.BRANCO
+            ammo_str = f"{magazine} / {reserve}"
+            if weapon.ammo_type:
+                ammo_str += f" ({weapon.ammo_type.upper()})"
+            ammo = self.font.render(ammo_str, True, color)
+            ammo_rect = ammo.get_rect(topright=(scr_w - 20, y - 24))
             surface.blit(ammo, ammo_rect)
+        elif weapon.kind == "melee":
+            melee_tag = self.font_small.render("CORPO A CORPO", True, (180, 220, 255))
+            ammo_rect = melee_tag.get_rect(topright=(scr_w - 20, y - 20))
+            surface.blit(melee_tag, ammo_rect)
+
+        # Barra separadora sutil
+        pygame.draw.line(surface, (45, 52, 60), (start_x, y - 8), (start_x + total_width, y - 8), 1)
 
         if weapons.is_reloading:
             width = total_width
-            pygame.draw.rect(surface, (35, 35, 35), (start_x, y - 8, width, 4))
+            pygame.draw.rect(surface, (30, 30, 35), (start_x, y - 6, width, 4), border_radius=2)
             pygame.draw.rect(
                 surface,
-                (240, 190, 70),
-                (start_x, y - 8, int(width * weapons.reload_progress), 4),
+                (245, 195, 60),
+                (start_x, y - 6, int(width * weapons.reload_progress), 4),
+                border_radius=2,
             )
