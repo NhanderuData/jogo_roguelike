@@ -14,3 +14,6 @@ Thumbs.db
 
 # Pacote-fonte local; o jogo versiona apenas os PNGs utilizados e a licença.
 assets/*.zip
+
+# Scratch scripts e testes temporários
+scratch/

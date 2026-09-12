@@ -13,7 +13,7 @@ class WorldSettings:
     width: int = config.LARGURA_MAPA
     height: int = config.ALTURA_MAPA
     chunk_size: int = config.TAMANHO_CHUNK
-    enemy_count: int = 40
+    enemy_count: int = 50
 
     @property
     def chunks_x(self) -> int:

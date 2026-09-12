@@ -378,32 +378,54 @@ class Renderer:
             (-1, 0, "left"),
             (1, 0, "right"),
         )
+        diagonals = (
+            (-1, -1, "top_left", (-1, 0), (0, -1)),
+            (1, -1, "top_right", (1, 0), (0, -1)),
+            (-1, 1, "bottom_left", (-1, 0), (0, 1)),
+            (1, 1, "bottom_right", (1, 0), (0, 1)),
+        )
         land_types = {"coast", "grass", "terra", "rubble", "mud", "parede"}
         path_types = {"terra", "estrada"}
+
+        def get_prefix(curr, neighbor_type):
+            if neighbor_type == "blue_ground" and curr in {"grass", "terra", "rubble", "mud", "coast", "sand", "deep_water"}:
+                return "moss_edge"
+            elif neighbor_type in path_types and curr in {"grass", "coast", "sand"}:
+                return "dirt_edge"
+            elif neighbor_type == "grass" and curr in {"coast", "sand", "terra", "mud", "rubble"}:
+                return "grass_edge"
+            elif neighbor_type in {"rubble", "parede"} and curr in {"terra", "mud", "sand"}:
+                return "rubble_edge"
+            elif neighbor_type == "coast" and curr == "sand":
+                return "coast_edge"
+            elif neighbor_type in {"sand", "coast"} and curr == "deep_water":
+                return "sand_edge"
+            return None
+
         for dx, dy, side in neighbors:
             neighbor = mapa_obj.obter_tile(x + dx, y + dy)
             if not neighbor:
                 continue
 
-            prefix = None
-            if tile_type in {"grass", "coast", "sand"} and neighbor.tipo in path_types:
-                prefix = "dirt_edge"
-            elif tile_type in {"grass", "terra", "mud"} and neighbor.tipo in {"rubble", "parede"}:
-                prefix = "rubble_edge"
-            elif tile_type in {"grass", "terra", "rubble", "mud"} and neighbor.tipo == "blue_ground":
-                prefix = "moss_edge"
-            elif tile_type == "sand" and neighbor.tipo in land_types:
-                prefix = "coast_edge"
-            elif tile_type == "blue_ground" and neighbor.tipo in {"sand", "coast"}:
-                prefix = "sand_edge"
-            elif tile_type == "deep_water" and neighbor.tipo == "blue_ground":
-                prefix = "moss_edge"
-            elif tile_type == "deep_water" and neighbor.tipo in {"sand", "coast"}:
-                prefix = "sand_edge"
-
+            prefix = get_prefix(tile_type, neighbor.tipo)
             image = recursos.SPRITES.get(f"{prefix}_{side}") if prefix else None
             if image:
                 queue.append((config.LAYER_CHAO + 0.5, sy, image, sx, sy))
+
+        for dx, dy, corner_name, (c1x, c1y), (c2x, c2y) in diagonals:
+            neighbor = mapa_obj.obter_tile(x + dx, y + dy)
+            if not neighbor:
+                continue
+            prefix = get_prefix(tile_type, neighbor.tipo)
+            if prefix:
+                n1 = mapa_obj.obter_tile(x + c1x, y + c1y)
+                n2 = mapa_obj.obter_tile(x + c2x, y + c2y)
+                n1_type = n1.tipo if n1 else None
+                n2_type = n2.tipo if n2 else None
+                if n1_type != neighbor.tipo and n2_type != neighbor.tipo:
+                    image = recursos.SPRITES.get(f"{prefix}_{corner_name}")
+                    if image:
+                        queue.append((config.LAYER_CHAO + 0.5, sy, image, sx, sy))
 
     def desenhar_barra_flutuante(self, surface, ent):
         if ent.hp <= 0 or ent.hp >= ent.hp_max: return 

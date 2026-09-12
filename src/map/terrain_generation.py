@@ -24,6 +24,7 @@ class TerrainPainter:
         for y in range(self.world.altura):
             for x in range(self.world.largura):
                 self._paint_tile(x, y)
+        self._paint_shorelines()
 
     def _paint_tile(self, x, y) -> None:
         tile = self.world.obter_tile(x, y)
@@ -76,15 +77,6 @@ class TerrainPainter:
                 self.world, x, y, tile, roll, density, self.rng
             )
             self.world.snow_tile_count += 1
-        elif terrain_value < -0.20:
-            tile.tipo = "coast"
-            tile.bioma = "litoral"
-        elif terrain_value < -0.08:
-            tile.tipo = "sand"
-            tile.bioma = "litoral"
-        elif terrain_value < -0.02:
-            tile.tipo = "coast"
-            tile.bioma = "litoral"
         elif biome_value < 0.1:
             biomas.aplicar_bioma_floresta(
                 self.world, x, y, tile, roll, density, self.rng
@@ -93,3 +85,48 @@ class TerrainPainter:
             biomas.aplicar_bioma_ruinas(
                 self.world, x, y, tile, roll, density, self.rng
             )
+
+    def _paint_shorelines(self) -> None:
+        """Aplica areia e costa exclusivamente ao redor de corpos reais de água profunda."""
+        water_tiles = set()
+        for y in range(self.world.altura):
+            for x in range(self.world.largura):
+                tile = self.world.obter_tile(x, y)
+                if tile and tile.tipo == "deep_water" and tile.bioma == "agua":
+                    water_tiles.add((x, y))
+
+        if not water_tiles:
+            return
+
+        sand_candidates = set()
+        for wx, wy in water_tiles:
+            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                nx, ny = wx + dx, wy + dy
+                tile = self.world.obter_tile(nx, ny)
+                if (
+                    tile
+                    and tile.tipo not in ("deep_water", "sand", "blue_ground")
+                    and tile.bioma not in ("deserto", "neve")
+                ):
+                    sand_candidates.add((nx, ny))
+
+        for sx, sy in sand_candidates:
+            tile = self.world.obter_tile(sx, sy)
+            if tile:
+                tile.tipo = "sand"
+                tile.bioma = "litoral"
+                tile.bloqueado = False
+                if tile.decoracao and biomas.decoracao_solida(tile.decoracao):
+                    tile.decoracao = None
+
+        for sx, sy in sand_candidates:
+            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                nx, ny = sx + dx, sy + dy
+                tile = self.world.obter_tile(nx, ny)
+                if (
+                    tile
+                    and tile.tipo == "grass"
+                    and tile.bioma not in ("deserto", "neve")
+                ):
+                    tile.tipo = "coast"
+                    tile.bioma = "litoral"

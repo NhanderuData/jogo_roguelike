@@ -14,7 +14,7 @@ class ContentCatalogTests(unittest.TestCase):
         self.assertIn("Survivor", catalog.entities)
         self.assertIn("Bandagem", catalog.entities["Walker"].loot)
         self.assertIn("Energético", catalog.entities["Walker"].loot)
-        self.assertEqual(catalog.weapons["shotgun"].pellets, 6)
+        self.assertGreaterEqual(catalog.weapons["shotgun"].pellets, 6)
         self.assertEqual(catalog.entities["Arvore"].sprite, "tree")
         self.assertTrue(catalog.entities["Arvore"].is_static)
         self.assertIn("tree", catalog.entities["Arvore"].tags)

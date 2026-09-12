@@ -614,6 +614,22 @@ def criar_borda_texturizada(texture, side, seed):
                 border.set_at((x, y), texture.get_at((x, y)))
     return border
 
+def criar_canto_texturizado(texture, corner, seed):
+    w, h = texture.get_size()
+    border = pygame.Surface((w, h), pygame.SRCALPHA)
+    rng = random.Random(seed)
+    radius = 7.0
+    for y in range(h):
+        for x in range(w):
+            cx = 0 if "left" in corner else (w - 1)
+            cy = 0 if "top" in corner else (h - 1)
+            dist = ((x - cx) ** 2 + (y - cy) ** 2) ** 0.5
+            if dist < radius:
+                border.set_at((x, y), texture.get_at((x, y)))
+            elif dist < radius + 2.5 and (x * 7 + y * 11 + seed) % 2 == 0:
+                border.set_at((x, y), texture.get_at((x, y)))
+    return border
+
 def carregar_tudo():
     logger.info("Loading game assets")
     SPRITES.clear()
@@ -718,6 +734,7 @@ def carregar_tudo():
     SPRITES["terrain_coast_flip_y"] = pygame.transform.flip(coast, False, True)
 
     for prefix, texture in (
+        ("grass_edge", grass),
         ("coast_edge", coast),
         ("sand_edge", SPRITES["terrain_sand"]),
         ("moss_edge", SPRITES["terrain_moss"]),
@@ -727,6 +744,10 @@ def carregar_tudo():
         for index, side in enumerate(("top", "bottom", "left", "right")):
             SPRITES[f"{prefix}_{side}"] = criar_borda_texturizada(
                 texture, side, seed=41 + index * 13
+            )
+        for index, corner in enumerate(("top_left", "top_right", "bottom_left", "bottom_right")):
+            SPRITES[f"{prefix}_{corner}"] = criar_canto_texturizado(
+                texture, corner, seed=99 + index * 17
             )
 
     # Personagem e inimigos do Pixel Crawler Free Pack (Anokolisa).

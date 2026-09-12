@@ -61,6 +61,8 @@ DESERT_DECORATIONS = (
     "nature_twig",
     "nature_pebble_brown",
     "nature_ore_orange",
+    "nature_bush_autumn",
+    "nature_dry_leafy",
 )
 MEADOW_DECORATIONS = (
     "nature_sprout",
@@ -68,6 +70,9 @@ MEADOW_DECORATIONS = (
     "nature_flower_white",
     "nature_flower_yellow",
     "nature_flower_purple",
+    "nature_leaf_cluster",
+    "nature_bush_green",
+    "nature_plant_tall",
     "nature_mushroom",
 )
 POND_DECORATIONS = (
@@ -134,16 +139,19 @@ def aplicar_bioma_floresta(map_obj, x, y, tile, roll, densidade=0.0, rng=None):
     # Valores baixos viram clareiras naturais; valores altos concentram bosque.
     if densidade < -0.16:
         tile.tipo = "terra"
-        if roll < 9:
+        if roll < 25:
             tile.decoracao = chooser.choice((
                 "nature_fallen_leaves",
                 "nature_pebble_gray",
                 "nature_mushroom",
+                "nature_sprout",
             ))
         return
     if densidade < -0.07:
-        if roll < 32:
+        if roll < 50:
             tile.decoracao = chooser.choice(MEADOW_DECORATIONS)
+        elif roll == 99:
+            _spawn_tree(map_obj, x, y, chooser.choice(("Carvalho", "Salgueiro")))
         return
 
     tree_chance = 4
@@ -202,7 +210,7 @@ def aplicar_bioma_azul(map_obj, x, y, tile, roll, densidade=0.0, rng=None):
         tile.bloqueado = True
     elif roll < tree_chance + (7 if densidade < 0.04 else 12):
         tile.decoracao = chooser.choice(BLUE_DECORATIONS)
-    elif (x * 37 + y * 19 + 11) % 211 == 0:
+    elif (x * 37 + y * 19 + 11) % 97 == 0:
         tile.decoracao = "nature_crystal_blue"
 
 
@@ -215,17 +223,26 @@ def aplicar_margem_lagoa(tile, roll, rng=None):
 
 
 def aplicar_bioma_deserto(map_obj, x, y, tile, roll, densidade=0.0, rng=None):
-    """Deserto aberto usando a textura de areia já carregada pelo jogo."""
+    """Deserto com dunas, vegetação seca, rochas, minérios e árvores secas."""
+    chooser = rng or random
     tile.tipo = "sand"
     tile.bloqueado = False
     tile.bioma = "deserto"
-    decoration_chance = 6
-    if densidade > 0.12:
-        decoration_chance = 18
-    elif densidade < -0.08:
-        decoration_chance = 2
-    if roll < decoration_chance:
-        tile.decoracao = (rng or random).choice(DESERT_DECORATIONS)
+    tree_chance = 1 if densidade > 0.08 else 0
+    rock_chance = 2 if densidade > 0.12 else 0
+    decoration_chance = 22
+    if densidade > 0.10:
+        decoration_chance = 35
+    elif densidade < -0.10:
+        decoration_chance = 12
+
+    if roll < tree_chance and map_obj:
+        _spawn_tree(map_obj, x, y, "Arvore Seca")
+    elif roll < tree_chance + rock_chance:
+        tile.tipo = "rocha"
+        tile.bloqueado = True
+    elif roll < tree_chance + rock_chance + decoration_chance:
+        tile.decoracao = chooser.choice(DESERT_DECORATIONS)
 
 
 def spawn_inimigos_por_bioma(map_obj, origin_x, origin_y, biome_type, rng=None):
