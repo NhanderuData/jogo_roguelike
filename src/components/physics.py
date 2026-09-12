@@ -52,7 +52,16 @@ class PhysicsComponent:
         for ty in range(top, bottom + 1):
             for tx in range(left, right + 1):
                 if mapa_obj.is_blocked_terrain(tx, ty):
-                    return True
+                    tile_hb = (
+                        mapa_obj.get_tile_hitbox(tx, ty)
+                        if hasattr(mapa_obj, "get_tile_hitbox")
+                        else None
+                    )
+                    if tile_hb:
+                        if futuro_rect.colliderect(tile_hb):
+                            return True
+                    else:
+                        return True
 
         # B. Entidades
         candidates = (

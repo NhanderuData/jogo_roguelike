@@ -50,6 +50,7 @@ class InventoryComponent:
             nome = item_struct["name"]
             data = self.content.items.get(nome)
             
+            
             if not data: return False
             usou = False
             
@@ -58,9 +59,34 @@ class InventoryComponent:
 
             # --- TIPO: COMIDA ---
             if data.kind == "comida" and tem_status:
-                if entity.status.fome < entity.status.max_fome:
+                precisa_fome = entity.status.fome < entity.status.max_fome
+                precisa_hp = hasattr(entity, 'combat') and entity.combat.hp < entity.combat.hp_max
+                tem_efeito = bool(data.effect)
+
+                if precisa_fome or precisa_hp or tem_efeito:
                     entity.status.comer(data.value)
-                    logger.info("Consumed food item %s", nome)
+
+                    # Efeitos especiais de alimentos/foraging
+                    if data.effect == "visao_noturna":
+                        entity.status.aplicar_visao_noturna(data.duration if data.duration > 0 else 45.0)
+                        if hasattr(entity, 'combat') and entity.combat.hp < entity.combat.hp_max:
+                            entity.combat.heal(10)
+                    elif data.effect == "regeneracao":
+                        entity.status.aplicar_regeneracao(data.duration if data.duration > 0 else 12.0)
+                        if hasattr(entity, 'combat') and entity.combat.hp < entity.combat.hp_max:
+                            entity.combat.heal(5)
+                    elif data.effect == "tontura":
+                        entity.status.aplicar_tontura(data.duration if data.duration > 0 else 8.0)
+                        if hasattr(entity, 'tomar_dano'):
+                            entity.tomar_dano(5)
+                    elif data.effect == "estancar":
+                        entity.status.curar_sangramento()
+                        if hasattr(entity, 'combat') and entity.combat.hp < entity.combat.hp_max:
+                            entity.combat.heal(8)
+                    elif precisa_hp:
+                        entity.combat.heal(5)
+
+                    logger.info("Consumed food item %s (effect=%s)", nome, data.effect)
                     usou = True
 
             # --- TIPO: BEBIDA (Novo) ---

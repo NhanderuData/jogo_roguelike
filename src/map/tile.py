@@ -6,3 +6,4 @@ class Tile:
         self.decoracao = None
         self.bioma = None
         self.orientacao = None
+        self.custom_hitbox = None

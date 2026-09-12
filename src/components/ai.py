@@ -5,6 +5,37 @@ import pygame
 from core import config
 
 
+NPC_DIALOGOS = {
+    "Aldeão": [
+        "Bom dia, viajante! Os dias têm sido calmos, mas cuidado ao se afastar da cidade.",
+        "Os lampiões da praça mantêm as feras afastadas. Fique perto da luz ao anoitecer!",
+        "Você já visitou a horta? Cenouras frescas restauram as forças e aguçam a visão no escuro.",
+        "Se precisar de lenha ou ferramentas, dê uma olhada na oficina do ferreiro.",
+    ],
+    "Guarda da Cidade": [
+        "Alto lá! Mantenha suas armas sob controle dentro dos limites urbanos.",
+        "A guarda da cidade vigia os portões dia e noite. Nenhuma criatura passará por aqui!",
+        "Se avistar orcs ou stalkers na floresta, avise a guarnição imediatamente.",
+        "Nossos lampiões queimam óleo puro. A luz sagrada protege os cidadãos.",
+    ],
+    "Taberneira": [
+        "Seja bem-vindo à nossa cidade! Venha descansar os pés cansados da longa viagem.",
+        "Dizem que há ruínas antigas cheias de perigos além do grande rio...",
+        "Um refúgio seguro e uma boa fogueira curam o cansaço de qualquer aventureiro!",
+    ],
+    "Alquimista": [
+        "As ervas e raízes desta região possuem propriedades medicinais únicas.",
+        "Cenouras aguçam a visão na escuridão, e certos cogumelos... bem, use com cautela!",
+        "A sabedoria e a prudência são os maiores escudos contra a noite.",
+    ],
+    "Mercador": [
+        "Bem-vindo à feira! Em breve terei novas provisões e caixotes de suprimentos.",
+        "Cuidado com os ermos escuros, forasteiro. O comércio só floresce onde há segurança!",
+        "Caixotes de vegetais frescos direto dos canteiros da horta!",
+    ],
+}
+
+
 class AIComponent:
     def __init__(self, entity, rng=None):
         self.entity = entity
@@ -36,6 +67,8 @@ class AIComponent:
         self.idle_state = "stand"
         self.idle_timer = self.rng.uniform(1.5, 4.0)
         self.idle_dir = (0.0, 0.0)
+        self.current_dialog = None
+        self.dialog_timer = 0.0
 
     def _find_path(self, mapa_obj, goal):
         start = (round(self.entity.x), round(self.entity.y))
@@ -284,6 +317,99 @@ class AIComponent:
         else:
             self.entity.moving = False
 
+    def falar(self, mapa_obj=None) -> str:
+        """Gera fala amigável e contextuada com a profissão/tipo do NPC."""
+        dialogos = NPC_DIALOGOS.get(
+            getattr(self.entity, "nome", ""),
+            [
+                "Olá, viajante! Tenha um bom dia em nossa cidade.",
+                "Que a luz dos lampiões guie seus passos em segurança.",
+                "Fique perto das tochas quando o sol se pôr!",
+            ],
+        )
+        self.current_dialog = self.rng.choice(dialogos)
+        self.dialog_timer = 5.0
+        if mapa_obj and hasattr(mapa_obj, "particulas"):
+            mapa_obj.particulas.emit(self.entity.x, self.entity.y - 0.5, "dust", 3)
+        return self.current_dialog
+
+    def _update_npc(self, mapa_obj, dt):
+        player = getattr(mapa_obj, "jogador", None)
+        physics = self.entity.physics
+        if physics.speed == 0:
+            return
+
+        if self.dialog_timer > 0:
+            self.dialog_timer = max(0.0, self.dialog_timer - dt)
+            if self.dialog_timer == 0:
+                self.current_dialog = None
+
+        ai_mode = getattr(self.entity, "ai_mode", "citizen")
+
+        # 1. GUARDA DA CIDADE: Patrulha e combate defensivo ativo
+        if ai_mode == "guard":
+            closest_enemy = None
+            min_enemy_dist = 8.5
+            if hasattr(mapa_obj, "entidades"):
+                for other in mapa_obj.entidades:
+                    if other is not self.entity and getattr(other, "role", None) == "enemy":
+                        combat = getattr(other, "combat", None)
+                        if combat and not getattr(combat, "dead", False):
+                            d = math.hypot(other.x - self.entity.x, other.y - self.entity.y)
+                            if d < min_enemy_dist:
+                                min_enemy_dist = d
+                                closest_enemy = other
+
+            if closest_enemy:
+                edx = closest_enemy.x - self.entity.x
+                edy = closest_enemy.y - self.entity.y
+                if min_enemy_dist > 0.01:
+                    dir_x = edx / min_enemy_dist
+                    dir_y = edy / min_enemy_dist
+                    self._move_with_local_avoidance(dir_x, dir_y, mapa_obj, dt * 1.1)
+
+                if min_enemy_dist < 1.3:
+                    if hasattr(self.entity, "atacar_espada"):
+                        self.entity.atacar_espada(closest_enemy.x, closest_enemy.y, mapa_obj)
+                    else:
+                        c = getattr(closest_enemy, "combat", None)
+                        if c:
+                            c.take_damage(getattr(getattr(self.entity, "combat", None), "damage", 18), mapa_obj)
+                return
+
+        # 2. CIDADÃOS E ALDEÕES:
+        # Quando o jogador se aproxima (raio < 1.8 tiles), o NPC para e olha para ele
+        if player:
+            p_dx = player.x - self.entity.x
+            p_dy = player.y - self.entity.y
+            p_dist = math.hypot(p_dx, p_dy)
+            if p_dist < 1.8:
+                self.entity.moving = False
+                sprite = getattr(self.entity, "sprite", None)
+                if sprite and hasattr(sprite, "set_direction"):
+                    sprite.set_direction(p_dx, p_dy)
+                return
+
+        # Perambulação urbana serena
+        self.idle_timer -= dt
+        if self.idle_timer <= 0:
+            if self.rng.random() < 0.6:
+                self.idle_state = "stand"
+                self.idle_timer = self.rng.uniform(2.5, 5.0)
+                self.idle_dir = (0.0, 0.0)
+            else:
+                self.idle_state = "walk"
+                self.idle_timer = self.rng.uniform(1.2, 3.0)
+                ang = self.rng.uniform(0, 2 * math.pi)
+                self.idle_dir = (math.cos(ang), math.sin(ang))
+
+        if self.idle_state == "walk":
+            wx, wy = self.idle_dir
+            speed_mult = 0.5 if ai_mode == "guard" else 0.35
+            self._move_with_local_avoidance(wx, wy, mapa_obj, dt * speed_mult)
+        else:
+            self.entity.moving = False
+
     def _handle_fire_avoidance(self, mapa_obj, player, dt) -> bool:
         if not hasattr(mapa_obj, "get_nearest_bonfire"):
             return False
@@ -380,6 +506,10 @@ class AIComponent:
 
         if getattr(self.entity, "role", None) == "animal":
             self._update_animal(mapa_obj, dt)
+            return
+
+        if getattr(self.entity, "role", None) == "npc":
+            self._update_npc(mapa_obj, dt)
             return
 
         self._handle_sunlight(mapa_obj, dt)

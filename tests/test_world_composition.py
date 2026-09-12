@@ -42,6 +42,9 @@ class FakeMap:
             return self.grid[y][x]
         return None
 
+    def get_tile_hitbox(self, x, y):
+        return Mapa.get_tile_hitbox(self, x, y)
+
 
 class PondCompositionTests(unittest.TestCase):
     def test_pond_has_water_core_shore_and_exterior(self):
@@ -260,6 +263,33 @@ class ClearingCompositionTests(unittest.TestCase):
             )
         ]
         self.assertTrue(any(tile.bloqueado for tile in fence_footprint))
+
+    def test_fence_hitboxes_are_precise_and_aligned(self):
+        world, _, _ = self._build_composition()
+        garden = next(
+            point
+            for point in world.pontos_interesse
+            if point.tipo == "horta_abandonada"
+        )
+        # Verify corner hitbox
+        corner_tl = world.obter_tile(garden.x - 4, garden.y - 3)
+        self.assertTrue(corner_tl.bloqueado)
+        corner_hb = world.get_tile_hitbox(garden.x - 4, garden.y - 3)
+        self.assertIsNotNone(corner_hb)
+        self.assertEqual(corner_hb.width, 22)
+        self.assertEqual(corner_hb.height, 22)
+
+        # Verify horizontal fence hitbox (height 14, width 32)
+        fence_h = world.get_tile_hitbox(garden.x - 3, garden.y - 3)
+        self.assertIsNotNone(fence_h)
+        self.assertEqual(fence_h.width, 32)
+        self.assertEqual(fence_h.height, 14)
+
+        # Verify vertical fence hitbox (width 12, height 32)
+        fence_v = world.get_tile_hitbox(garden.x - 4, garden.y - 1)
+        self.assertIsNotNone(fence_v)
+        self.assertEqual(fence_v.width, 12)
+        self.assertEqual(fence_v.height, 32)
 
     def test_each_village_has_three_prefabs_with_coherent_collision(self):
         world, compositor, clearings = self._build_composition()

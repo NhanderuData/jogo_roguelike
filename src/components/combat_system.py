@@ -88,6 +88,13 @@ class Projetil:
                     continue
                 if not mapa_obj.is_blocked_terrain(tx, ty):
                     continue
+                tile_hb = (
+                    mapa_obj.get_tile_hitbox(tx, ty)
+                    if hasattr(mapa_obj, "get_tile_hitbox")
+                    else None
+                )
+                if tile_hb and not rect.colliderect(tile_hb):
+                    continue
                 return terrain_material(tile)
         return None
 
@@ -256,6 +263,13 @@ def executar_golpe_espada(
         else mapa_obj.entidades
     )
     acertou = False
+    
+    # Ceifa/colheita de plantações e cogumelos pelo golpe
+    if hasattr(mapa_obj, "colher_decoracao"):
+        for tx in (int(math.floor(hit_x)), int(round(hit_x)), int(math.ceil(hit_x))):
+            for ty in (int(math.floor(hit_y)), int(round(hit_y)), int(math.ceil(hit_y))):
+                if mapa_obj.colher_decoracao(tx, ty, atacante):
+                    acertou = True
     
     for alvo in alvos:
         if alvo is atacante:

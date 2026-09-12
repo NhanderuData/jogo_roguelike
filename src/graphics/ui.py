@@ -1,3 +1,4 @@
+import math
 import pygame
 from core import config
 from graphics import recursos
@@ -152,7 +153,7 @@ class UI:
             txt_rect = txt_surf.get_rect(center=(x + largura/2, y + altura/2))
             surface.blit(txt_surf, txt_rect)
 
-    def draw(self, surface, jogador, audio=None, mouse_pos=(0, 0), time_system=None):
+    def draw(self, surface, jogador, audio=None, mouse_pos=(0, 0), time_system=None, mapa=None):
         if audio is not None:
             self.desenhar_botao_mute(surface, audio, mouse_pos)
 
@@ -223,6 +224,37 @@ class UI:
                 )
                 txt_fire = self.font_small.render("REFUGIO DO FOGO (+REC)", True, (255, 215, 120))
                 surface.blit(txt_fire, (42, bleed_y + 4))
+                bleed_y += 26
+
+            # BUFF: VISÃO NOTURNA (Cenoura)
+            if getattr(jogador.status, "night_vision_timer", 0) > 0:
+                t = int(jogador.status.night_vision_timer)
+                badge_rect = pygame.Rect(20, bleed_y, 185, 22)
+                pygame.draw.rect(surface, (18, 42, 28), badge_rect, border_radius=4)
+                pygame.draw.rect(surface, (80, 240, 140), badge_rect, 1, border_radius=4)
+                txt_nv = self.font_small.render(f"VISAO NOTURNA ({t}s)", True, (160, 255, 190))
+                surface.blit(txt_nv, (32, bleed_y + 4))
+                bleed_y += 26
+
+            # BUFF: REGENERAÇÃO (Beterraba, Repolho, etc.)
+            if getattr(jogador.status, "regen_timer", 0) > 0:
+                t = int(jogador.status.regen_timer)
+                badge_rect = pygame.Rect(20, bleed_y, 185, 22)
+                pygame.draw.rect(surface, (45, 18, 30), badge_rect, border_radius=4)
+                pygame.draw.rect(surface, (255, 80, 140), badge_rect, 1, border_radius=4)
+                txt_reg = self.font_small.render(f"REGENERACAO (+HP {t}s)", True, (255, 170, 200))
+                surface.blit(txt_reg, (32, bleed_y + 4))
+                bleed_y += 26
+
+            # DEBUFF: TONTURA / ALUCINÓGENO (Cogumelo Estranho)
+            if getattr(jogador.status, "dizziness_timer", 0) > 0:
+                t = int(jogador.status.dizziness_timer)
+                badge_rect = pygame.Rect(20, bleed_y, 185, 22)
+                pygame.draw.rect(surface, (35, 15, 45), badge_rect, border_radius=4)
+                pygame.draw.rect(surface, (200, 70, 255), badge_rect, 1, border_radius=4)
+                txt_dizzy = self.font_small.render(f"TONTURA ({t}s)", True, (230, 160, 255))
+                surface.blit(txt_dizzy, (32, bleed_y + 4))
+                bleed_y += 26
 
             if jogador.status.energy_remaining > 0:
                 self.desenhar_barra(
@@ -243,6 +275,98 @@ class UI:
 
         if hasattr(jogador, "weapons") and jogador.weapons:
             self._draw_weapons(surface, jogador)
+
+        if mapa and hasattr(mapa, "obter_decoracao_colhivel_proxima") and jogador:
+            proximo = mapa.obter_decoracao_colhivel_proxima(jogador.x, jogador.y, raio=1.6)
+            if proximo:
+                _, _, item_nome = proximo
+                self._draw_interaction_prompt(surface, f"[E] Colher {item_nome}")
+            else:
+                npc_perto = self._obter_npc_proximo(mapa, jogador.x, jogador.y, raio=2.0)
+                if npc_perto:
+                    self._draw_interaction_prompt(surface, f"[E] Falar com {npc_perto.nome}")
+
+        self._draw_npc_dialogs(surface, mapa, jogador)
+
+    def _obter_npc_proximo(self, mapa, x, y, raio=2.0):
+        if not mapa or not hasattr(mapa, "entidades"):
+            return None
+        closest = None
+        min_d = raio
+        for ent in mapa.entidades:
+            if getattr(ent, "role", None) == "npc":
+                d = math.hypot(ent.x - x, ent.y - y)
+                if d < min_d:
+                    min_d = d
+                    closest = ent
+        return closest
+
+    def _draw_npc_dialogs(self, surface, mapa, jogador):
+        if not mapa or not hasattr(mapa, "entidades") or not jogador:
+            return
+        for ent in mapa.entidades:
+            ai = getattr(ent, "ai", None)
+            if getattr(ent, "role", None) == "npc" and ai and getattr(ai, "current_dialog", None):
+                dist = math.hypot(ent.x - jogador.x, ent.y - jogador.y)
+                if dist <= 10.0:
+                    self._draw_speech_bubble(surface, ent.nome, ai.current_dialog)
+                    break
+
+    def _draw_speech_bubble(self, surface, npc_nome, texto):
+        w = min(720, surface.get_width() - 80)
+        padding = 16
+        words = texto.split()
+        lines = []
+        cur_line = []
+        for word in words:
+            test_line = " ".join(cur_line + [word])
+            if self.font.size(test_line)[0] > w - padding * 2:
+                lines.append(" ".join(cur_line))
+                cur_line = [word]
+            else:
+                cur_line.append(word)
+        if cur_line:
+            lines.append(" ".join(cur_line))
+
+        line_height = self.font.get_linesize()
+        h = 44 + len(lines) * line_height + padding
+        cx = surface.get_width() // 2
+        y = surface.get_height() - h - 110
+
+        bg_rect = pygame.Rect(cx - w // 2, y, w, h)
+        bg_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        pygame.draw.rect(bg_surf, (16, 20, 26, 240), (0, 0, w, h), border_radius=10)
+        pygame.draw.rect(bg_surf, (240, 185, 70, 240), (0, 0, w, h), 2, border_radius=10)
+        surface.blit(bg_surf, (bg_rect.x, bg_rect.y))
+
+        # Diamond icon
+        icon_cx = bg_rect.x + padding + 6
+        icon_cy = bg_rect.y + 22
+        pts = [(icon_cx, icon_cy - 6), (icon_cx + 6, icon_cy), (icon_cx, icon_cy + 6), (icon_cx - 6, icon_cy)]
+        pygame.draw.polygon(surface, (255, 215, 90), pts)
+
+        name_surf = self.font_big.render(npc_nome, True, (255, 215, 90))
+        surface.blit(name_surf, (bg_rect.x + padding + 18, bg_rect.y + 10))
+
+        for i, line in enumerate(lines):
+            line_surf = self.font.render(line, True, (245, 245, 245))
+            surface.blit(line_surf, (bg_rect.x + padding, bg_rect.y + 42 + i * line_height))
+
+
+    def _draw_interaction_prompt(self, surface, text):
+        txt_surf = self.font.render(text, True, (255, 240, 180))
+        padding_x, padding_y = 14, 7
+        w = txt_surf.get_width() + padding_x * 2
+        h = txt_surf.get_height() + padding_y * 2
+        cx = surface.get_width() // 2
+        cy = surface.get_height() - 72
+
+        bg_rect = pygame.Rect(cx - w // 2, cy - h // 2, w, h)
+        bg_surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        pygame.draw.rect(bg_surf, (20, 25, 30, 210), (0, 0, w, h), border_radius=8)
+        pygame.draw.rect(bg_surf, (255, 200, 60, 240), (0, 0, w, h), 2, border_radius=8)
+        surface.blit(bg_surf, (bg_rect.x, bg_rect.y))
+        surface.blit(txt_surf, (cx - txt_surf.get_width() // 2, cy - txt_surf.get_height() // 2))
 
     def _draw_weapons(self, surface, jogador):
         weapons = jogador.weapons

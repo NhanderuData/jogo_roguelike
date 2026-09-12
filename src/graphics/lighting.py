@@ -53,9 +53,16 @@ class LightingRenderer:
             variants.append(variant)
         return variants
 
-    def apply_darkness(self, surface, color):
+    def apply_darkness(self, surface, color, player=None):
         if self._darkness.get_size() != surface.get_size():
             self._darkness = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        
+        # Visão noturna suaviza o véu de escuridão da noite
+        if player and getattr(getattr(player, "status", None), "night_vision_timer", 0) > 0:
+            r, g, b, *a = color
+            alpha = a[0] if a else 255
+            color = (r, g, b, int(alpha * 0.65))
+
         self._darkness.fill(color)
         surface.blit(self._darkness, (0, 0))
 
@@ -92,11 +99,22 @@ class LightingRenderer:
         for y in range(start_y, end_y):
             for x in range(start_x, end_x):
                 tile = world.obter_tile(x, y)
-                if tile and tile.decoracao == "nature_bonfire":
+                if tile and tile.decoracao in {"nature_bonfire", "street_lamp", "blacksmith_furnace"}:
                     center_x = x * tile_size - camera_x + tile_size // 2
                     center_y = y * tile_size - camera_y + tile_size // 3
                     self._blit_centered(surface, halo, center_x, center_y)
                     self._blit_centered(surface, core, center_x, center_y)
+
+        # Aura de Visão Noturna do Jogador (concedida por cenouras)
+        player = getattr(world, "jogador", None)
+        if player and getattr(getattr(player, "status", None), "night_vision_timer", 0) > 0:
+            if not hasattr(self, "_night_vision_halo"):
+                self._night_vision_halo = self.create_gradient(135, (255, 195, 120), 80)
+                self._night_vision_core = self.create_gradient(65, (255, 235, 180), 100)
+            pcx = player.x * tile_size - camera_x + tile_size // 2
+            pcy = player.y * tile_size - camera_y + tile_size // 2
+            self._blit_centered(surface, self._night_vision_halo, pcx, pcy)
+            self._blit_centered(surface, self._night_vision_core, pcx, pcy)
 
         for projectile in world.projeteis:
             if not projectile.active:

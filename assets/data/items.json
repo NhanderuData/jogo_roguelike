@@ -82,5 +82,61 @@
     "value": 1,
     "color": [130, 85, 45],
     "sprite": "nature_stump"
+  },
+  "Cenoura": {
+    "type": "comida",
+    "value": 15,
+    "effect": "visao_noturna",
+    "duration": 45.0,
+    "color": [245, 130, 32],
+    "sprite": "farm_carrot"
+  },
+  "Beterraba": {
+    "type": "comida",
+    "value": 20,
+    "effect": "regeneracao",
+    "duration": 12.0,
+    "color": [200, 30, 80],
+    "sprite": "farm_beet"
+  },
+  "Repolho": {
+    "type": "comida",
+    "value": 25,
+    "effect": "regeneracao",
+    "duration": 12.0,
+    "color": [100, 190, 70],
+    "sprite": "farm_cabbage"
+  },
+  "Cebola": {
+    "type": "comida",
+    "value": 15,
+    "effect": "regeneracao",
+    "duration": 8.0,
+    "color": [220, 215, 180],
+    "sprite": "farm_onion"
+  },
+  "Couve-flor": {
+    "type": "comida",
+    "value": 25,
+    "effect": "regeneracao",
+    "duration": 12.0,
+    "color": [235, 240, 220],
+    "sprite": "farm_cauliflower"
+  },
+  "Cogumelo": {
+    "type": "comida",
+    "value": 15,
+    "effect": "estancar",
+    "duration": 0.0,
+    "color": [160, 110, 50],
+    "sprite": "nature_mushroom"
+  },
+  "Cogumelo Estranho": {
+    "type": "comida",
+    "value": 10,
+    "effect": "tontura",
+    "duration": 8.0,
+    "color": [70, 180, 200],
+    "sprite": "nature_mushroom_toxic"
   }
 }

@@ -1,5 +1,6 @@
 # src/states/game_state.py
 import logging
+import math
 import pygame
 import random
 from core.state_manager import Scene
@@ -67,6 +68,8 @@ class GameState(BaseState):
                 color=(255, 215, 60),
                 duration=4.0,
             )
+            if hasattr(self.mapa, "atualizar_regeneracao_safras"):
+                self.mapa.atualizar_regeneracao_safras(self.relogio.day_count)
 
         self.ambient_sound_timer -= dt
         if self.ambient_sound_timer <= 0:
@@ -144,6 +147,23 @@ class GameState(BaseState):
             self.mapa.jogador.atacar_espada(world_mx, world_my, self.mapa)
             self.context.audio.play("melee")
 
+        if self.input.is_pressed(Actions.INTERACT):
+            colheu = self.mapa.colher_mais_proximo(self.mapa.jogador.x, self.mapa.jogador.y, raio=1.6, jogador=self.mapa.jogador)
+            if colheu:
+                self.context.audio.play("pickup")
+            else:
+                npc_perto = None
+                menor_dist = 2.0
+                for ent in self.mapa.entidades:
+                    if getattr(ent, "role", None) == "npc" and ent.hp > 0:
+                        dist = math.hypot(ent.x - self.mapa.jogador.x, ent.y - self.mapa.jogador.y)
+                        if dist < menor_dist:
+                            menor_dist = dist
+                            npc_perto = ent
+                if npc_perto and hasattr(npc_perto, "ai") and npc_perto.ai:
+                    npc_perto.ai.falar(self.mapa)
+                    self.context.audio.play("pickup")
+
         if self.mapa.jogador.hp <= 0:
             logger.info("Player died; changing to game-over state")
             self.manager.change(Scene.GAME_OVER)
@@ -153,11 +173,13 @@ class GameState(BaseState):
         self.mapa.update(dt)
         self.relogio.update(dt)
         if self.mapa.jogador:
+            dizziness = getattr(getattr(self.mapa.jogador, "status", None), "dizziness_timer", 0.0)
             self.camera.update(
                 self.mapa.jogador.x,
                 self.mapa.jogador.y,
                 dt,
                 world_size=(self.mapa.largura, self.mapa.altura),
+                dizziness=dizziness,
             )
 
         player_rect = pygame.Rect(self.mapa.jogador.x * config.TAMANHO_TILE, 
@@ -184,4 +206,5 @@ class GameState(BaseState):
             audio=self.context.audio,
             mouse_pos=self.input.get_mouse_position(),
             time_system=self.relogio,
+            mapa=self.mapa,
         )

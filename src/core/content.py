@@ -210,9 +210,9 @@ class ContentCatalog:
                 raise RuntimeError(f"Entity '{name}' has invalid combat values")
             if not 0.0 <= entity.loot_chance <= 1.0:
                 raise RuntimeError(f"Entity '{name}' has invalid loot_chance")
-            if entity.role not in {"player", "enemy", "prop", "animal"}:
+            if entity.role not in {"player", "enemy", "prop", "animal", "npc"}:
                 raise RuntimeError(f"Entity '{name}' has unknown role '{entity.role}'")
-            if entity.ai_mode not in {"melee", "ranged", "hybrid", "flee", "territorial", "stalker"}:
+            if entity.ai_mode not in {"melee", "ranged", "hybrid", "flee", "territorial", "stalker", "citizen", "guard"}:
                 raise RuntimeError(
                     f"Entity '{name}' has unknown ai_mode '{entity.ai_mode}'"
                 )

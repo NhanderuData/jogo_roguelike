@@ -21,12 +21,14 @@ class Actions:
     TOGGLE_DEBUG = "toggle_debug"
     TOGGLE_MUTE = "toggle_mute"
     RESET_ZOOM = "reset_zoom"
+    INTERACT = "interact"
 
 class InputManager:
     def __init__(self):
         # Mapa de Teclas: Ação -> Lista de Teclas que a ativam
         self.key_bindings = {
             Actions.START: [pygame.K_RETURN, pygame.K_KP_ENTER],
+            Actions.INTERACT:   [pygame.K_e],
             Actions.MOVE_UP:    [pygame.K_w, pygame.K_UP],
             Actions.MOVE_DOWN:  [pygame.K_s, pygame.K_DOWN],
             Actions.MOVE_LEFT:  [pygame.K_a, pygame.K_LEFT],

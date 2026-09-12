@@ -43,7 +43,7 @@ class Camera:
         view_y = screen_y / max(0.05, self.zoom)
         return (self.camera_y + view_y) / config.TAMANHO_TILE
 
-    def update(self, target_x, target_y, dt, world_size=None):
+    def update(self, target_x, target_y, dt, world_size=None, dizziness=0.0):
         # Transição suave do zoom
         if abs(self.zoom - self.target_zoom) > 0.001:
             blend_zoom = 1.0 - math.exp(-14.0 * max(0.0, dt))
@@ -97,6 +97,11 @@ class Camera:
         amplitude = self.trauma * self.trauma * 13.0
         shake_x = math.sin(self.shake_time * 47.0) * amplitude
         shake_y = math.sin(self.shake_time * 61.0 + 1.7) * amplitude
+
+        if dizziness > 0:
+            sway_amount = min(9.0, dizziness * 2.2)
+            shake_x += math.sin(self.shake_time * 3.4) * sway_amount
+            shake_y += math.cos(self.shake_time * 2.6) * sway_amount
 
         if total_world_w < view_w:
             self.camera_x = desired_x + shake_x

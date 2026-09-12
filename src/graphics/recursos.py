@@ -24,6 +24,15 @@ DECORACOES_ALTAS = frozenset({
     "farm_fence_bottom",
     "farm_fence_left",
     "farm_fence_right",
+    "farm_fence_h",
+    "farm_fence_h_left",
+    "farm_fence_h_mid",
+    "farm_fence_h_right",
+    "farm_fence_v",
+    "farm_fence_corner_tl",
+    "farm_fence_corner_tr",
+    "farm_fence_corner_bl",
+    "farm_fence_corner_br",
     "house_door_front",
     "house_door_wood",
     "house_window_front",
@@ -32,6 +41,25 @@ DECORACOES_ALTAS = frozenset({
     "village_house_amber",
     "village_house_brick",
     "village_house_moss",
+    # Props urbanos e da vila
+    "town_well",
+    "street_lamp",
+    "market_stall",
+    "blacksmith_furnace",
+    "blacksmith_anvil",
+    "town_workbench",
+    "town_bench",
+    "town_bench_large",
+    "barrel_wood",
+    "crate_wood",
+    "sack_grain",
+    "logs_firewood",
+    "flower_pot",
+    "signpost",
+    "crate_carrots",
+    "crate_beets",
+    "crate_cabbage",
+    "scarecrow",
 })
 
 def criar_sprite_provisorio(cor):
@@ -246,6 +274,28 @@ def carregar_inimigo_pixel_crawler(nome):
         "move": {
             "right": run_right,
             "left": espelhar_frames(run_right),
+        },
+    }
+
+
+def carregar_npc_pixel_crawler(nome):
+    base = f"sprites/pixel_crawler/npc/{nome}"
+    idle_frames = ampliar_frames(normalizar_frames(carregar_spritesheet(f"{base}_idle.png", 4, 1.0)))
+    run_frames = ampliar_frames(normalizar_frames(carregar_spritesheet(f"{base}_run.png", 6, 1.0)))
+    idle_left = espelhar_frames(idle_frames)
+    run_left = espelhar_frames(run_frames)
+    return {
+        "idle": {
+            "down": idle_frames,
+            "up": idle_frames,
+            "right": idle_frames,
+            "left": idle_left,
+        },
+        "move": {
+            "down": run_frames,
+            "up": run_frames,
+            "right": run_frames,
+            "left": run_left,
         },
     }
 
@@ -572,6 +622,184 @@ def criar_casa_vila(porta, janela, chamine, paleta, seed=0, janela_esquerda=Fals
 
     return pygame.transform.scale(casa, (largura * 2, altura * 2))
 
+
+def criar_poco_vila():
+    w, h = 32, 32
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 80), (2, 22, 28, 10))
+    stone_dark = (55, 52, 50)
+    stone_mid = (110, 105, 100)
+    stone_light = (160, 155, 150)
+    pygame.draw.ellipse(surf, stone_dark, (4, 16, 24, 14))
+    pygame.draw.ellipse(surf, stone_mid, (5, 17, 22, 12))
+    pygame.draw.ellipse(surf, (20, 70, 120), (7, 19, 18, 8))
+    pygame.draw.ellipse(surf, (40, 120, 180), (8, 20, 16, 6))
+    pygame.draw.line(surf, (100, 180, 240), (11, 21), (15, 21), 1)
+    pygame.draw.arc(surf, stone_light, (4, 16, 24, 14), 3.14, 0, 2)
+    wood_dark = (60, 35, 20)
+    wood_mid = (120, 75, 40)
+    pygame.draw.rect(surf, wood_dark, (6, 6, 3, 14))
+    pygame.draw.rect(surf, wood_mid, (7, 6, 1, 14))
+    pygame.draw.rect(surf, wood_dark, (23, 6, 3, 14))
+    pygame.draw.rect(surf, wood_mid, (24, 6, 1, 14))
+    pygame.draw.rect(surf, wood_dark, (5, 5, 22, 3))
+    pygame.draw.rect(surf, wood_mid, (6, 6, 20, 1))
+    pygame.draw.line(surf, (180, 160, 120), (16, 8), (16, 15), 1)
+    pygame.draw.rect(surf, wood_dark, (14, 15, 5, 4))
+    pygame.draw.rect(surf, wood_mid, (15, 16, 3, 2))
+    roof_dark = (70, 30, 20)
+    roof_mid = (140, 60, 40)
+    roof_light = (180, 90, 60)
+    pygame.draw.polygon(surf, roof_dark, ((3, 6), (16, 0), (29, 6)))
+    pygame.draw.polygon(surf, roof_mid, ((5, 5), (16, 1), (27, 5)))
+    pygame.draw.line(surf, roof_light, (6, 5), (16, 1), 1)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_poste_lampiao():
+    w, h = 16, 32
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 80), (3, 26, 10, 6))
+    iron_dark = (30, 28, 32)
+    iron_mid = (65, 62, 70)
+    iron_light = (110, 105, 120)
+    pygame.draw.rect(surf, iron_dark, (6, 27, 4, 4))
+    pygame.draw.rect(surf, iron_mid, (7, 28, 2, 2))
+    pygame.draw.rect(surf, iron_dark, (7, 8, 2, 20))
+    pygame.draw.line(surf, iron_light, (7, 8), (7, 27), 1)
+    pygame.draw.line(surf, iron_dark, (6, 8), (3, 8), 1)
+    pygame.draw.line(surf, iron_dark, (3, 9), (3, 11), 1)
+    pygame.draw.rect(surf, iron_dark, (1, 10, 5, 2))
+    pygame.draw.rect(surf, (255, 200, 60), (2, 12, 3, 4))
+    surf.set_at((3, 13), (255, 255, 200))
+    pygame.draw.rect(surf, iron_dark, (1, 11, 5, 6), 1)
+    surf.set_at((3, 17), iron_dark)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_barraca_mercado(cor_toldo=(185, 45, 40)):
+    w, h = 32, 32
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 80), (2, 22, 28, 10))
+    wood_dark = (60, 35, 20)
+    wood_mid = (120, 75, 40)
+    wood_light = (160, 105, 60)
+    pygame.draw.rect(surf, wood_dark, (4, 18, 24, 11))
+    pygame.draw.rect(surf, wood_mid, (5, 19, 22, 9))
+    pygame.draw.line(surf, wood_light, (5, 19), (26, 19), 1)
+    pygame.draw.rect(surf, (200, 100, 30), (7, 16, 5, 4))
+    pygame.draw.rect(surf, (60, 160, 50), (14, 16, 5, 4))
+    pygame.draw.rect(surf, (180, 40, 60), (21, 16, 4, 4))
+    pygame.draw.line(surf, wood_dark, (4, 5), (4, 18), 1)
+    pygame.draw.line(surf, wood_dark, (27, 5), (27, 18), 1)
+    stripe1 = cor_toldo
+    stripe2 = (240, 235, 220)
+    canopy_rect = pygame.Rect(2, 2, 28, 9)
+    pygame.draw.rect(surf, stripe1, canopy_rect)
+    for x in range(2, 30, 6):
+        pygame.draw.rect(surf, stripe2, (x, 2, 3, 9))
+    pygame.draw.line(surf, (40, 20, 15), (2, 2), (29, 2), 1)
+    pygame.draw.line(surf, (40, 20, 15), (2, 11), (29, 11), 1)
+    for x in range(2, 29, 4):
+        surf.set_at((x + 1, 12), stripe1 if (x // 4) % 2 == 0 else stripe2)
+        surf.set_at((x + 2, 12), stripe1 if (x // 4) % 2 == 0 else stripe2)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_barril():
+    w, h = 16, 16
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 70), (2, 10, 12, 5))
+    wood_dark = (55, 30, 15)
+    wood_mid = (115, 70, 35)
+    wood_light = (160, 105, 55)
+    iron = (60, 65, 70)
+    pygame.draw.ellipse(surf, wood_dark, (2, 1, 12, 14))
+    pygame.draw.ellipse(surf, wood_mid, (3, 2, 10, 12))
+    pygame.draw.line(surf, wood_light, (4, 4), (4, 11), 1)
+    pygame.draw.line(surf, iron, (2, 4), (13, 4), 1)
+    pygame.draw.line(surf, iron, (2, 11), (13, 11), 1)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_caixote():
+    w, h = 16, 16
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 70), (1, 10, 14, 5))
+    wood_dark = (65, 40, 20)
+    wood_mid = (130, 85, 45)
+    wood_light = (175, 120, 65)
+    pygame.draw.rect(surf, wood_dark, (1, 2, 14, 13))
+    pygame.draw.rect(surf, wood_mid, (2, 3, 12, 11))
+    pygame.draw.rect(surf, wood_dark, (2, 3, 12, 11), 1)
+    pygame.draw.line(surf, wood_dark, (3, 4), (12, 12), 1)
+    pygame.draw.line(surf, wood_light, (3, 3), (12, 3), 1)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_saca():
+    w, h = 16, 16
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 70), (1, 10, 14, 5))
+    cloth_dark = (100, 85, 55)
+    cloth_mid = (170, 150, 105)
+    cloth_light = (210, 190, 140)
+    pygame.draw.ellipse(surf, cloth_dark, (2, 3, 12, 12))
+    pygame.draw.ellipse(surf, cloth_mid, (3, 4, 10, 10))
+    pygame.draw.rect(surf, cloth_dark, (6, 1, 4, 3))
+    pygame.draw.line(surf, (140, 50, 40), (6, 3), (9, 3), 1)
+    pygame.draw.line(surf, cloth_light, (5, 6), (7, 10), 1)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_lenha():
+    w, h = 16, 16
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 70), (1, 11, 14, 4))
+    bark = (55, 35, 20)
+    wood = (175, 140, 95)
+    pygame.draw.rect(surf, bark, (2, 9, 12, 4))
+    pygame.draw.ellipse(surf, wood, (1, 9, 4, 4))
+    pygame.draw.rect(surf, bark, (3, 6, 11, 4))
+    pygame.draw.ellipse(surf, wood, (2, 6, 4, 4))
+    pygame.draw.rect(surf, bark, (4, 3, 9, 4))
+    pygame.draw.ellipse(surf, wood, (3, 3, 4, 4))
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_vaso_flores():
+    w, h = 16, 16
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 70), (2, 11, 12, 4))
+    clay_dark = (110, 45, 25)
+    clay_mid = (170, 75, 45)
+    clay_light = (210, 110, 70)
+    pygame.draw.polygon(surf, clay_dark, ((3, 6), (13, 6), (11, 14), (5, 14)))
+    pygame.draw.polygon(surf, clay_mid, ((4, 7), (12, 7), (10, 13), (6, 13)))
+    pygame.draw.rect(surf, clay_dark, (2, 5, 12, 2))
+    pygame.draw.line(surf, clay_light, (3, 5), (12, 5), 1)
+    pygame.draw.ellipse(surf, (35, 110, 40), (2, 1, 12, 6))
+    surf.set_at((4, 2), (240, 60, 80))
+    surf.set_at((8, 1), (240, 220, 60))
+    surf.set_at((11, 2), (180, 80, 220))
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
+def criar_placa():
+    w, h = 16, 16
+    surf = pygame.Surface((w, h), pygame.SRCALPHA)
+    pygame.draw.ellipse(surf, (15, 12, 10, 70), (5, 12, 6, 4))
+    wood_dark = (60, 35, 20)
+    wood_mid = (120, 75, 40)
+    wood_light = (160, 105, 60)
+    pygame.draw.rect(surf, wood_dark, (7, 6, 2, 9))
+    pygame.draw.polygon(surf, wood_dark, ((2, 2), (11, 2), (14, 5), (11, 8), (2, 8)))
+    pygame.draw.polygon(surf, wood_mid, ((3, 3), (10, 3), (13, 5), (10, 7), (3, 7)))
+    pygame.draw.line(surf, wood_light, (3, 3), (10, 3), 1)
+    pygame.draw.line(surf, wood_dark, (4, 5), (9, 5), 1)
+    return pygame.transform.scale(surf, (w * 2, h * 2))
+
+
 def aplicar_paleta_clara(surface, target_color, strength=90, brightness=18):
     result = surface.copy()
     overlay = pygame.Surface(result.get_size())
@@ -795,6 +1023,7 @@ def carregar_tudo():
         "nature_cattail": ("vegetation.png", (144, 160, 16, 32)),
         "nature_flower_purple": ("vegetation.png", (192, 160, 16, 32)),
         "nature_mushroom": ("vegetation.png", (48, 336, 16, 16)),
+        "nature_mushroom_toxic": ("vegetation.png", (16, 352, 16, 16)),
         "nature_fallen_leaves": ("vegetation.png", (64, 352, 48, 16)),
         "nature_flower_white": ("vegetation.png", (48, 384, 16, 16)),
         "nature_flower_blue": ("vegetation.png", (48, 400, 16, 16)),
@@ -813,10 +1042,19 @@ def carregar_tudo():
         "farm_cabbage": ("farm.png", (80, 80, 16, 16)),
         "farm_cauliflower": ("farm.png", (80, 144, 16, 16)),
         "farm_onion": ("farm.png", (80, 208, 16, 16)),
-        "farm_fence_top": ("building_props.png", (16, 176, 48, 32)),
-        "farm_fence_bottom": ("building_props.png", (16, 240, 48, 32)),
-        "farm_fence_left": ("building_props.png", (0, 192, 32, 32)),
-        "farm_fence_right": ("building_props.png", (48, 192, 32, 32)),
+        "farm_fence_top": ("building_props.png", (16, 176, 48, 16)),
+        "farm_fence_bottom": ("building_props.png", (16, 240, 48, 16)),
+        "farm_fence_left": ("building_props.png", (0, 208, 16, 16)),
+        "farm_fence_right": ("building_props.png", (64, 208, 16, 16)),
+        "farm_fence_h": ("building_props.png", (32, 176, 16, 16)),
+        "farm_fence_h_left": ("building_props.png", (16, 176, 16, 16)),
+        "farm_fence_h_mid": ("building_props.png", (32, 176, 16, 16)),
+        "farm_fence_h_right": ("building_props.png", (48, 176, 16, 16)),
+        "farm_fence_v": ("building_props.png", (0, 208, 16, 16)),
+        "farm_fence_corner_tl": ("building_props.png", (0, 192, 16, 16)),
+        "farm_fence_corner_tr": ("building_props.png", (64, 192, 16, 16)),
+        "farm_fence_corner_bl": ("building_props.png", (0, 224, 16, 16)),
+        "farm_fence_corner_br": ("building_props.png", (64, 224, 16, 16)),
         # Partes de casa para compor vilas
         "house_door_front": ("building_props.png", (0, 16, 32, 48)),
         "house_door_wood": ("building_props.png", (96, 16, 32, 48)),
@@ -911,6 +1149,33 @@ def carregar_tudo():
             seed=seed,
             janela_esquerda=janela_esquerda,
         )
+
+    # Props da Cidade e Vilarejo
+    SPRITES["town_well"] = criar_poco_vila()
+    SPRITES["street_lamp"] = criar_poste_lampiao()
+    SPRITES["market_stall"] = criar_barraca_mercado()
+    SPRITES["barrel_wood"] = criar_barril()
+    SPRITES["crate_wood"] = criar_caixote()
+    SPRITES["sack_grain"] = criar_saca()
+    SPRITES["logs_firewood"] = criar_lenha()
+    SPRITES["flower_pot"] = criar_vaso_flores()
+    SPRITES["signpost"] = criar_placa()
+    SPRITES["town_bench"] = carregar_regiao_atlas(f"{nature_base}/building_props.png", (16, 160, 32, 16), escala=2.0)
+    SPRITES["town_bench_large"] = carregar_regiao_atlas(f"{nature_base}/building_props.png", (80, 160, 64, 16), escala=2.0)
+    SPRITES["blacksmith_furnace"] = carregar_regiao_atlas("sprites/pixel_crawler/town/furnace.png", (0, 96, 32, 32), escala=2.0)
+    SPRITES["blacksmith_anvil"] = carregar_regiao_atlas("sprites/pixel_crawler/town/anvil.png", (224, 0, 32, 32), escala=2.0)
+    SPRITES["town_workbench"] = carregar_regiao_atlas("sprites/pixel_crawler/town/workbench.png", (64, 64, 32, 32), escala=2.0)
+    SPRITES["crate_carrots"] = carregar_regiao_atlas(f"{nature_base}/farm.png", (144, 0, 16, 16), escala=2.0)
+    SPRITES["crate_beets"] = carregar_regiao_atlas(f"{nature_base}/farm.png", (144, 32, 16, 16), escala=2.0)
+    SPRITES["crate_cabbage"] = carregar_regiao_atlas(f"{nature_base}/farm.png", (144, 64, 16, 16), escala=2.0)
+    SPRITES["scarecrow"] = carregar_regiao_atlas(f"{nature_base}/farm.png", (224, 32, 16, 32), escala=2.0)
+
+    # NPCs Urbanos (Pixel Crawler)
+    SPRITES["npc_peasant"] = carregar_npc_pixel_crawler("peasant")
+    SPRITES["npc_guard"] = carregar_npc_pixel_crawler("knight")
+    SPRITES["npc_tavern"] = carregar_npc_pixel_crawler("tavern")
+    SPRITES["npc_mage"] = carregar_npc_pixel_crawler("wizzard")
+    SPRITES["npc_merchant"] = carregar_npc_pixel_crawler("rogue")
 
     SPRITES["nature_bonfire_frames"] = carregar_spritesheet(
         f"{nature_base}/bonfire_sheet.png", colunas=4, escala=2.0

@@ -384,41 +384,83 @@ class CompositorMundo:
             )
 
     def _cercar_horta(self, clareira):
-        """Monta uma cerca visual modular, deixando entradas no eixo central."""
-        pecas = (
-            (clareira.x - 2, clareira.y - 3, "farm_fence_top"),
-            (clareira.x + 2, clareira.y - 3, "farm_fence_top"),
-            (clareira.x - 2, clareira.y + 3, "farm_fence_bottom"),
-            (clareira.x + 2, clareira.y + 3, "farm_fence_bottom"),
-            (clareira.x - 4, clareira.y - 1, "farm_fence_left"),
-            (clareira.x - 4, clareira.y + 1, "farm_fence_left"),
-            (clareira.x + 4, clareira.y - 1, "farm_fence_right"),
-            (clareira.x + 4, clareira.y + 1, "farm_fence_right"),
+        """Monta uma cerca visual modular com hitboxes precisas, deixando entradas nas trilhas."""
+        # 1. Cantos
+        cantos = (
+            (clareira.x - 4, clareira.y - 3, "farm_fence_corner_tl", (10, 10, 22, 22)),
+            (clareira.x + 4, clareira.y - 3, "farm_fence_corner_tr", (0, 10, 22, 22)),
+            (clareira.x - 4, clareira.y + 3, "farm_fence_corner_bl", (10, 0, 22, 22)),
+            (clareira.x + 4, clareira.y + 3, "farm_fence_corner_br", (0, 0, 22, 22)),
         )
-        for x, y, decoracao in pecas:
+        for x, y, decoracao, hitbox in cantos:
             tile = self.mapa.obter_tile(x, y)
-            if not tile:
-                continue
-            tile.tipo = "terra"
-            tile.bioma = "horta"
-            tile.bloqueado = False
-            tile.decoracao = decoracao
+            if tile:
+                tile.tipo = "terra"
+                tile.bioma = "horta"
+                tile.decoracao = decoracao
+                tile.bloqueado = True
+                tile.custom_hitbox = hitbox
 
-        # A colisão acompanha somente a base visível da cerca. As aberturas
-        # centrais de cima e de baixo continuam livres como pequenos portões.
-        for y in (clareira.y - 3, clareira.y + 3):
-            for dx in (-3, -2, -1, 1, 2, 3):
-                tile = self.mapa.obter_tile(clareira.x + dx, y)
-                if tile:
-                    tile.bloqueado = True
-        for x in (clareira.x - 4, clareira.x + 4):
-            for dy in range(-2, 3):
+        # 2. Laterais Verticais (esquerda x-4 e direita x+4)
+        for dy in range(-2, 3):
+            for x, decoracao in ((clareira.x - 4, "farm_fence_left"), (clareira.x + 4, "farm_fence_right")):
                 tile = self.mapa.obter_tile(x, clareira.y + dy)
                 if tile:
+                    tile.tipo = "terra"
+                    tile.bioma = "horta"
+                    tile.decoracao = decoracao
                     tile.bloqueado = True
+                    tile.custom_hitbox = (10, 0, 12, 32)
 
-        # A trilha que chega à horta define automaticamente a posição do
-        # portão, inclusive quando se aproxima por uma lateral.
+        # 3. Portões Horizontais (Norte e Sul)
+        for y, decoracao_base in ((clareira.y - 3, "farm_fence_top"), (clareira.y + 3, "farm_fence_bottom")):
+            trail_at_y = {tx for tx, ty in self.trilha_tiles if ty == y and clareira.x - 3 <= tx <= clareira.x + 3}
+            if not trail_at_y:
+                trail_at_y = {clareira.x}
+
+            # Lado esquerdo do portão (dx = -3, -2, -1)
+            left_tiles = [clareira.x + dx for dx in (-3, -2, -1) if (clareira.x + dx) not in trail_at_y]
+            if len(left_tiles) == 2:
+                t_l = self.mapa.obter_tile(left_tiles[0], y)
+                t_r = self.mapa.obter_tile(left_tiles[1], y)
+                if t_l:
+                    t_l.tipo = "terra"; t_l.bioma = "horta"; t_l.decoracao = "farm_fence_h_left"
+                    t_l.bloqueado = True; t_l.custom_hitbox = (0, 10, 32, 14)
+                if t_r:
+                    t_r.tipo = "terra"; t_r.bioma = "horta"; t_r.decoracao = "farm_fence_h_right"
+                    t_r.bloqueado = True; t_r.custom_hitbox = (0, 10, 32, 14)
+            else:
+                for tx in left_tiles:
+                    t = self.mapa.obter_tile(tx, y)
+                    if t:
+                        t.tipo = "terra"; t.bioma = "horta"
+                        t.bloqueado = True; t.custom_hitbox = (0, 10, 32, 14)
+                mid_t = self.mapa.obter_tile(clareira.x - 2, y)
+                if mid_t and mid_t.bloqueado:
+                    mid_t.decoracao = decoracao_base
+
+            # Lado direito do portão (dx = 1, 2, 3)
+            right_tiles = [clareira.x + dx for dx in (1, 2, 3) if (clareira.x + dx) not in trail_at_y]
+            if len(right_tiles) == 2:
+                t_l = self.mapa.obter_tile(right_tiles[0], y)
+                t_r = self.mapa.obter_tile(right_tiles[1], y)
+                if t_l:
+                    t_l.tipo = "terra"; t_l.bioma = "horta"; t_l.decoracao = "farm_fence_h_left"
+                    t_l.bloqueado = True; t_l.custom_hitbox = (0, 10, 32, 14)
+                if t_r:
+                    t_r.tipo = "terra"; t_r.bioma = "horta"; t_r.decoracao = "farm_fence_h_right"
+                    t_r.bloqueado = True; t_r.custom_hitbox = (0, 10, 32, 14)
+            else:
+                for tx in right_tiles:
+                    t = self.mapa.obter_tile(tx, y)
+                    if t:
+                        t.tipo = "terra"; t.bioma = "horta"
+                        t.bloqueado = True; t.custom_hitbox = (0, 10, 32, 14)
+                mid_t = self.mapa.obter_tile(clareira.x + 2, y)
+                if mid_t and mid_t.bloqueado:
+                    mid_t.decoracao = decoracao_base
+
+        # 4. Assegura que todas as trilhas conectadas permaneçam sem colisão ou cerca
         for x, y in self.trilha_tiles:
             if (
                 clareira.x - 4 <= x <= clareira.x + 4
@@ -427,6 +469,9 @@ class CompositorMundo:
                 tile = self.mapa.obter_tile(x, y)
                 if tile:
                     tile.bloqueado = False
+                    tile.custom_hitbox = None
+                    if tile.decoracao and "fence" in tile.decoracao:
+                        tile.decoracao = None
 
     def _montar_acampamentos(self):
         for clareira in self.clareiras[1:2]:
@@ -561,6 +606,124 @@ class CompositorMundo:
             )
 
         self._remover_arvores(area_sem_arvores)
+
+        # 1. Praça Central (Town Square)
+        # O centro (cx, cy) permanece desobstruído como cruzamento principal.
+        poco_tile = self.mapa.obter_tile(cx + 1, cy - 1)
+        if poco_tile and not poco_tile.bloqueado:
+            poco_tile.tipo = "terra"
+            poco_tile.bioma = "vila"
+            poco_tile.decoracao = "town_well"
+            poco_tile.bloqueado = True
+            poco_tile.custom_hitbox = (2, 8, 28, 22)
+
+        # Lampiões nos cantos da praça
+        lamp_positions = (
+            (cx - 2, cy - 2),
+            (cx + 2, cy - 2),
+            (cx - 2, cy + 2),
+            (cx + 2, cy + 2),
+        )
+        for lx, ly in lamp_positions:
+            lt = self.mapa.obter_tile(lx, ly)
+            if lt and not lt.bloqueado:
+                lt.tipo = "terra"
+                lt.bioma = "vila"
+                lt.decoracao = "street_lamp"
+                lt.bloqueado = True
+                lt.custom_hitbox = (11, 20, 10, 12)
+                if hasattr(self.mapa, "town_lights"):
+                    self.mapa.town_lights.add((lx, ly))
+
+        # Bancos de madeira para descanso
+        benches = ((cx - 2, cy), (cx + 2, cy))
+        for bx, by in benches:
+            bt = self.mapa.obter_tile(bx, by)
+            if bt and not bt.bloqueado:
+                bt.tipo = "terra"
+                bt.bioma = "vila"
+                bt.decoracao = "town_bench"
+                bt.bloqueado = True
+                bt.custom_hitbox = (2, 8, 28, 18)
+
+        # Floreiras e placa indicadora
+        potes = ((cx - 1, cy - 2), (cx + 1, cy - 2))
+        for px, py in potes:
+            pt = self.mapa.obter_tile(px, py)
+            if pt and not pt.bloqueado:
+                pt.tipo = "terra"
+                pt.bioma = "vila"
+                pt.decoracao = "flower_pot"
+                pt.bloqueado = False
+
+        placa_tile = self.mapa.obter_tile(cx - 1, cy + 1)
+        if placa_tile and not placa_tile.bloqueado:
+            placa_tile.tipo = "terra"
+            placa_tile.bioma = "vila"
+            placa_tile.decoracao = "signpost"
+            placa_tile.bloqueado = False
+
+        # 2. Mercado / Feira Municipal
+        stall_tile = self.mapa.obter_tile(cx + 4, cy + 1)
+        if stall_tile and not stall_tile.bloqueado:
+            stall_tile.tipo = "terra"
+            stall_tile.bioma = "vila"
+            stall_tile.decoracao = "market_stall"
+            stall_tile.bloqueado = True
+            stall_tile.custom_hitbox = (0, 10, 32, 22)
+
+        market_props = (
+            (cx + 3, cy + 2, "crate_carrots", False),
+            (cx + 4, cy + 2, "crate_cabbage", False),
+            (cx + 5, cy + 2, "crate_beets", False),
+            (cx + 5, cy + 1, "barrel_wood", True),
+            (cx + 6, cy + 1, "crate_wood", True),
+            (cx + 6, cy + 2, "sack_grain", False),
+        )
+        for mpx, mpy, decor, is_solid in market_props:
+            mt = self.mapa.obter_tile(mpx, mpy)
+            if mt and not mt.bloqueado:
+                mt.tipo = "terra"
+                mt.bioma = "vila"
+                mt.decoracao = decor
+                mt.bloqueado = is_solid
+                if is_solid:
+                    mt.custom_hitbox = (2, 2, 28, 28)
+
+        # 3. Oficina / Ferraria
+        blacksmith_props = (
+            (cx - 5, cy + 2, "blacksmith_furnace", True, (2, 6, 28, 26)),
+            (cx - 6, cy + 2, "blacksmith_anvil", True, (4, 10, 24, 20)),
+            (cx - 5, cy + 3, "town_workbench", True, (2, 8, 28, 24)),
+            (cx - 6, cy + 3, "logs_firewood", False, None),
+        )
+        for bx, by, decor, is_solid, hbox in blacksmith_props:
+            bt = self.mapa.obter_tile(bx, by)
+            if bt and not bt.bloqueado:
+                bt.tipo = "terra"
+                bt.bioma = "vila"
+                bt.decoracao = decor
+                bt.bloqueado = is_solid
+                if hbox:
+                    bt.custom_hitbox = hbox
+                if decor == "blacksmith_furnace" and hasattr(self.mapa, "town_lights"):
+                    self.mapa.town_lights.add((bx, by))
+
+        # Pavimenta os acessos da praça e feira
+        for py in range(cy - 2, cy + 3):
+            for px in range(cx - 2, cx + 3):
+                pt = self.mapa.obter_tile(px, py)
+                if pt and pt.tipo != "deep_water" and not pt.bloqueado:
+                    pt.tipo = "terra"
+                    pt.bioma = "vila"
+                    self.trilha_tiles.add((px, py))
+
+        # Assegura que nenhum tile bloqueado ou com objeto sólido permaneça em trilha_tiles
+        self.trilha_tiles = {
+            pos for pos in self.trilha_tiles
+            if not getattr(self.mapa.obter_tile(*pos), "bloqueado", False)
+        }
+
         self.pontos_interesse.append(PontoInteresse("vila", cx, cy))
 
     def _construir_casa(self, ancora_x, ancora_y, largura, profundidade, sprite):

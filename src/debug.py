@@ -35,17 +35,38 @@ def desenhar_hitboxes(surface, camera, mapa_obj, config):
         for x in range(start_x, end_x):
             tile = mapa_obj.obter_tile(x, y)
             if tile and mapa_obj.is_blocked_terrain(x, y):
-                screen_x = x * tile_size - cam_x
-                screen_y = y * tile_size - cam_y
-                
-                if -tile_size < screen_x < surf_w and -tile_size < screen_y < surf_h:
-                    surface.blit(blocked_overlay, (screen_x, screen_y))
-                    pygame.draw.rect(
-                        surface,
-                        (255, 0, 0),
-                        (screen_x, screen_y, tile_size, tile_size),
-                        1,
+                tile_hb = (
+                    mapa_obj.get_tile_hitbox(x, y)
+                    if hasattr(mapa_obj, "get_tile_hitbox")
+                    else None
+                )
+                if tile_hb:
+                    screen_rect = pygame.Rect(
+                        tile_hb.x - cam_x,
+                        tile_hb.y - cam_y,
+                        tile_hb.width,
+                        tile_hb.height,
                     )
+                    if screen_rect.colliderect(surface.get_rect()):
+                        sub_overlay = pygame.Surface(
+                            (screen_rect.width, screen_rect.height),
+                            pygame.SRCALPHA,
+                        )
+                        sub_overlay.fill((255, 0, 0, 100))
+                        surface.blit(sub_overlay, screen_rect.topleft)
+                        pygame.draw.rect(surface, (255, 0, 0), screen_rect, 1)
+                else:
+                    screen_x = x * tile_size - cam_x
+                    screen_y = y * tile_size - cam_y
+                    
+                    if -tile_size < screen_x < surf_w and -tile_size < screen_y < surf_h:
+                        surface.blit(blocked_overlay, (screen_x, screen_y))
+                        pygame.draw.rect(
+                            surface,
+                            (255, 0, 0),
+                            (screen_x, screen_y, tile_size, tile_size),
+                            1,
+                        )
 
     # 2. Desenha Hitboxes das Entidades (Verde/Azul)
     for ent in mapa_obj.entidades:

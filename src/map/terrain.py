@@ -13,6 +13,15 @@ SOLID_DECORATIONS = frozenset({
     "farm_fence_bottom",
     "farm_fence_left",
     "farm_fence_right",
+    "farm_fence_h",
+    "farm_fence_h_left",
+    "farm_fence_h_mid",
+    "farm_fence_h_right",
+    "farm_fence_v",
+    "farm_fence_corner_tl",
+    "farm_fence_corner_tr",
+    "farm_fence_corner_bl",
+    "farm_fence_corner_br",
     # Partes de casas de vilas
     "house_window_front",
     "house_window_shutters",
@@ -20,6 +29,17 @@ SOLID_DECORATIONS = frozenset({
     "village_house_amber",
     "village_house_brick",
     "village_house_moss",
+    # Props da cidade
+    "town_well",
+    "street_lamp",
+    "market_stall",
+    "blacksmith_furnace",
+    "blacksmith_anvil",
+    "town_workbench",
+    "town_bench",
+    "town_bench_large",
+    "barrel_wood",
+    "crate_wood",
 })
 
 TERRAIN_MATERIALS = {
@@ -48,4 +68,16 @@ def tile_is_blocking(tile) -> bool:
 def terrain_material(tile) -> str:
     if not tile:
         return "stone"
-    return TERRAIN_MATERIALS.get(tile.tipo, "stone")
+    decoracao = getattr(tile, "decoracao", None)
+    if decoracao:
+        if "fence" in decoracao or decoracao in {
+            "barrel_wood", "crate_wood", "town_workbench", "market_stall",
+            "town_bench", "town_bench_large", "logs_firewood"
+        }:
+            return "wood"
+        if decoracao in {"blacksmith_anvil", "street_lamp"}:
+            return "metal"
+        if decoracao in {"town_well", "blacksmith_furnace"}:
+            return "stone"
+    return TERRAIN_MATERIALS.get(getattr(tile, "tipo", None), "stone")
+

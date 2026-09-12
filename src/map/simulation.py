@@ -32,6 +32,8 @@ class WorldSimulation:
         for loot in world.items_no_chao:
             loot.update(dt)
         world.particulas.update(dt, world)
+        if hasattr(world, "atualizar_regeneracao_safras"):
+            world.atualizar_regeneracao_safras()
 
     def _update_night_events(self, dt: float) -> None:
         world = self.world

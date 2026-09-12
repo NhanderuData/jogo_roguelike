@@ -307,7 +307,7 @@ class Renderer:
 
         # --- 2. ESCURIDÃO AMBIENTAL (Subtractive) ---
         if cor_noite[3] > 0:
-            self.lighting.apply_darkness(surface, cor_noite)
+            self.lighting.apply_darkness(surface, cor_noite, getattr(mapa_obj, "jogador", None))
 
 
         # --- 3. LUZES ADITIVAS / GLOW (Additive) ---

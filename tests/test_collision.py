@@ -16,14 +16,18 @@ class EmptyParticles:
 
 
 class MapStub:
-    def __init__(self, blocked=None, entities=None):
+    def __init__(self, blocked=None, entities=None, custom_hitboxes=None):
         self.blocked = set(blocked or ())
         self.entidades = list(entities or ())
+        self.custom_hitboxes = dict(custom_hitboxes or {})
         self.particulas = EmptyParticles()
         self.efeitos = []
 
     def is_blocked_terrain(self, x, y):
         return (x, y) in self.blocked
+
+    def get_tile_hitbox(self, x, y):
+        return self.custom_hitboxes.get((x, y))
 
 
 class ProjectileCollisionTests(unittest.TestCase):
@@ -222,6 +226,22 @@ class PhysicsCollisionTests(unittest.TestCase):
 
         # Esta posição deixa a borda direita exatamente em x=32.
         self.assertFalse(physics.check_collision(0.25, 0, map_obj))
+
+    def test_fence_subtile_hitbox_allows_approaching_edge(self):
+        entity = object()
+        physics = PhysicsComponent(entity, 1.0, 0.0, largura_hb=0.5, altura_hb=0.5)
+        fence_hb = pygame.Rect(32, 42, 32, 14)
+        map_obj = MapStub(
+            blocked={(1, 1)},
+            entities=[entity],
+            custom_hitboxes={(1, 1): fence_hb},
+        )
+
+        # Bottom of feet is at y=38.4, which does not intersect y=42..56
+        self.assertFalse(physics.check_collision(1.0, 0.2, map_obj))
+
+        # Bottom of feet is at y=44.8, which intersects y=42..56
+        self.assertTrue(physics.check_collision(1.0, 0.4, map_obj))
 
     def test_movement_distance_is_independent_of_frame_rate(self):
         map_obj = MapStub()
