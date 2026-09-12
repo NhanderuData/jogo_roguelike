@@ -9,6 +9,80 @@ from graphics import recursos
 
 
 class SpriteAssetTests(unittest.TestCase):
+    def test_pond_edge_frames_keep_native_32px_size(self):
+        atlas = pygame.Surface((400, 400), pygame.SRCALPHA)
+        with (
+            patch.object(recursos, "_carregar_imagem", return_value=atlas),
+            patch.object(
+                recursos,
+                "carregar_regiao_atlas",
+                wraps=recursos.carregar_regiao_atlas,
+            ) as loader,
+        ):
+            pond_edges = recursos.carregar_bordas_lagoa(
+                "sprites/pixel_crawler/nature"
+            )
+
+        self.assertEqual(len(pond_edges), 12)
+        self.assertEqual(
+            recursos.POND_EDGE_OFFSETS,
+            {
+                "north": (32, 64),
+                "south": (32, 0),
+                "west": (64, 32),
+                "east": (0, 32),
+                "north_west": (48, 48),
+                "north_east": (16, 48),
+                "south_west": (48, 16),
+                "south_east": (16, 16),
+                "inner_north_west": (48, 64),
+                "inner_north_east": (16, 64),
+                "inner_south_west": (48, 0),
+                "inner_south_east": (16, 0),
+            },
+        )
+        self.assertEqual(len(loader.call_args_list), 48)
+        for call in loader.call_args_list:
+            self.assertEqual(call.args[1][2:], (16, 16))
+            self.assertEqual(call.kwargs["escala"], 2.0)
+
+        for edge_name, frames in pond_edges.items():
+            with self.subTest(edge=edge_name):
+                self.assertEqual(len(frames), 4)
+                self.assertTrue(
+                    all(frame.get_size() == (32, 32) for frame in frames)
+                )
+
+    def test_rocks_fill_exactly_one_world_tile(self):
+        atlas = pygame.Surface((208, 304), pygame.SRCALPHA)
+        with (
+            patch.object(recursos, "_carregar_imagem", return_value=atlas),
+            patch.object(
+                recursos,
+                "carregar_regiao_atlas",
+                wraps=recursos.carregar_regiao_atlas,
+            ) as loader,
+        ):
+            rocks = recursos.carregar_rochas(
+                "sprites/pixel_crawler/nature"
+            )
+
+        self.assertEqual(set(rocks), {"rock", "rock_brown"})
+        self.assertEqual(
+            recursos.ROCK_REGIONS,
+            {
+                "rock": (176, 16, 16, 16),
+                "rock_brown": (80, 16, 16, 16),
+            },
+        )
+        for call in loader.call_args_list:
+            self.assertEqual(call.args[1][2:], (16, 16))
+            self.assertEqual(call.kwargs["escala"], 2.0)
+
+        for rock_name, image in rocks.items():
+            with self.subTest(rock=rock_name):
+                self.assertEqual(image.get_size(), (32, 32))
+
     def test_village_house_is_composed_at_native_resolution_then_scaled(self):
         door = pygame.Surface((12, 20), pygame.SRCALPHA)
         window = pygame.Surface((12, 12), pygame.SRCALPHA)

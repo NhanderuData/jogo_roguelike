@@ -4,13 +4,8 @@ from __future__ import annotations
 BLOCKING_TERRAIN = frozenset({"parede", "deep_water"})
 
 SOLID_DECORATIONS = frozenset({
-    "nature_bush_green",
-    "nature_bush_autumn",
-    "nature_leaf_cluster",
-    "nature_plant_tall",
-    "nature_cattail",
-    "nature_dry_leafy",
-    "nature_dry_cattail",
+    # Plantas, arbustos e juncos baixos são atravessáveis. Este conjunto fica
+    # reservado para objetos com volume físico ou partes estruturais.
     "nature_stump",
     "nature_crystal_blue",
     "nature_bonfire",

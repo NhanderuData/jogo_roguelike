@@ -40,6 +40,9 @@ class MenuState(BaseState):
         # Vamos precisar adicionar a ação START no InputManager depois!
         if self.input.is_pressed(Actions.START):
             self.manager.change(Scene.GAME)
+
+        if self.input.is_pressed(Actions.TOGGLE_MUTE):
+            self.context.audio.toggle_mute()
             
         # Detecta QUIT para fechar
         if self.input.is_pressed(Actions.QUIT):

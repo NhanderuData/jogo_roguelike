@@ -89,7 +89,7 @@ def classificar_lagoa(x, y, lagoas, ruido_borda=0.0):
     return None
 
 
-def suavizar_margens_lagoa(mapa, passagens=2):
+def suavizar_margens_lagoa(mapa, passagens=4):
     """Remove pontas de água que o conjunto de oito bordas não representa.
 
     As peças do atlas cobrem lados retos e cantos adjacentes. Um tile de água

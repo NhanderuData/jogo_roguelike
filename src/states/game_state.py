@@ -20,6 +20,7 @@ class GameState(BaseState):
         
         self.relogio = TimeSystem()
         self.mapa = map_gen.Mapa(context)
+        self.mapa.time_system = self.relogio
         self.camera = camera.Camera()
         self.mapa.camera = self.camera
         self.renderer = Renderer(self.camera)
@@ -36,6 +37,26 @@ class GameState(BaseState):
     def update(self, dt):
         if self.input.is_pressed(Actions.TOGGLE_DEBUG):
             self.context.debug_enabled = not self.context.debug_enabled
+
+        if self.input.is_pressed(Actions.TOGGLE_MUTE):
+            self.context.audio.toggle_mute()
+
+        self.ui.update(dt)
+
+        if self.relogio.consume_event("night"):
+            self.context.audio.play("night_howl", 0.55)
+            self.ui.show_banner(
+                "A NOITE CAIU... ABRIGUE-SE PERTO DO FOGO!",
+                color=(255, 70, 70),
+                duration=4.0,
+            )
+        elif self.relogio.consume_event("dawn"):
+            self.context.audio.play("bird", 0.35)
+            self.ui.show_banner(
+                f"O SOL NASCEU! VOCE SOBREVIVEU AO DIA {self.relogio.day_count - 1}.",
+                color=(255, 215, 60),
+                duration=4.0,
+            )
 
         self.ambient_sound_timer -= dt
         if self.ambient_sound_timer <= 0:
@@ -94,10 +115,18 @@ class GameState(BaseState):
         world_mx = (screen_mx + self.camera.camera_x) / config.TAMANHO_TILE
         world_my = (screen_my + self.camera.camera_y) / config.TAMANHO_TILE
         
+        mute_rect = self.ui.get_mute_button_rect()
+        clicked_mute = False
+        if self.input.is_pressed(Actions.ATTACK_PRIMARY) and mute_rect.collidepoint(screen_mx, screen_my):
+            self.context.audio.toggle_mute()
+            clicked_mute = True
+
         weapon = self.mapa.jogador.weapons.current
-        wants_to_attack = self.input.is_pressed(Actions.ATTACK_PRIMARY)
-        if weapon.kind == "ranged" and weapon.cooldown <= 0.1:
-            wants_to_attack = wants_to_attack or self.input.is_held(Actions.ATTACK_PRIMARY)
+        wants_to_attack = False
+        if not clicked_mute and not mute_rect.collidepoint(screen_mx, screen_my):
+            wants_to_attack = self.input.is_pressed(Actions.ATTACK_PRIMARY)
+            if weapon.kind == "ranged" and weapon.cooldown <= 0.1:
+                wants_to_attack = wants_to_attack or self.input.is_held(Actions.ATTACK_PRIMARY)
         if wants_to_attack:
             self.mapa.jogador.weapons.attack(world_mx, world_my, self.mapa)
 
@@ -139,4 +168,10 @@ class GameState(BaseState):
         surface.fill(config.PRETO)
         cor_do_ceu = self.relogio.obter_cor()
         self.renderer.draw(surface, self.mapa, cor_do_ceu)
-        self.ui.draw(surface, self.mapa.jogador)
+        self.ui.draw(
+            surface,
+            self.mapa.jogador,
+            audio=self.context.audio,
+            mouse_pos=self.input.get_mouse_position(),
+            time_system=self.relogio,
+        )

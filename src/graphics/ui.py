@@ -7,7 +7,122 @@ class UI:
         self.font = pygame.font.SysFont("arial", 16, bold=True)
         self.font_big = pygame.font.SysFont("arial", 24, bold=True)
         self.font_huge = pygame.font.SysFont("arial", 32, bold=True)
+        self.font_small = pygame.font.SysFont("arial", 10, bold=True)
         self._icon_cache = {}
+        self.banner_text = ""
+        self.banner_color = (255, 255, 255)
+        self.banner_timer = 0.0
+        self.banner_duration = 3.5
+
+    def show_banner(self, text, color=(255, 255, 255), duration=3.5):
+        self.banner_text = text
+        self.banner_color = color
+        self.banner_timer = duration
+        self.banner_duration = duration
+
+    def update(self, dt):
+        if self.banner_timer > 0:
+            self.banner_timer = max(0.0, self.banner_timer - dt)
+
+    @staticmethod
+    def get_mute_button_rect():
+        return pygame.Rect(config.LARGURA_TELA - 64, 16, 44, 40)
+
+    def desenhar_botao_mute(self, surface, audio, mouse_pos):
+        btn_rect = self.get_mute_button_rect()
+        is_hovered = btn_rect.collidepoint(mouse_pos)
+        is_muted = getattr(audio, "muted", False)
+
+        bg_color = (40, 46, 54) if is_hovered else (20, 24, 28)
+        border_color = (255, 215, 70) if is_hovered else (75, 85, 95)
+        if is_muted:
+            border_color = (220, 70, 70) if not is_hovered else (255, 100, 100)
+
+        pygame.draw.rect(surface, bg_color, btn_rect, border_radius=6)
+        pygame.draw.rect(surface, border_color, btn_rect, 2, border_radius=6)
+
+        cx = btn_rect.centerx
+        cy = btn_rect.centery - 4
+
+        speaker_color = (230, 235, 240) if not is_muted else (170, 175, 180)
+
+        # Corpo do alto-falante
+        pygame.draw.rect(surface, speaker_color, (cx - 10, cy - 4, 5, 8))
+        pygame.draw.polygon(
+            surface,
+            speaker_color,
+            [(cx - 6, cy - 4), (cx + 1, cy - 9), (cx + 1, cy + 9), (cx - 6, cy + 4)],
+        )
+
+        if not is_muted:
+            wave_color = (120, 200, 255) if is_hovered else (220, 235, 250)
+            pygame.draw.arc(surface, wave_color, (cx - 2, cy - 6, 8, 12), -1.1, 1.1, 2)
+            pygame.draw.arc(surface, wave_color, (cx + 1, cy - 10, 12, 20), -1.1, 1.1, 2)
+        else:
+            pygame.draw.line(surface, (235, 60, 60), (cx - 9, cy + 9), (cx + 10, cy - 9), 3)
+
+        txt_m = self.font_small.render("[M]", True, (160, 170, 180) if not is_hovered else config.BRANCO)
+        surface.blit(txt_m, (cx - txt_m.get_width() // 2, btn_rect.bottom - 13))
+
+    def desenhar_relogio_e_tempo(self, surface, time_system):
+        if not time_system:
+            return
+
+        x = config.LARGURA_TELA - 235
+        y = 16
+        w = 160
+        h = 40
+
+        bg_rect = pygame.Rect(x, y, w, h)
+        pygame.draw.rect(surface, (18, 22, 28), bg_rect, border_radius=6)
+
+        phase_colors = {
+            "Dia": (255, 215, 70),
+            "Entardecer": (255, 130, 45),
+            "Noite": (120, 160, 245),
+            "Amanhecer": (255, 175, 80),
+        }
+        border_color = phase_colors.get(time_system.phase_label, (180, 180, 180))
+        pygame.draw.rect(surface, border_color, bg_rect, 2, border_radius=6)
+
+        icon_cx = x + 20
+        icon_cy = y + h // 2
+        if time_system.is_night:
+            pygame.draw.circle(surface, (210, 230, 255), (icon_cx, icon_cy), 8)
+            pygame.draw.circle(surface, (18, 22, 28), (icon_cx + 4, icon_cy - 2), 6)
+        else:
+            pygame.draw.circle(surface, border_color, (icon_cx, icon_cy), 7)
+            pygame.draw.circle(surface, (255, 245, 180), (icon_cx, icon_cy), 4)
+
+        txt_str = f"Dia {time_system.day_count} • {time_system.phase_label}"
+        txt = self.font.render(txt_str, True, config.BRANCO)
+        surface.blit(txt, (x + 36, y + 10))
+
+    def desenhar_banner(self, surface):
+        if self.banner_timer <= 0 or not self.banner_text:
+            return
+
+        alpha_factor = min(1.0, self.banner_timer / 0.6)
+        alpha = int(255 * alpha_factor)
+
+        txt = self.font_big.render(self.banner_text, True, self.banner_color)
+        padding_x = 24
+        padding_y = 12
+        bw = txt.get_width() + padding_x * 2
+        bh = txt.get_height() + padding_y * 2
+        bx = (config.LARGURA_TELA - bw) // 2
+        by = 80
+
+        banner_surf = pygame.Surface((bw, bh), pygame.SRCALPHA)
+        banner_surf.fill((15, 18, 24, int(220 * alpha_factor)))
+        border_c = (*self.banner_color[:3], alpha)
+        pygame.draw.rect(banner_surf, border_c, (0, 0, bw, bh), 2, border_radius=8)
+
+        txt_alpha = txt.copy()
+        txt_alpha.set_alpha(alpha)
+        banner_surf.blit(txt_alpha, (padding_x, padding_y))
+
+        surface.blit(banner_surf, (bx, by))
 
     def _scaled_icon(self, key, size):
         cache_key = (key, size)
@@ -37,7 +152,15 @@ class UI:
             txt_rect = txt_surf.get_rect(center=(x + largura/2, y + altura/2))
             surface.blit(txt_surf, txt_rect)
 
-    def draw(self, surface, jogador):
+    def draw(self, surface, jogador, audio=None, mouse_pos=(0, 0), time_system=None):
+        if audio is not None:
+            self.desenhar_botao_mute(surface, audio, mouse_pos)
+
+        if time_system is not None:
+            self.desenhar_relogio_e_tempo(surface, time_system)
+
+        self.desenhar_banner(surface)
+
         if not jogador: return
 
         # 1. Barra de Vida (HP) - Vermelha (Y=20)
@@ -63,12 +186,11 @@ class UI:
         # --- 4. SISTEMA DE SOBREVIVÊNCIA (NOVO) ---
         # O papel da entidade define se ela possui status de sobrevivência.
         if hasattr(jogador, 'status') and jogador.status:
-            
             # FOME (Laranja) - Y=70
             self.desenhar_barra(
                 surface, 20, 70,
                 jogador.status.fome, jogador.status.max_fome,
-                (100, 50, 0), (255, 140, 0), 
+                (100, 50, 0), (255, 140, 0),
                 largura=150, altura=15,
                 texto_label="FOME"
             )
@@ -77,15 +199,30 @@ class UI:
             self.desenhar_barra(
                 surface, 20, 90,
                 jogador.status.sede, jogador.status.max_sede,
-                (0, 0, 100), (50, 100, 255), 
+                (0, 0, 100), (50, 100, 255),
                 largura=150, altura=15,
                 texto_label="SEDE"
             )
 
-            # AVISO DE SANGRAMENTO - Y=120
+            # AVISO DE SANGRAMENTO - Y=135
+            bleed_y = 135
             if jogador.status.sangramento > 0:
                 txt_bleed = self.font_big.render("SANGRANDO!", True, (255, 0, 0))
-                surface.blit(txt_bleed, (20, 140))
+                surface.blit(txt_bleed, (20, bleed_y))
+                bleed_y += 30
+
+            # STATUS DE REFÚGIO DA FOGUEIRA
+            if getattr(jogador, "near_campfire", False):
+                badge_rect = pygame.Rect(20, bleed_y, 185, 22)
+                pygame.draw.rect(surface, (45, 25, 12), badge_rect, border_radius=4)
+                pygame.draw.rect(surface, (255, 140, 30), badge_rect, 1, border_radius=4)
+                pygame.draw.polygon(
+                    surface,
+                    (255, 150, 40),
+                    [(27, bleed_y + 16), (32, bleed_y + 6), (37, bleed_y + 16)],
+                )
+                txt_fire = self.font_small.render("REFUGIO DO FOGO (+REC)", True, (255, 215, 120))
+                surface.blit(txt_fire, (42, bleed_y + 4))
 
             if jogador.status.energy_remaining > 0:
                 self.desenhar_barra(

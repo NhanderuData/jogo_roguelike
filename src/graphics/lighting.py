@@ -17,6 +17,7 @@ class LightingRenderer:
         self._bonfire_halos = self._variants(bonfire, 0.72, 1.0)
         self._bonfire_cores = self._variants(bonfire_core, 0.82, 1.0)
         self._darkness = pygame.Surface(size, pygame.SRCALPHA)
+        self.eye_glow = self.create_gradient(16, (240, 25, 25), 140)
 
     @staticmethod
     def create_gradient(radius, color=(255, 255, 255), intensity=100):
@@ -105,6 +106,35 @@ class LightingRenderer:
             self._blit_centered(
                 surface, self.projectile_light, center_x, center_y
             )
+
+        for entity in getattr(world, "entidades", ()):
+            if "nocturnal" not in getattr(entity, "tags", ()):
+                continue
+            if getattr(getattr(entity, "combat", None), "hp", 1) <= 0:
+                continue
+
+            phys = getattr(entity, "physics", None)
+            if not phys:
+                continue
+
+            cx = int(phys.x * tile_size - camera_x + tile_size // 2)
+            cy = int(phys.y * tile_size - camera_y + tile_size // 3)
+
+            if not (-32 <= cx <= surface.get_width() + 32 and -32 <= cy <= surface.get_height() + 32):
+                continue
+
+            facing_dir = getattr(getattr(entity, "sprite", None), "direction", "right")
+            eye_shift = 1 if facing_dir == "right" else -1
+            e1_x = cx - 3 + eye_shift
+            e2_x = cx + 3 + eye_shift
+            eye_y = cy - 2
+
+            self._blit_centered(surface, self.eye_glow, e1_x, eye_y)
+            self._blit_centered(surface, self.eye_glow, e2_x, eye_y)
+            pygame.draw.circle(surface, (255, 45, 35), (e1_x, eye_y), 2)
+            pygame.draw.circle(surface, (255, 220, 200), (e1_x, eye_y), 1)
+            pygame.draw.circle(surface, (255, 45, 35), (e2_x, eye_y), 2)
+            pygame.draw.circle(surface, (255, 220, 200), (e2_x, eye_y), 1)
 
     @staticmethod
     def _blit_centered(surface, light, center_x, center_y):

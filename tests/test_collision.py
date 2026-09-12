@@ -150,7 +150,7 @@ class ProjectileCollisionTests(unittest.TestCase):
         self.assertEqual(tree.hp, 90)
         self.assertEqual(map_obj.particulas.emissions[0][2], "wood")
 
-    def test_terrain_impact_uses_material_particles(self):
+    def test_projectile_crosses_deep_water_without_impact(self):
         class Tile:
             tipo = "deep_water"
 
@@ -161,8 +161,57 @@ class ProjectileCollisionTests(unittest.TestCase):
 
         projectile.update(1 / 60, map_obj)
 
+        self.assertTrue(projectile.active)
+        self.assertGreater(projectile.x, 1.0)
+        self.assertEqual(map_obj.particulas.emissions, [])
+
+    def test_projectile_hits_target_beyond_multiple_water_tiles(self):
+        class WaterTile:
+            tipo = "deep_water"
+
+        class Physics:
+            def move_by(self, *args):
+                pass
+
+        class Target:
+            hp = 20
+            x = 3
+            y = 0
+            hitbox = pygame.Rect(96, 0, 32, 32)
+            physics = Physics()
+
+            def tomar_dano(self, damage, map_obj, critical=False):
+                self.hp -= damage
+
+        owner = object()
+        target = Target()
+        water = {(1, 0), (2, 0)}
+        projectile = Projetil(
+            0.5, 0.5, 0, "player", owner, damage=5, speed=48
+        )
+        map_obj = MapStub(blocked=water, entities=[owner, target])
+        map_obj.obter_tile = (
+            lambda x, y: WaterTile() if (x, y) in water else None
+        )
+
+        projectile.update(0.08, map_obj)
+
         self.assertFalse(projectile.active)
-        self.assertEqual(map_obj.particulas.emissions[0][2], "splash")
+        self.assertEqual(target.hp, 15)
+
+    def test_projectile_still_stops_on_wall(self):
+        class Tile:
+            tipo = "parede"
+
+        owner = object()
+        projectile = Projetil(0.5, 0.5, 0, "player", owner, speed=42)
+        map_obj = MapStub(blocked={(1, 0)}, entities=[owner])
+        map_obj.obter_tile = lambda x, y: Tile()
+
+        projectile.update(1 / 60, map_obj)
+
+        self.assertFalse(projectile.active)
+        self.assertEqual(map_obj.particulas.emissions[0][2], "stone")
 
 
 class PhysicsCollisionTests(unittest.TestCase):

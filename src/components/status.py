@@ -50,7 +50,8 @@ class StatusComponent:
 
     def update(self, dt):
         self.energy_remaining = max(0.0, self.energy_remaining - dt)
-        self.timer_fome += dt
+        rate_modifier = 0.5 if getattr(self.entity, "near_campfire", False) else 1.0
+        self.timer_fome += dt * rate_modifier
         if self.timer_fome >= 5.0:
             self.timer_fome -= 5.0
             if self.fome > 0:
@@ -59,13 +60,9 @@ class StatusComponent:
                 self.entity.tomar_dano(1) # Dano de fome
 
         # --- LÓGICA DE SEDE (Desce mais rápido que fome, ex: 3s) ---
-        self.timer_sede += dt
+        self.timer_sede += dt * rate_modifier
         if self.timer_sede >= 3.0:
             self.timer_sede -= 3.0
-            if self.sede > 0:
-                self.sede -= 1
-            else:
-                self.entity.tomar_dano(1) # Dano de sede
 
         # --- LÓGICA DE SANGRAMENTO (Dano intermitente) ---
         if self.sangramento > 0:

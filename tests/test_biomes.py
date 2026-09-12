@@ -41,7 +41,7 @@ class EnvironmentDecorationTests(unittest.TestCase):
         self.assertFalse(tile.bloqueado)
         self.assertEqual(tile.decoracao, "nature_sprout")
 
-    def test_large_forest_rock_blocks_movement(self):
+    def test_forest_rock_blocks_its_tile(self):
         tile = Tile("grass")
 
         biomas.aplicar_bioma_floresta(None, 0, 0, tile, 4)
@@ -58,16 +58,32 @@ class EnvironmentDecorationTests(unittest.TestCase):
         self.assertEqual(tile.decoracao, "nature_twig")
 
     def test_only_decorations_with_volume_block_movement(self):
-        self.assertTrue(biomas.decoracao_solida("nature_bush_green"))
+        low_vegetation = (
+            "nature_bush_green",
+            "nature_bush_autumn",
+            "nature_leaf_cluster",
+            "nature_plant_tall",
+            "nature_cattail",
+            "nature_dry_leafy",
+            "nature_dry_cattail",
+        )
+        for decoration in low_vegetation:
+            with self.subTest(decoration=decoration):
+                self.assertFalse(biomas.decoracao_solida(decoration))
+
         self.assertTrue(biomas.decoracao_solida("nature_stump"))
         self.assertTrue(biomas.decoracao_solida("nature_crystal_blue"))
+        self.assertTrue(biomas.decoracao_solida("nature_bonfire"))
         self.assertFalse(biomas.decoracao_solida("nature_flower_white"))
         self.assertFalse(biomas.decoracao_solida("nature_fallen_leaves"))
 
         tile = Tile("grass")
-        tile.decoracao = "nature_stump"
+        tile.decoracao = "nature_bush_green"
         map_obj = Mapa.__new__(Mapa)
         map_obj.obter_tile = lambda _x, _y: tile
+        self.assertFalse(map_obj.is_blocked_terrain(0, 0))
+
+        tile.decoracao = "nature_stump"
         self.assertTrue(map_obj.is_blocked_terrain(0, 0))
 
 

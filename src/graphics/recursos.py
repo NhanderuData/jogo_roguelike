@@ -249,6 +249,142 @@ def carregar_inimigo_pixel_crawler(nome):
         },
     }
 
+
+def transformar_em_sombra(surface):
+    result = surface.copy()
+    w, h = result.get_size()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = result.get_at((x, y))
+            if a == 0:
+                continue
+            lum = (r + g + b) / (3 * 255.0)
+            shadow_r = int(14 + 18 * lum)
+            shadow_g = int(10 + 14 * lum)
+            shadow_b = int(26 + 32 * lum)
+            result.set_at((x, y), (shadow_r, shadow_g, shadow_b, a))
+    return result
+
+
+def criar_variacao_sombra(anim_dict):
+    result = {}
+    for state, directions in anim_dict.items():
+        result[state] = {}
+        for direction, frames in directions.items():
+            result[state][direction] = [transformar_em_sombra(f) for f in frames]
+    return result
+
+
+def carregar_animais_fazenda():
+    animais = {}
+    farm_configs = {
+        "animal_bull": ("bull.png", (64, 64), 2.6),
+        "animal_calf": ("calf.png", (64, 64), 2.6),
+        "animal_chick": ("chick.png", (16, 16), 2.0),
+        "animal_lamb": ("lamb.png", (32, 32), 1.8),
+        "animal_piglet": ("piglet.png", (32, 32), 2.3),
+        "animal_rooster": ("rooster.png", (32, 32), 1.6),
+        "animal_sheep": ("sheep.png", (32, 32), 2.1),
+        "animal_turkey": ("turkey.png", (32, 32), 1.8),
+    }
+    for key, (filename, (fw, fh), scale) in farm_configs.items():
+        try:
+            full_path = f"sprites/animals/farm/{filename}"
+            sheet = _carregar_imagem(full_path)
+            cols = min(6, sheet.get_width() // fw)
+            rows = min(8, sheet.get_height() // fh)
+            max_b = 0
+            for r in range(rows):
+                for c in range(cols):
+                    sub = sheet.subsurface(pygame.Rect(c * fw, r * fh, fw, fh))
+                    bb = sub.get_bounding_rect()
+                    if bb.w > 0 and bb.h > 0:
+                        max_b = max(max_b, bb.bottom)
+            crop_h = min(fh, max_b + 1)
+            target_w = int(fw * scale)
+            target_h = int(crop_h * scale)
+
+            def get_row(row, count):
+                frames = []
+                for col in range(count):
+                    sub = sheet.subsurface(pygame.Rect(col * fw, row * fh, fw, crop_h))
+                    if scale != 1.0 or crop_h != fh:
+                        sub = pygame.transform.scale(sub, (target_w, target_h))
+                    frames.append(sub)
+                return frames
+
+            animais[key] = {
+                "idle": {
+                    "down": get_row(4, 4),
+                    "up": get_row(5, 4),
+                    "left": get_row(6, 4),
+                    "right": get_row(7, 4),
+                },
+                "move": {
+                    "down": get_row(0, 6),
+                    "up": get_row(1, 6),
+                    "left": get_row(2, 6),
+                    "right": get_row(3, 6),
+                },
+            }
+        except Exception as exc:
+            logger.warning("Could not load farm animal %s: %s", key, exc)
+    return animais
+
+
+def carregar_animais_caca():
+    animais = {}
+    hunt_configs = {
+        "animal_boar": ("boar", "boar_idle.png", "boar_walk.png", 2.4),
+        "animal_deer": ("deer", "deer_idle.png", "deer_walk.png", 2.6),
+        "animal_fox": ("fox", "fox_idle.png", "fox_walk.png", 2.0),
+        "animal_hare": ("hare", "hare_idle.png", "hare_walk.png", 1.7),
+        "animal_black_grouse": ("black_grouse", "black_grouse_idle.png", "black_grouse_walk.png", 1.7),
+    }
+    fw, fh = 32, 32
+    for key, (folder, idle_file, walk_file, scale) in hunt_configs.items():
+        try:
+            full_path_idle = f"sprites/animals/hunt/{folder}/{idle_file}"
+            full_path_walk = f"sprites/animals/hunt/{folder}/{walk_file}"
+            sheet_idle = _carregar_imagem(full_path_idle)
+            sheet_walk = _carregar_imagem(full_path_walk)
+
+            max_b = 0
+            for sheet in (sheet_idle, sheet_walk):
+                cols = sheet.get_width() // fw
+                rows = sheet.get_height() // fh
+                for r in range(rows):
+                    for c in range(cols):
+                        sub = sheet.subsurface(pygame.Rect(c * fw, r * fh, fw, fh))
+                        bb = sub.get_bounding_rect()
+                        if bb.w > 0 and bb.h > 0:
+                            max_b = max(max_b, bb.bottom)
+            crop_h = min(fh, max_b + 1)
+            target_w = int(fw * scale)
+            target_h = int(crop_h * scale)
+
+            def load_action(sheet):
+                cols = sheet.get_width() // fw
+                dirs = {}
+                for r, dir_name in enumerate(["down", "up", "left", "right"]):
+                    frames = []
+                    for c in range(cols):
+                        sub = sheet.subsurface(pygame.Rect(c * fw, r * fh, fw, crop_h))
+                        if scale != 1.0 or crop_h != fh:
+                            sub = pygame.transform.scale(sub, (target_w, target_h))
+                        frames.append(sub)
+                    dirs[dir_name] = frames
+                return dirs
+
+            animais[key] = {
+                "idle": load_action(sheet_idle),
+                "move": load_action(sheet_walk),
+            }
+        except Exception as exc:
+            logger.warning("Could not load hunt animal %s: %s", key, exc)
+    return animais
+
+
 def carregar_primeiro_frame(nome_arquivo, colunas, escala=2.0):
     frames = carregar_spritesheet(nome_arquivo, colunas, escala)
     return frames[0]
@@ -281,6 +417,53 @@ def carregar_regiao_atlas(nome_arquivo, rect, escala=2.0):
     except (FileNotFoundError, pygame.error, ValueError) as exc:
         logger.warning("Could not load atlas region %s %s: %s", nome_arquivo, rect, exc)
         return criar_sprite_provisorio(config.CINZA_CLARO)
+
+
+POND_EDGE_OFFSETS = {
+    "north": (32, 64),
+    "south": (32, 0),
+    "west": (64, 32),
+    "east": (0, 32),
+    "north_west": (48, 48),
+    "north_east": (16, 48),
+    "south_west": (48, 16),
+    "south_east": (16, 16),
+    "inner_north_west": (48, 64),
+    "inner_north_east": (16, 64),
+    "inner_south_west": (48, 0),
+    "inner_south_east": (16, 0),
+}
+
+
+def carregar_bordas_lagoa(nature_base):
+    """Carrega os autotiles 16px da lagoa na escala 2x do mundo."""
+    return {
+        f"terrain_pond_edge_{edge_name}_frames": [
+            carregar_regiao_atlas(
+                f"{nature_base}/water.png",
+                (offset_x + frame * 96, offset_y, 16, 16),
+                escala=2.0,
+            )
+            for frame in range(4)
+        ]
+        for edge_name, (offset_x, offset_y) in POND_EDGE_OFFSETS.items()
+    }
+
+
+ROCK_REGIONS = {
+    "rock": (176, 16, 16, 16),
+    "rock_brown": (80, 16, 16, 16),
+}
+
+
+def carregar_rochas(nature_base):
+    """Carrega rochas de um tile, alinhadas à mesma grade 2x do terreno."""
+    return {
+        sprite_name: carregar_regiao_atlas(
+            f"{nature_base}/rocks.png", rect, escala=2.0
+        )
+        for sprite_name, rect in ROCK_REGIONS.items()
+    }
 
 
 def criar_casa_vila(porta, janela, chamine, paleta, seed=0, janela_esquerda=False):
@@ -494,28 +677,9 @@ def carregar_tudo():
             variants[0], False, True
         )
 
-    # Cada bloco horizontal de 96 px no atlas é um frame de 100 ms, formado
-    # por uma grade 3x3 de tiles que já medem 32 px. Recortar apenas 16 px e
-    # ampliar seleciona só um quadrante da peça (alguns cantos ficam parecendo
-    # blocos lisos de água), interrompendo visualmente o contorno da lagoa.
-    pond_edge_offsets = {
-        "north": (32, 64),
-        "south": (32, 0),
-        "west": (64, 32),
-        "east": (0, 32),
-        "north_west": (64, 64),
-        "north_east": (0, 64),
-        "south_west": (64, 0),
-        "south_east": (0, 0),
-    }
-    for edge_name, (offset_x, offset_y) in pond_edge_offsets.items():
-        SPRITES[f"terrain_pond_edge_{edge_name}_frames"] = [
-            carregar_regiao_atlas(
-                f"{nature_base}/water.png",
-                (offset_x + frame * 96, offset_y, 32, 32),
-            )
-            for frame in range(4)
-        ]
+    # Cada bloco horizontal de 96 px é um frame de 100 ms. Suas margens usam
+    # os mesmos autotiles nativos de 16 px do restante do cenário.
+    SPRITES.update(carregar_bordas_lagoa(nature_base))
 
     terrain_palette = {
         "terrain_sand": (config.COR_AREIA, 115),
@@ -570,6 +734,11 @@ def carregar_tudo():
     SPRITES["enemy_skeleton"] = carregar_inimigo_pixel_crawler("skeleton")
     SPRITES["enemy_orc_rogue"] = carregar_inimigo_pixel_crawler("orc_rogue")
     SPRITES["enemy_orc_warrior"] = carregar_inimigo_pixel_crawler("orc_warrior")
+    SPRITES["enemy_night_stalker"] = criar_variacao_sombra(SPRITES["enemy_orc_rogue"])
+
+    # Animais da Fazenda e de Caça (CraftPix Packs)
+    SPRITES.update(carregar_animais_fazenda())
+    SPRITES.update(carregar_animais_caca())
 
     # Árvores Size_04 nativas: mais detalhe real que apenas ampliar as pequenas.
     SPRITES["tree"] = carregar_regiao_atlas(
@@ -594,12 +763,7 @@ def carregar_tudo():
         f"{nature_base}/trees_conifer_large.png", (0, 112, 64, 112), escala=2.0
     )
     SPRITES["cipreste"] = SPRITES["tree_fir"]
-    SPRITES["rock"] = carregar_regiao_atlas(
-        f"{nature_base}/rocks.png", (128, 16, 32, 32), escala=2.0
-    )
-    SPRITES["rock_brown"] = carregar_regiao_atlas(
-        f"{nature_base}/rocks.png", (32, 16, 32, 32), escala=2.0
-    )
+    SPRITES.update(carregar_rochas(nature_base))
 
     decoration_regions = {
         "nature_bush_green": ("vegetation.png", (0, 0, 32, 32)),

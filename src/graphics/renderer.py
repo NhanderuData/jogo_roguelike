@@ -334,7 +334,7 @@ class Renderer:
 
     @staticmethod
     def _pond_edge_name(mapa_obj, x, y):
-        """Escolhe o autotile do lago a partir das quatro margens vizinhas."""
+        """Escolhe o autotile do lago a partir das margens vizinhas e cantos diagonais."""
         land = set()
         for dx, dy, side in (
             (0, -1, "north"),
@@ -357,6 +357,18 @@ class Renderer:
         for side in ("north", "south", "west", "east"):
             if side in land:
                 return side
+
+        # Cantos internos (côncavos) quando não há terra nos quatro lados cardinais:
+        for dx, dy, name in (
+            (-1, -1, "inner_north_west"),
+            (1, -1, "inner_north_east"),
+            (-1, 1, "inner_south_west"),
+            (1, 1, "inner_south_east"),
+        ):
+            neighbor = mapa_obj.obter_tile(x + dx, y + dy)
+            if neighbor and neighbor.tipo not in {"deep_water", "bridge"}:
+                return name
+
         return None
 
     def adicionar_transicoes(self, mapa_obj, tile_type, x, y, sx, sy, queue):

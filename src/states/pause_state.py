@@ -29,6 +29,9 @@ class PauseState(BaseState):
         if self.input.is_pressed(Actions.PAUSE):
             self.manager.pop()
             return
+
+        if self.input.is_pressed(Actions.TOGGLE_MUTE):
+            self.context.audio.toggle_mute()
             
         # Opção de Sair do Jogo pelo menu de pause
         if self.input.is_pressed(Actions.QUIT):

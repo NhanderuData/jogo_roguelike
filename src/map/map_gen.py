@@ -1,5 +1,6 @@
 # src/map/map_gen.py
 import logging
+import math
 import random
 from entities import actor
 from graphics import efeitos
@@ -54,7 +55,8 @@ class Mapa:
         self.trilha_tiles = set()
         self.pontos_interesse = []
         self._tree_positions = set()
-        
+        self.bonfire_positions = set()
+        self.time_system = None
         self.seed = 0
         self.rng = random.Random()
         self.gameplay_rng = random.Random()
@@ -83,6 +85,37 @@ class Mapa:
         tile = self.obter_tile(x, y)
         return tile_is_blocking(tile) if tile else True
 
+    def _index_bonfires(self):
+        self.bonfire_positions.clear()
+        for y in range(self.altura):
+            for x in range(self.largura):
+                tile = self.obter_tile(x, y)
+                if tile and tile.decoracao == "nature_bonfire":
+                    self.bonfire_positions.add((x, y))
+
+    def is_near_bonfire(self, x: float, y: float, radius: float = 4.5) -> bool:
+        radius_sq = radius * radius
+        for bx, by in self.bonfire_positions:
+            cx = bx + 0.5
+            cy = by + 0.5
+            if (x - cx) ** 2 + (y - cy) ** 2 <= radius_sq:
+                return True
+        return False
+
+    def get_nearest_bonfire(self, x: float, y: float) -> tuple[float, float, float] | None:
+        if not self.bonfire_positions:
+            return None
+        closest = None
+        min_dist_sq = float("inf")
+        for bx, by in self.bonfire_positions:
+            cx = bx + 0.5
+            cy = by + 0.5
+            d_sq = (x - cx) ** 2 + (y - cy) ** 2
+            if d_sq < min_dist_sq:
+                min_dist_sq = d_sq
+                closest = (cx, cy, math.sqrt(d_sq))
+        return closest
+
     def gerar_novo_nivel(self, seed: int | None = None):
         # 1. Reset das Listas
         self.entidades = []
@@ -97,6 +130,7 @@ class Mapa:
         self.trilha_tiles = set()
         self.pontos_interesse = []
         self._tree_positions = set()
+        self.bonfire_positions = set()
         
         self.seed = (
             random.SystemRandom().randint(0, 2**31 - 1)
@@ -182,6 +216,11 @@ class Mapa:
 
         # 3.6 Compõe clareiras, trilhas e pequenas hortas conectadas.
         composicao.CompositorMundo(self, self.seed).gerar()
+        self._index_bonfires()
+
+        # Garante que estradas, vilas ou trilhas não deixem pontas de água
+        # irregulares de 1 tile após a composição final do mundo.
+        self.pond_tile_count = composicao.suavizar_margens_lagoa(self)
 
         # 4. Spawn do Jogador
         sx, sy = 15, 15
@@ -244,6 +283,7 @@ class Mapa:
                 elif tipo_bioma == "azul": 
                     nome = "Tank"
                 else:
+
                     nome = "Walker"
                 
                 inimigo = actor.Entidade(
@@ -252,14 +292,64 @@ class Mapa:
                 self.entidades.append(inimigo)
                 count += 1
 
+        self._spawnar_animais()
         self.spatial_index.rebuild(self.entidades)
+
+    def _spawnar_animais(self):
+        farm_species = [
+            "Touro", "Bezerro", "Pintinho", "Cordeiro",
+            "Porquinho", "Galo", "Ovelha", "Peru"
+        ]
+        hunt_species = [
+            "Javali", "Cervo", "Raposa", "Lebre", "Galo Silvestre"
+        ]
+
+        # 1. Animais de Fazenda nas Vilas / Clareiras
+        for clareira in self.clareiras:
+            cx, cy = clareira.centro
+            qtd_vila = self.rng.randint(3, 5)
+            for _ in range(qtd_vila):
+                for _tentativa in range(30):
+                    ax = cx + self.rng.randint(-7, 7)
+                    ay = cy + self.rng.randint(-7, 7)
+                    if 0 <= ax < self.largura and 0 <= ay < self.altura:
+                        if not self.is_blocked_terrain(ax, ay):
+                            especie = self.rng.choice(farm_species)
+                            animal = actor.Entidade(
+                                ax, ay, especie, self.context, rng=self.gameplay_rng
+                            )
+                            self.entidades.append(animal)
+                            break
+
+        # 2. Animais Selvagens pela Natureza / Floresta / Margens
+        total_selvagens = self.rng.randint(18, 28)
+        spawned = 0
+        tentativas = 0
+        while spawned < total_selvagens and tentativas < 1500:
+            tentativas += 1
+            wx = self.rng.randint(6, self.largura - 6)
+            wy = self.rng.randint(6, self.altura - 6)
+            
+            if self.jogador:
+                dist = math.hypot(wx - self.jogador.x, wy - self.jogador.y)
+                if dist < 8:
+                    continue
+
+            if not self.is_blocked_terrain(wx, wy):
+                tile = self.obter_tile(wx, wy)
+                if tile and tile.tipo in ("grass", "terra", "coast", "sand"):
+                    especie = self.rng.choice(hunt_species)
+                    animal = actor.Entidade(
+                        wx, wy, especie, self.context, rng=self.gameplay_rng
+                    )
+                    self.entidades.append(animal)
+                    spawned += 1
 
     def nearby_entities(self, rect):
         return self.spatial_index.query(rect)
 
     def update(self, dt):
         self.simulation.update(dt)
-
     def criar_texto_dano(self, x, y, valor, cor=(255, 50, 50)):
         txt = efeitos.TextoFlutuante(x, y, str(valor), cor)
         self.textos.append(txt)

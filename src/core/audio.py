@@ -10,16 +10,20 @@ import pygame
 
 class AudioService(Protocol):
     enabled: bool
+    muted: bool
 
     def play(self, name: str, volume: float = 1.0) -> None: ...
     def play_ambient(self, name: str, volume: float = 0.12) -> None: ...
     def stop_ambient(self) -> None: ...
+    def toggle_mute(self) -> bool: ...
+    def set_muted(self, muted: bool) -> None: ...
 
 
 class NullSoundManager:
     """Implementação sem áudio para testes e ambientes sem mixer."""
 
     enabled = False
+    muted = False
 
     def play(self, name: str, volume: float = 1.0) -> None:
         pass
@@ -30,14 +34,24 @@ class NullSoundManager:
     def stop_ambient(self) -> None:
         pass
 
+    def toggle_mute(self) -> bool:
+        self.muted = not self.muted
+        return self.muted
+
+    def set_muted(self, muted: bool) -> None:
+        self.muted = bool(muted)
+
 
 class SoundManager:
     """Small procedural sound bank with a silent fallback."""
 
     def __init__(self) -> None:
         self.enabled = False
+        self.muted = False
         self.sounds: dict[str, pygame.mixer.Sound] = {}
         self.ambient_channel: pygame.mixer.Channel | None = None
+        self._ambient_name: str | None = None
+        self._ambient_volume: float = 0.12
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.init(frequency=22050, size=-16, channels=1, buffer=256)
@@ -69,6 +83,8 @@ class SoundManager:
             "casing": (0.045, 1350.0, 620.0, 0.08),
             "wind": (3.0, 72.0, 88.0, 0.92),
             "bird": (0.22, 780.0, 1380.0, 0.05),
+            "night_howl": (1.4, 480.0, 160.0, 0.35),
+            "fire_hiss": (0.18, 750.0, 220.0, 0.75),
         }
         for name, spec in specs.items():
             self.sounds[name] = self._synthesize(frequency, channels, name, *spec)
@@ -99,8 +115,23 @@ class SoundManager:
                 samples.append(value)
         return pygame.mixer.Sound(buffer=samples.tobytes())
 
+    def toggle_mute(self) -> bool:
+        self.set_muted(not self.muted)
+        return self.muted
+
+    def set_muted(self, muted: bool) -> None:
+        self.muted = bool(muted)
+        if self.muted:
+            if self.ambient_channel:
+                self.ambient_channel.pause()
+        else:
+            if self.ambient_channel:
+                self.ambient_channel.unpause()
+            elif self._ambient_name and self.enabled:
+                self.play_ambient(self._ambient_name, self._ambient_volume)
+
     def play(self, name: str, volume: float = 1.0) -> None:
-        if not self.enabled:
+        if not self.enabled or self.muted:
             return
         sound = self.sounds.get(name)
         if sound:
@@ -108,9 +139,13 @@ class SoundManager:
             sound.play()
 
     def play_ambient(self, name: str, volume: float = 0.12) -> None:
+        self._ambient_name = name
+        self._ambient_volume = volume
         if not self.enabled:
             return
         self.stop_ambient()
+        if self.muted:
+            return
         sound = self.sounds.get(name)
         if sound:
             sound.set_volume(max(0.0, min(1.0, volume)))

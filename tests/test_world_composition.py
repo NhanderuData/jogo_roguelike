@@ -86,6 +86,25 @@ class PondCompositionTests(unittest.TestCase):
         world.obter_tile(1, 2).tipo = "grass"
         self.assertEqual(Renderer._pond_edge_name(world, 2, 2), "north_west")
 
+        # Inner corners (cardinal neighbors are water, diagonal neighbor is land)
+        for row in world.grid:
+            for tile in row:
+                tile.tipo = "deep_water"
+        world.obter_tile(1, 1).tipo = "grass"
+        self.assertEqual(Renderer._pond_edge_name(world, 2, 2), "inner_north_west")
+
+        world.obter_tile(1, 1).tipo = "deep_water"
+        world.obter_tile(3, 1).tipo = "grass"
+        self.assertEqual(Renderer._pond_edge_name(world, 2, 2), "inner_north_east")
+
+        world.obter_tile(3, 1).tipo = "deep_water"
+        world.obter_tile(1, 3).tipo = "grass"
+        self.assertEqual(Renderer._pond_edge_name(world, 2, 2), "inner_south_west")
+
+        world.obter_tile(1, 3).tipo = "deep_water"
+        world.obter_tile(3, 3).tipo = "grass"
+        self.assertEqual(Renderer._pond_edge_name(world, 2, 2), "inner_south_east")
+
     def test_pond_smoothing_removes_unsupported_single_tile_tip(self):
         world = FakeMap(9, 9)
         for y in range(2, 7):

@@ -78,9 +78,16 @@ class Projetil:
         bottom = (rect.bottom - 1) // size
         for ty in range(top, bottom + 1):
             for tx in range(left, right + 1):
+                tile = (
+                    mapa_obj.obter_tile(tx, ty)
+                    if hasattr(mapa_obj, "obter_tile")
+                    else None
+                )
+                # A água bloqueia personagens, mas não projéteis em voo.
+                if tile and tile.tipo == "deep_water":
+                    continue
                 if not mapa_obj.is_blocked_terrain(tx, ty):
                     continue
-                tile = mapa_obj.obter_tile(tx, ty) if hasattr(mapa_obj, "obter_tile") else None
                 return terrain_material(tile)
         return None
 

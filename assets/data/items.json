@@ -70,5 +70,17 @@
     "value": 1,
     "color": [140, 85, 45],
     "sprite": "nature_stump"
+  },
+  "Carne Crua": {
+    "type": "comida",
+    "value": 25,
+    "color": [210, 65, 65],
+    "sprite": "nature_crystal_blue"
+  },
+  "Couro": {
+    "type": "material",
+    "value": 1,
+    "color": [130, 85, 45],
+    "sprite": "nature_stump"
   }
 }

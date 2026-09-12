@@ -68,6 +68,23 @@ class SpriteComponent:
             self.scale_sombra = 3.0
         elif "rock" in key:
             self.scale_sombra = 0.8
+        elif key.startswith("animal_"):
+            animal_shadow_scales = {
+                "animal_bull": 1.6,
+                "animal_calf": 1.4,
+                "animal_chick": 0.7,
+                "animal_lamb": 1.0,
+                "animal_piglet": 1.1,
+                "animal_rooster": 0.9,
+                "animal_sheep": 1.2,
+                "animal_turkey": 1.1,
+                "animal_boar": 1.3,
+                "animal_deer": 1.4,
+                "animal_fox": 1.1,
+                "animal_hare": 0.9,
+                "animal_black_grouse": 1.0,
+            }
+            self.scale_sombra = animal_shadow_scales.get(key, 1.0)
 
     def animar(self, dt):
         # Verifica se a entidade está se movendo (flag na física)

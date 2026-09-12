@@ -13,4 +13,4 @@ dist/
 Thumbs.db
 
 # Pacote-fonte local; o jogo versiona apenas os PNGs utilizados e a licença.
-assets/Pixel Crawler - Free Pack 2.11.zip
+assets/*.zip
